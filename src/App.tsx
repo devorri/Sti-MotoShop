@@ -68,7 +68,7 @@ const Contact = () => (
         </div>
         <div>
           <h4>HOURS</h4>
-          <p style={{ fontSize: '0.9rem' }}>MON-SAT: 8:00 AM - 6:00 PM</p>
+          <p style={{ fontSize: '0.9rem' }}>MON-SUN: 10:00 AM - 8:00 PM</p>
         </div>
       </div>
     </div>
