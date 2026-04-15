@@ -56,7 +56,7 @@ const Contact = () => (
       <div style={{ marginTop: '40px', display: 'flex', flexDirection: 'column', gap: '30px' }}>
         <div>
           <h4>ADDRESS</h4>
-          <p style={{ fontSize: '0.9rem' }}>123 MOTO STREET, QUEZON CITY, PH</p>
+          <p style={{ fontSize: '0.9rem' }}>Bagong Nayon, Baliwag, Bulacan (infront of Bagong Nayon Chapel)</p>
         </div>
         <div>
           <h4>PHONE</h4>
