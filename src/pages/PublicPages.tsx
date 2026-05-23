@@ -23,14 +23,14 @@ export const Home: React.FC = () => {
         <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, opacity: 0.05, background: 'linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)', backgroundSize: '40px 40px' }}></div>
         
         <div style={{ zIndex: 2, maxWidth: '800px' }}>
-          <span className="badge" style={{ borderColor: '#FF6600', color: '#FF6600', marginBottom: '20px', padding: '4px 12px', fontSize: '0.75rem', letterSpacing: '2px' }}>EST. 2008</span>
+          <span className="badge" style={{ borderColor: '#fff', color: '#fff', backgroundColor: 'transparent', marginBottom: '20px', padding: '4px 12px', fontSize: '0.75rem', letterSpacing: '2px' }}>EST. 2008</span>
           <h1 style={{ fontSize: 'clamp(3rem, 8vw, 5.5rem)', fontWeight: '950', letterSpacing: '-1px', margin: '0 0 10px 0', textTransform: 'uppercase', lineHeight: 0.9 }}>BOSS RAP</h1>
-          <p style={{ fontSize: 'clamp(1rem, 2.5vw, 1.6rem)', color: '#FF6600', fontWeight: 'bold', letterSpacing: '4px', textTransform: 'uppercase', margin: '0 0 40px 0' }}>MOTOR SHOP</p>
+          <p style={{ fontSize: 'clamp(1rem, 2.5vw, 1.6rem)', color: '#fff', fontWeight: 'bold', letterSpacing: '4px', textTransform: 'uppercase', margin: '0 0 40px 0' }}>MOTOR SHOP</p>
           <p style={{ fontSize: '0.95rem', opacity: 0.8, lineHeight: '1.6', maxWidth: '600px', margin: '0 auto 40px', color: '#ccc' }}>
             BULACAN'S PREMIER DESTINATION FOR PROFESSIONAL MOTORCYCLE TUNE-UPS, HIGH-PERFORMANCE UPGRADES, AND GENUINE OEM SPARE PARTS.
           </p>
           <div style={{ display: 'flex', gap: '20px', justifyContent: 'center', flexWrap: 'wrap' }}>
-            <Link to="/shop"><button className="primary" style={{ backgroundColor: '#FF6600', borderColor: '#FF6600', color: '#fff', padding: '16px 40px', minWidth: '220px', fontSize: '0.8rem', letterSpacing: '1px' }}>EXPLORE INVENTORY</button></Link>
+            <Link to="/shop"><button className="primary" style={{ backgroundColor: '#fff', borderColor: '#fff', color: '#000', padding: '16px 40px', minWidth: '220px', fontSize: '0.8rem', letterSpacing: '1px' }}>EXPLORE INVENTORY</button></Link>
             <Link to="/services"><button style={{ backgroundColor: 'transparent', borderColor: '#fff', color: '#fff', padding: '16px 40px', minWidth: '220px', fontSize: '0.8rem', letterSpacing: '1px' }}>OUR SERVICES</button></Link>
           </div>
         </div>
@@ -79,7 +79,7 @@ export const Home: React.FC = () => {
               <div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #eee', paddingBottom: '10px', marginBottom: '15px' }}>
                   <h4 style={{ fontSize: '1rem', margin: 0 }}>{service.name}</h4>
-                  <span className="badge" style={{ borderColor: '#FF6600', color: '#FF6600' }}>{service.label}</span>
+                  <span className="badge">{service.label}</span>
                 </div>
                 <p style={{ fontSize: '0.8rem', lineHeight: '1.6', opacity: 0.7 }}>{service.desc}</p>
               </div>
@@ -205,7 +205,7 @@ export const Shop: React.FC = () => {
               
               <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
                 <div>
-                  <span className="badge" style={{ borderColor: '#FF6600', color: '#FF6600' }}>{product.category}</span>
+                  <span className="badge">{product.category}</span>
                   <h4 style={{ margin: '10px 0 5px 0', fontSize: '1.05rem', lineHeight: '1.3' }}>{product.name}</h4>
                   <p style={{ fontSize: '0.75rem', opacity: 0.7, lineHeight: '1.4', marginBottom: '15px' }}>{product.description}</p>
                 </div>
