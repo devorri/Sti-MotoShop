@@ -179,6 +179,9 @@ export const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children 
           <TabButton id="inventory" label="INVENTORY" />
           <TabButton id="sales" label="SALES" />
           <TabButton id="members" label="MEMBERS" />
+          <TabButton id="promos" label="PROMOTIONS" />
+          <TabButton id="returns" label="RETURNS & CLAIMS" />
+          <TabButton id="inquiries" label="CUSTOMER MESSAGES" />
           <TabButton id="reports" label="REPORTS" />
           {currentUser.role === 'ADMIN' && <TabButton id="users" label="USERS" />}
         </nav>

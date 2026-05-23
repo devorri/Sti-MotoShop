@@ -1,0 +1,1135 @@
+FWEB-BASED SALES AND INVENTORY SYSTEM WITH MEMBERSHIP MANAGEMENT FOR BOSS RAP MOTOR SHOP
+
+
+
+
+
+
+
+
+
+A Capstone Project Proposal
+Presented to the Faculty of the
+Information and Communications Technology Program
+STI College Baliuag
+
+In Partial Fulfilment
+of the Requirements for the Degree
+Bachelor of Science in Information Technology
+Vladimmhir B. Canchino
+Aljae Dj. Cruz
+Mohammad Hamdie T. Langco
+Don Janken B. Teodoro
+
+April 18, 2026
+
+                       EXECUTIVE SUMMARY
+
+   This study focuses on developing a Web-Based Sales and Inventory System with Membership Management for Boss Rap Motor Shop. The main problem of the shop is that it still uses manual methods like notebooks to record sales and inventory. Because of this, errors happen, records can be lost, and transactions become slow. The proposed solution to address these issues is a web application that will enable the management of product inventories, transactions, and customer data in one database. The system will automatically update the inventory records, log sales transactions, and keep customer data. It will have a membership module, which will help identify regular customers and serve them better.
+
+The purpose of the system is to enable efficiency and accuracy of the shop's operation. This will be useful to the shop owner in assessing the status of his business with regard to its performance. In the long run, the system will help satisfy the customers and ensure growth of the business. Overall, this study proves that computerizing a motor shop is more effective than manually running it.
+
+ACKNOWLEDGEMENT 
+ 
+I would like to express my deepest gratitude to everyone who supported me in completing this thesis. First, I think God for giving me strength, wisdom, and guidance throughout this journey. 
+ 
+I am sincerely grateful to my adviser, who provided valuable advice, encouragement, and guidance during the development of this study. Their patience and support helped me improve my work and stay focused on my goals. 
+ 
+I also extend my thanks to my teachers and mentors who shared their knowledge and inspired me to continue learning. Their dedication has been a great influence on my academic growth. 
+ 
+To my family, I am forever thankful for their love, understanding, and support. They gave me motivation and strength to continue even during difficult times. 
+ 
+Lastly, I would like to thank my friends and classmates who offered help, encouragement, and companionship. Their support made this journey lighter and more meaningful. 
+ 
+This thesis would not have been possible without the guidance, support, and encouragement of all these people. 
+ 
+
+Approval Sheet 
+
+This thesis entitled “Web-based Sales and Inventory System with Membership Management for Boss Rap Motor Shop”, prepared and submitted by Mohammad Hamdie T. Langco, Vladimmhir B. Canchino, Aljae DJ. Cruz, Don Janken B. Teodoro in partial fulfillment of the requirements for the degree of Bachelor of Science in information Technology, has been examined and recommended for acceptance and approval
+                                                                                                                                                                                                                                     Mr. Kar-el T. Paulino
+Capstone Project Adviser
+
+            Accepted and approved by the Capstone Project Review Panel in partial fulfillment of the requirements for the degree of Bachelor of Science in Information Technology.
+                                                                                
+Mr. Kar-el T. Paulino                                                             Mr. Jayson V. Villafuerte                                                                                                                                                                                 Panel Member                                                                                     Panel Member  
+
+                                                          Mr. Louie A. Ruiz   
+                                                             Lead Panelist      
+                                                                                   
+                                                                   Noted:     
+
+
+         Mr. Kar-el T. Paulino                                                                Mr. Kar-el T. Paulino   Capstone Project Coordinator                                                               Program Head
+
+TABLE OF CONTENTS
+
+    Page
+Title page            i
+Executive Summary                                                                                    ii
+Approval Sheet            iii
+Acknowledgment            iv
+Table of Contents            v
+Introduction1
+Project Context1
+Purpose and Description of the Project3
+Objective of the Study6
+General Objective6
+Specific Objectives6
+Scope and Limitation of the Study5
+Scope8
+Limitations9
+Review Related literature /studies /system11
+Web-Based Inventory System Design at Toko Sahabat Using RAD Method11
+Web-Based Inventory and Sales Information System: MSME Case Study13
+Web-Based Stock Management and Sales Information System for Grocery Store14
+Web-Based Sales and Inventory System for a Stationery Store15
+Research on the Application of Membership System in Market Management16
+Review of Related Studies 17
+Inventory Management System for Motorcycle Dealers17
+Design of wed-based spare parts inventory information system19
+Web and mobile-based motorcycle spare part sales system 21
+Development of Spare Part Management System for Automotive Repairing Shop23
+WEB Based Motorcycle Sales Information System25
+Synthesis 26
+Table of Comparison27
+
+
+
+
+Methodology28
+Research design28
+Research Locale28
+Respondents of the Study29
+Data Gathering Procedure29
+System Development Method30
+Calendar of Activities32
+Planning Phase32
+System Design Phase32
+Development Phase37
+Resources 39
+System Architecture 40
+Simple Use Case Diagram Structure41
+System Interface Design41
+Home Page44
+Shop Page45
+Service Page46
+About Page47
+Contact Page48
+ Login Page49
+Admin Dashboard Page50
+Admin Inventory Page51
+Admin Sales Pages52
+Admin Member Pages53
+System Reports54
+User Management55
+Member Points56
+References57
+Curriculum Vitae60
+
+INTRODUCTION
+
+Project Context
+
+Motor shops play an important role in supporting motorcycle owners by providing spare parts and repair services. To operate efficiently and remain profitable, these businesses rely on effective management of their daily operations (Saputra & Fauzi, 2023). Among the most critical aspects of operations are inventory, sales, and customer management. According to Sudirga et al. (2021), inventory management refers to the process of monitoring product availability, stock levels, and the movement of items. Effective inventory management ensures that products are neither overstocked nor out of stock. Sales management, on the other hand, involves recording and tracking customer transactions, including product purchases, quantities, and total sales. Proper sales management ensures accurate financial records and smooth transaction processing (Ascon et al., 2023). Meanwhile, customer management focuses on handling customer information and interactions, which is essential for building relationships and encouraging repeat purchases (Aulia, 2022).
+
+However, Conde et al. (2025) stated that many small-scale motor shops still rely on manual methods such as notebooks or basic spreadsheets to manage these operations. These methods are time-consuming and highly prone to human error. In terms of inventory management, manual recording may lead to inaccurate stock counts, making it difficult to determine product availability (Agboola et al., 2022). Similarly, a recent study indicates that manual sales management often leads to errors in recording transactions, which can result in incorrect sales data and financial inconsistencies (Yuniarto & Siregar, 2025). Furthermore, the absence of a structured customer management system makes it difficult to identify repeat customers or track their purchase history (Najwa et al., 2023). As a result, businesses are unable to implement effective strategies to retain customers or improve service quality. These issues can lead to delays in transactions, poor decision-making, and reduced customer satisfaction, ultimately affecting the overall profitability of the business.
+
+In response to these challenges, many businesses are adopting computerized systems to improve operational efficiency and data accuracy (Șișu et al., 2024). A web-based system, in particular, provides a centralized platform where inventory, sales, and customer data can be stored, processed, and accessed in real time. By automating these processes, businesses can minimize errors, improve transaction speed, and enhance overall management capabilities (Divina et al., 2025).
+
+The proposed project, titled Web-Based Inventory and Sales System with Membership Management for Boss Rap Motor Shop, aims to address these operational issues. The system will integrate three main components: inventory management, sales management, and membership management. The inventory management module will monitor stock levels and automatically update product quantities after each transaction. The sales management module will record and process customer purchases accurately and efficiently. The membership management module will store customer information, track purchase history, and identify repeat customers through a structured system. Additionally, the system will incorporate barcode scanning functionality to improve the speed and accuracy of product identification during inventory handling and sales transactions. It also supports quick customer identification for walk-in members.
+
+Specifically, the membership component addresses the lack of a formal customer management approach in the shop. Currently, customer information is not systematically recorded, making it difficult to recognize loyal customers or analyze purchasing behavior. By introducing a membership system, the shop will be able to register customers, monitor their transaction history, and analyze purchasing behavior. This enables the implementation of reward mechanisms, identification of frequent customers, and development of strategies to increase customer retention.
+
+Overall, the proposed system seeks to replace the existing manual processes of Boss Rap Motor Shop with an integrated web-based solution. By improving inventory accuracy, streamlining sales transactions, and establishing a structured membership system, the project aims to enhance inventory accuracy, accelerate transaction processing, and enable data-driven decision-making, ultimately enhancing customer satisfaction and business performance.
+
+Purpose and Description of the Project
+
+The primary purpose of this project is to design and develop a Web-Based Inventory, Sales, and Membership Management System for Boss Rap Motor Shop. The system aims to modernize and streamline the shop’s daily operations by replacing its existing manual and semi-digital processes with a centralized, integrated, and computerized platform. Through this transformation, the project seeks to improve operational efficiency, enhance data accuracy, and support better decision-making for the business.
+Based on the initial interview conducted with the shop owner, Boss Rap Motor Shop currently operates using a combination of manual recording and informal digital methods. Inventory and sales transactions are primarily tracked through handwritten records and basic monitoring practices. In addition, the shop actively accepts customer orders through its Facebook page, where customers inquire about product availability and place orders online. Once a purchase is confirmed, customers are given two options: they may either pick up the items at the store or request delivery, wherein the shop books a third-party courier service such as Lalamove, with the delivery cost shouldered by the customer. While this approach allows the business to reach a wider customer base, it lacks a structured system for recording transactions, tracking inventory changes, and managing customer data efficiently.
+These existing practices present several operational challenges. Manual inventory tracking increases the risk of inaccurate stock counts, which may lead to overstocking or stock shortages. Similarly, sales transactions conducted through Facebook messaging are not automatically recorded in a centralized database, making it difficult to maintain consistent and reliable sales records. The absence of an integrated system also results in delays in retrieving information, potential duplication of data, and limited visibility of overall business performance. Furthermore, customer information from online transactions is not systematically stored, preventing the shop from identifying repeat customers or analyzing purchasing behavior.
+In response to these challenges, the proposed system will provide a comprehensive and structured solution by integrating inventory management, sales processing, and membership management into a single web-based platform. The system will enable real-time monitoring of product stock levels, ensuring that inventory data is consistently updated after every transaction. By automating inventory updates, the system reduces the likelihood of human error and provides accurate information on product availability at any given time.
+For sales management, the system will support both walk-in and online transactions. It will allow staff to process in-store purchases efficiently while also recording orders that originate from the system. Each transaction will be automatically stored in the system, ensuring that all sales data is consolidated in one database. This improves the accuracy of financial records and enables faster transaction processing. Additionally, the integration of barcode scanning functionality will further enhance operational efficiency by allowing quick product identification during sales and inventory handling, reducing reliance on manual input
+The system will also incorporate a membership management feature to address the lack of structured customer data handling. Through this feature, customers can be registered within the system, and their information, including contact details and transaction history, will be securely stored. This allows the business to identify repeat customers, monitor purchasing patterns, and implement strategies aimed at improving customer retention. Membership records may also support features such as customer identification during transactions and the potential implementation of rewards or promotional programs, thereby enhancing customer engagement and loyalty.
+Another important component of the system is its reporting capability. The proposed platform will generate comprehensive and organized reports on sales performance, inventory status, and product movement. These reports will provide valuable insights that can assist the shop owner in evaluating business performance, identifying fast-moving or slow-moving products, and making informed decisions regarding stock replenishment and sales strategies. By having access to accurate and timely reports, the business can improve its planning and overall management.
+Moreover, the web-based nature of the system ensures accessibility and flexibility. Authorized users can access the system through an internet connection, allowing the shop owner to monitor operations even outside the physical store. This is particularly beneficial given that a portion of the shop’s transactions already occurs online through Facebook, as it creates a more seamless integration between online inquiries and recorded sales data.
+Overall, the proposed Web-Based Inventory, Sales, and Membership Management System aims to replace the fragmented and manual processes currently used by Boss Rap Motor Shop with a unified and efficient solution. By integrating key business functions into a single platform, the system is expected to improve data accuracy, reduce operational delays, enhance customer management, and support data-driven decision-making. Ultimately, the project seeks to contribute to the growth and sustainability of the business by providing a reliable technological foundation for its operations.
+
+Objective of the Study
+
+General Objective
+The main objective of this study is to design and develop a web-based inventory, sales, and membership management system that enhances the efficiency, accuracy, and reliability of product, transaction, and customer data management for Boss Rap Motor Shop. The system aims to address the limitations of the shop’s current manual and informal processes by providing an integrated platform that supports both in-store and online operations.
+
+Specific Objectives
+
+To achieve the general objective, the study aims to accomplish the following:
+
+To develop a comprehensive inventory management module that ensures accurate and real-time monitoring of product stocks.
+This module will enable the efficient management of product records by allowing authorized users to add, update, and organize product information. It supports accurate monitoring of stock levels and ensures that inventory data is consistently maintained. The system aims to improve inventory control, reduce errors, and enhance the overall efficiency of stock management within the business.
+
+To develop an integrated sales management module that processes and records transactions efficiently and accurately.
+This module will facilitate the efficient processing and recording of sales transactions. It ensures that transaction details are properly captured and organized, supporting accurate sales monitoring and record-keeping. The system aims to improve transaction efficiency, reduce errors, and provide reliable sales data for business operations.
+
+
+To develop a membership management module with QR code-based identification to support structured customer data handling and customer retention.
+This module will enable the registration and secure storage of customer information, including names, contact details, and transaction history. It will support the identification of repeat and high-value customers and facilitate the analysis of purchasing behavior. The inclusion of QR code-based identification will enhance customer recognition and improve transaction efficiency, contributing to better customer engagement and retention.
+
+To develop a reporting module that provides accurate and comprehensive business performance insights.
+This module will generate reports on sales performance, inventory status, and customer activity. It will assist the shop owner in monitoring product movement, identifying fast-moving and slow-moving items, analyzing sales trends, and supporting data-driven decision-making for business improvement.
+
+To develop an integrated system that connects the sales, inventory, and reporting modules to ensure accurate and synchronized financial and transaction data within the system.
+This feature will record payments made through digital channels such as e-wallets and online banking. It ensures that all online payment transactions are properly documented and linked to corresponding sales records within the system, supporting accurate financial tracking, transparency, and easier reconciliation of accounts.
+
+Scope and Limitation of the Study
+
+Scope
+This study focuses on the development of a Web-Based Inventory, Sales, and Membership Management System for Boss Rap Motor Shop. The system will cover the integration of inventory management, sales processing, membership management, reporting, and digital payment recording into a centralized platform to improve operational efficiency and data accuracy.
+
+User Authentication and Access Control Module
+This module allows authorized users such as the shop owner and employees to register and securely access the system through a login process. It includes role-based access control to ensure that only permitted users can perform specific system functions.
+Inventory Management Module
+This module allows the management of product records, including adding, updating, deleting, and categorizing products. It supports stock-in and stock-out processes and automatically updates inventory levels after each transaction. The system also integrates barcode scanning for product identification, enabling faster processing of inventory updates and sales transactions.
+Sales Management Module
+This module handles both walk-in and online transactions, including orders received through Facebook inquiries. It records product purchases, quantities, prices, and transaction details. The system automatically computes total sales, generates transaction records, and updates inventory in real time. Barcode scanning is used during walk-in transactions to improve speed and accuracy in product selection and processing.
+Membership Management and Loyalty Module
+This module allows the registration and secure storage of customer information, including names, contact details, and transaction history. It supports customer tracking and the identification of repeat customers. The system generates QR code-based membership cards that are used for customer identification during transactions. The module also supports basic membership benefits such as loyalty tracking and customer engagement features to encourage repeat purchases.
+Reporting Module
+This module generates comprehensive reports on sales performance, inventory status, product movement, and customer activity. It provides insights such as fast-moving and slow-moving items and supports data-driven decision-making for business operations.
+Online Payment Recording Module
+This module records and tracks digital payments made through e-wallets and online banking platforms. It ensures that all online transactions are properly documented and linked to corresponding sales records for accurate financial tracking and reconciliation.
+Limitations
+
+The study has the following limitations:
+Maintenance and System Updates
+The system requires regular maintenance and updates to ensure continued security, data integrity, and optimal performance. These updates may include system enhancements, bug fixes, and database optimization. However, the maintenance and administration of the system will be the responsibility of the system administrator or designated authorized personnel of Boss Rap Motor Shop after deployment. The proponents will no longer handle post-deployment maintenance once the system is implemented and turned over to the client.
+Internet Dependency (Online System Requirement)
+The system is web-based and requires a stable internet connection to function. In cases of internet disruption or power outages affecting connectivity, real-time system access and transaction recording will be temporarily unavailable. During such instances, transactions may be recorded manually and encoded into the system once connectivity is restored.
+
+Initial Manual Data Encoding for Product and Customer Information
+The system requires initial manual encoding of product details and customer information during setup and registration. While barcode scanning is used during transactions, product data must still be manually encoded into the system beforehand.
+Limited Automation in Membership Perks System
+Although the system includes a QR code-based membership module, the loyalty or reward system is limited to basic tracking of customer purchases and does not include advanced automated reward computation or complex tier-based membership levels.
+For example, the system does not support advanced reward mechanisms such as progressive point multipliers (e.g., increased points for VIP or high-value customers), dynamic discount tiers based on cumulative or monthly spending thresholds, or automated promotional rules such as “buy X get Y” schemes triggered by customer purchase history or behavioral analysis.
+Dependence on User Input Accuracy
+The accuracy of inventory, sales, and customer records depends on correct user input. Any incorrect encoding of data may affect reports, inventory counts, and transaction records.
+
+REVIEW OF RELATED LITERATURE/STUDIES/SYSTEMS
+
+Web-Based Inventory System Design at Toko Sahabat Using RAD Method
+
+The study which was titled "Web-Based Inventory System Design at Toko Sahabat Using RAD Method," discussed how a small retail store was able to develop a web-based inventory system that would improve the store's day-to-day operations. According to the researchers, the store was manually recording the inventory. However, the researchers found that the manual recording resulted in errors in the counting of the store's inventory. It also resulted in delays in the checking of the products' availability. Because of the problems that the store encountered with the manual recording, the researchers found it worth creating a web-based inventory system. The web-based inventory system was created through the Rapid Application Development, or RAD, method. This method aims to develop systems rapidly. The system allows the real-time monitoring of the inventory. The store owner can monitor the products at any given time. The system reduces the chances of error in recording. The system also increases the speed of transaction. The reports can be generated automatically. These reports help the owner understand the business. The system can be accessed through the browser. The system is not complex in terms of installation. The study found that the web-based inventory system increased efficiency. The workload is reduced for the employees. The accuracy is improved. The study proves the usefulness of computerized systems for small businesses.
+
+This study is similar to the proposed system for Web-Based sales and inventory system with Membership Management for Boss Rap Motor Shop because both systems focus on web-based inventory management. Both systems aim to replace manual recording methods. Both reduce human errors in stock monitoring. Both allow adding, editing, and deleting product information. Both automatically update stock levels after sales. However, the difference is that the Toko Sahabat system mainly focuses on inventory management only. The proposed system for Boss Rap Motor Shop includes inventory, sales, and membership management. Another difference is that the proposed system includes a membership card feature. 
+
+The Toko Sahabat system does not have a customer membership management function. A sales transaction module is also part of the proposed system. The study proves the necessity of automating a small business. It proves the efficiency of the web-based system. It also proves the significance of real-time monitoring. These ideas were incorporated into the proposed system. It enhances the management of the stock in a motor shop business. It monitors the motorcycle parts and accessories. It also enables faster transaction. The study provides a solid base for the proposed research. It proves the efficiency of the web-based system. It proves the significance of the proposed system. It proves the efficiency of the proposed system. 
+
+Web-Based Inventory and Sales Information System: MSME Case Study
+
+The study under the title "Web-Based Inventory and Sales Information System: MSME Case Study" discussed the development of a web-based information system for small and medium enterprises. The study revealed that many small and medium enterprises were using manual systems. Manual systems were causing wrong sales recording. Manual systems were also causing wrong inventory recording. Due to this problem, the researchers developed a web-based inventory system. It records sales transactions. It also updates inventory after each sale. It records all sales transactions in a database. It allows the business owner to generate reports. These reports include daily sales, weekly sales, and monthly sales. It makes the calculations accurate. It saves time. It requires an internet connection to access the system. It makes the business records transparent. The study revealed that the system increased productivity. It reduced the loss of data. It improved the business decision. The business owner can see the sales trend. It increased the efficiency of customer service. It improved the overall business operation. It integrated the inventory system with the sales system. The system helps improve accuracy in the calculations. It helps reduce the time taken for manual work. The system can be operated through an internet connection. It helps improve transparency in business transactions. The researchers established that the system improved productivity. It reduced data loss. It improved decision-making. Business owners can now easily identify sales trends. The system helps improve efficiency in customer services. The study indicates that a combined inventory and sales system helps improve small business operations.
+
+
+
+
+
+
+
+
+
+
+
+Web-Based Stock Management and Sales Information System for Grocery Store
+
+The study, Web-Based Stock Management and Sales Information System for Grocery Store, demonstrated the ways in which a grocery store was able to improve its operations through a computerized system. The researchers noted that the grocery store used notebooks to record sales and inventory levels. The use of notebooks resulted in human error in counting the stock levels. It also resulted in a delay in serving the customers. The researchers, therefore, decided to design a computerized system to help the grocery store improve its operations. The new system helps in managing the stock levels and sales records of the grocery store. It updates the stock levels after each sale. The new system helps in storing the information of the products in a database. It helps in quickly searching the products using the database. It also helps in generating reports of sales. It improves the speed of transactions. The store owner can monitor business performance anytime. The system can be accessed through a browser with internet connection. It improves accuracy in stock monitoring. It also prevents overstocking and shortages. The study found that employees became more productive. Customers experienced faster service. The system reduced paper usage. It also secured business data. Overall, the study concluded that a web-based system improves retail store management.
+
+This study is similar to the proposed system for Boss Rap Motor Shop because both focus on stock management and sales recording. Both systems replace manual recording with a computerized system. Both automatically update inventory after each transaction. Both generate sales reports. However, the grocery store system focuses only on stock and sales management. The proposed system for Boss Rap Motor Shop includes membership management and membership card generation. Another difference is that the grocery system is designed for food items, while the proposed system is for motorcycle parts and accessories. The proposed system also tracks loyal customers. The study supports the importance of automation in small retail stores. It shows that real-time stock monitoring reduces errors. The proposed system applies the same concept. It improves inventory tracking in a motor shop. It ensures accurate sales recording. It also enhances customer service. The study strengthens the idea that web-based systems increase efficiency.
+
+Web-Based Sales and Inventory System for a Stationary Store
+
+In the study "Web-Based Sales and Inventory System for a Stationery Store," the authors talked about creating a system where sales and inventory management can be done in one platform. The researchers found out that the stationery store was having problems in monitoring the items in stock. This was caused by manual recording of the items. As a result, some information was lost, and the information was inaccurate. Hence, the researchers created a system where sales and inventory can be done online. The system can record all sales transactions. The system can calculate the totals automatically. The system can update the stock levels in real-time. The system can add and modify products. The system can store information in a safe database. Reports can be generated at any time. The system speeds up the transaction. It eliminates human computation errors. The store owner is able to access reports remotely. The system improves the overall business monitoring. The employees do not need to calculate the totals. The customer service improved according to the findings. The system eliminates data loss. It also improves the overall efficiency. In summary, the system was effective for the retail business management.
+
+The similarity of this study to the proposed system is that this study and the proposed system integrate the sales and inventory management module. This study and the proposed system are web-based systems. This study and the proposed system are used to improve accuracy and efficiency. However, this study does not integrate membership management. In the proposed system, there is membership registration and membership cards. Another difference is that this study deals with stationery store products, while the proposed system deals with motorcycle products. In the proposed system, there is tracking of loyal customers. This study supports the use of automation in retail stores. This study confirms that real-time updates are essential. In the proposed system, this principle is applied. In the proposed system, stock is updated automatically after every transaction. In the proposed system, there is a report generated to monitor transactions. In the proposed system, transactions are fast. This study supports the need to use digital systems in small businesses. This study supports the proposed research.
+
+
+
+Research on the Application of Membership System in Market Management
+
+The study, which is titled "Research on the Application of Membership System in Market Management," indicates the role of membership systems in promoting customer loyalty in businesses. The researchers used various retail markets that use membership systems in their research. The researchers noted that membership systems help in customer retention. The customer feels appreciated when they join the membership program. The membership program helps in recording customer information and tracking their purchases. It helps in offering discounts to customers. The membership program helps in understanding customer behavior. The business can identify their frequent customers and reward loyal customers. The researchers noted that membership systems increase sales, customer satisfaction, and enhance marketing strategies. The membership program helps in storing data in a database, creating a membership report, and evaluating business performance using the data. The researchers concluded that membership systems are beneficial to retail businesses.
+
+This study is closely related to the proposed system for Boss Rap Motor Shop because it includes a membership module. Both systems store customer information. Both track purchase history. However, the study focuses mainly on membership marketing strategies. The proposed system focuses on inventory, sales, and membership integration. The proposed system also generates membership cards. Another difference is that the study discusses general retail markets, while the proposed system is for a motor shop. The study supports the importance of customer loyalty programs. It confirms that membership systems increase customer satisfaction. The proposed system applies this concept. It helps identify loyal customers. It improves customer relationships. It also supports promotions in the future. The study strengthens the need for membership management. Therefore, it supports the proposed system development.
+
+
+
+
+
+
+
+Review of Related Studies 
+
+Inventory Management System for Motorcycle Dealers
+
+The study, titled “Inventory Management System for Motorcycle Dealers,” deals with the inventory management of spare parts in a motorcycle dealer’s store by using a computerized system. According to the researchers, inventory management is an integral part of a motorcycle dealer’s business. It is important for the dealer to keep an eye on the stock of spare parts. This is because, without proper inventory management, the dealer might face losses. Some motorcycle dealers are having difficulties in managing their spare parts. Because of this, the researchers have come up with an inventory management system. This system includes the entire process of the product, from purchase to sale. It records the movements of the product in real time. The researchers identified the needs of the business before designing the system. A model for tracking the inventory data was also created. The system includes modules for stock monitoring and inventory control. It also facilitates the management of warehouse activities. It enables businesses to be aware of when they need to purchase more stock. It also monitors returned stock and new stock arriving. The researchers tested the system. This ensured that it worked as it should. It showed that the system improved the accuracy of the inventory. It also helped businesses monitor the products more effectively. It was concluded that inventory management systems are important for motorcycle dealers.
+
+This study is related to the proposed system for Boss Rap Motor Shop in the following ways: First, both systems deal with the management of motorcycle spare parts. Second, the systems are designed to enhance the management of spare parts. Third, the systems are based on computerized systems rather than manual recording. Fourth, the systems deal with the flow of products from purchase to sale. However, there are differences between the proposed system and the study. First, the study is based on inventory management for motorcycle dealers. Second, there are no sales transaction modules and membership in the study. Third, the proposed system deals with inventory, sales, and membership. Fourth, there are differences in terms of the business environment. In general, motorcycle dealerships deal with selling motorcycles and other motorcycle parts in larger 
+setups. However, the focus of the proposed system is on the local business of a motor shop. Yet, despite these differences, this study offers full support for the proposed research project. First, it affirms that proper management of inventories is vital for motorcycle businesses. Second, it affirms that computerization enhances accuracy and efficiency in any business process. These will be the same concepts that will be applied in the proposed system for Boss Rap Motor Shop. The proposed system will aid in better management of motorcycle parts inventories. It will also aid in better sales recording and customer management.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Design of wed-based spare parts inventory information system using the rad method
+
+The study, titled “Design of Web-Based Spare Parts Inventory Information System Using the RAD Method,” discussed how an inventory and sales system was developed for an automotive company that deals with spare parts. The study was based on the observations of the researchers that the company was using a manual recording system for their inventory of spare parts. Under this system, employees of the company had to record their daily and monthly inventory reports. Due to this, employees faced problems in recording their reports. They also faced problems in searching for product-related information, as this required a lot of time. Thus, the study observed that due to this manual recording, efficiency was compromised. There was also a higher probability of human error. To overcome these problems, a web-based inventory information system was designed. Under this system, users can easily store their spare parts-related data. They can also record their inventory automatically. The system has been developed using the RAD (Rapid Application Development) method. The RAD method of developing a system emphasizes the rapid creation and testing of the system. The system has been provided with user access control, which adds security to the system. It is easy for the managers to generate reports using the system. These reports help the managers to keep track of the inventory and the movement of products. The system has been able to increase the speed of retrieving information. It is easy for the employees to search for the information regarding the spare parts. The researchers found that the system increased efficiency and accuracy. Additionally, the system reduced the workload of employees. On the whole, the study concluded that a web-based spare parts inventory system is beneficial to the operations of automotive businesses.
+
+This study is related to the proposed system, namely, Web-Based Inventory, Sales, and Membership Card System for Boss Rap Motor Shop, in that both systems are centered on managing the inventory of spare parts of a business establishment through a web-based system. Both systems are intended to replace manual recording with a computerized system. Both systems utilize a digital database to store product-related data. Another similarity between the two systems is that both are intended to increase efficiency and reduce human error. However, there are also some differences between the two systems. One of these differences is that, in the system presented in this study, the main features are centered on managing the inventory of spare parts and sales reports. There is no feature of membership. In the proposed system for Boss Rap Motor Shop, there are features of membership registration and generation of membership cards. Another difference is the kind of business environment. The study is based on an automotive spare parts company, including warehouse operations. The proposed system, on the other hand, is based on a local motor shop that sells motorcycle parts directly to customers. Despite the differences, the study still supports the proposed research. This is because it confirms that the proposed system, which is web-based, will improve the management of the company's inventory. Moreover, it confirms that the proposed system, which is web-based, will enable the company's employees to work faster and more accurately. These are the same principles that the proposed system will apply. It will help Boss Rap Motor Shop manage its inventory, sales, and customers’ membership. For this reason, the study supports the proposed research.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Web and mobile-based motorcycle spare part sales system (case study: rey motor workshop)      
+                                                   
+The study, which is titled “Web and Mobile-Based Motorcycle Spare Part Sales System: Case Study of Rey Motor Workshop,” aims to create a digital system for the motorcycle workshop. The researchers observed that the motorcycle workshop still employed traditional manual methods. The customers had to come to the shop physically to check the available spare parts. However, the process sometimes became inconvenient for the customers. Some customers even had to come to the shop only to find out that the spare parts they needed were not available. The motorcycle workshop also had difficulty in monitoring the inventory and the transactions. Due to the problems encountered, the researchers were able to create a web and mobile-based system for the motorcycle workshop. The system allows the recording of transactions electronically. It also allows the monitoring of the inventory of the spare parts through the database. This will enable customers to know the available parts. The system will also enhance communication between the workshop and customers. The researchers used the Waterfall method to design the system. The system will have different modules for managing products and recording transactions. The study found that the system enhanced the workshop's efficiency. It reduced the loss of data. It also enhanced customer services. The study concluded that digital systems enhance the operations of motorcycle workshops.
+
+This study is related to the proposed system for Boss Rap Motor Shop in that both systems are concerned with improving the management of motorcycle spare parts and sales transactions. Both systems utilize technology to replace manual recording. Both systems also utilize a database to monitor their respective records. Both systems are also concerned with improving efficiency and serving customers better. However, there are also similarities between the two systems. One of these similarities is that the system in the study is concerned with the sales of motorcycle spare parts. There are no membership features in this system. The system that was proposed for Boss Rap Motor Shop includes a membership system and generation of membership cards. Another difference that was noticed was that, whereas the study was based on both web and mobile platforms, the proposed system was based mainly on a web platform. Despite these differences, the study supports the proposed research. It shows that technology can improve the workings of motorcycle workshops. It also shows that an automated inventory control and sales system can improve efficiency. These are also the concepts that are going to be implemented in the proposed system. They are going to improve the workings of Boss Rap Motor Shop.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Development of Spare Part Management System for Automotive Repairing Shop
+
+The research paper entitled “Development of Spare Part Management System for Automotive Repairing Shop” aims to create a computerized system for the management of the inventory of the automotive repairing shop’s spare parts. The researchers have observed that the automotive repairing shops have some difficulties in managing the inventory of the spare parts and the sales information. The recording of the information manually often creates a problem in the clarity of the information about the products. The staff also find it difficult to keep track of the information manually. Therefore, the researchers have developed a system for the management of the spare parts inventory. The developed system includes the features for the stock monitoring and the sales information. This makes the system more secure. The system also has a search facility, which enables users to easily find the spare parts they need. The researchers aimed to create a system that would improve the management of inventory and the recording of transactions. The system also helps in the systematic management of the information regarding the spare parts. It helps to reduce the use of paper. It also improves the working conditions for the employees. The study showed that the system improves the efficiency of the employees and reduces the amount of work they do. The employees were able to easily manage the information regarding the spare parts. The study concluded that computerized systems for the management of spare parts improve the operations of automotive repair shops.
+
+This study is somehow related to the proposed system for Boss Rap Motor Shop because the two systems share a common purpose, which is the management of the inventory of the spare parts using a computerized system. Both systems aim to reduce the recording and increase the efficiency in the management of the inventory. Both systems also use a database in the storage of the products and the transaction records. Another similarity between the two systems is the inclusion of the stock and sales management in the proposed system. However, there are differences between the two systems. The study does not include the membership management feature. The proposed system will have features such as membership management and issuance of membership cards. Another difference is that the study is based on general automotive repair shops. However, the proposed system is based on a motorcycle spare parts shop. With these differences, the study still supports the proposed research. This is because it affirms the importance of computerized systems in the management of inventories. It also affirms the importance of computerized systems in enhancing efficiency in automotive businesses.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+WEB Based Motorcycle Sales Information System
+
+The study on the information system titled “Web-Based Motorcycle Sales Information System” aims to enhance sales management in a motorcycle business. The researchers have seen that the company is using a spreadsheet in recording sales information. This method is hard for employees in searching the information. It also takes a long time in printing sales reports. Because of these problems, the researchers proposed a web-based information system. This information system records sales transactions of motorcycles. It also stores sales information in a database. This information system can produce reports. These reports help in monitoring business performance. It also enhances the speed in searching information. Employees can easily access sales information. The system helps improve the organization of sales records. It reduces the loss of important sales records. The researchers observed that the system improved the efficiency of sales management. Employees found it easy to manage sales records. The system improved the efficiency of report generation. In general, the study found that web-based sales systems are beneficial for the management of motorcycle sales.
+
+This study is related to the proposed system for Boss Rap Motor Shop because both systems have similarities in terms of handling motorcycle sales using a web-based system. Both systems are designed to replace manual recording systems with digital systems. Both systems are also designed to produce reports that will help business owners monitor sales performance. However, there are differences between the proposed systems. The focus of the system in the study is mainly on motorcycle sales transactions. The focus of the proposed system is different from that of the study in that it includes inventory management and membership cards. The focus of the study is also different from that of the proposed system in that it does not have inventory management or membership cards. However, it is clear that the study supports the proposed research in that it indicates that web-based systems enhance business efficiency.
+
+
+
+
+
+Synthesis 
+
+Based on the related literature and related studies reviewed, it is obvious that many businesses nowadays are using computerized systems to improve their daily operations, The studies explained that the manual system of recording data is a problem in the management of a business. The problems include errors in the inventory list, slow processing of transactions, and difficulty in organizing the data of the business, Because of this problem, many researchers have developed a web-based inventory system to improve the operations of the business, The system will be able to store the data of the products, sales, and customers, This will help the business owner to monitor the business more effectively, The system will also be able to access the data anywhere through the internet, The studies have shown that the computerized system will reduce errors in the business, The system will also be able to improve the productivity of the business. The reports will be generated through the computerized system, The reports will be used to improve the decisions of the business owner.
+
+The proposed system for Boss Rap Motor Shop is similar to the systems discussed in the literature and studies because it also uses a web-based platform to manage business operations, Like the systems in the reviewed studies, the proposed system will manage inventory and record sales transactions. It will also generate reports to help the shop owner monitor business performance. However, the proposed system is different because it also includes a membership management feature and membership card generation, This feature allows the shop to store customer information and identify loyal customers, The membership card can also help the shop improve customer relationships and provide better service, Therefore, based on the reviewed literature and studies, the development of the Web-Based Inventory, Sales, and Membership Card System for Boss Rap Motor Shop is supported, The reviewed literature and studies have proven that web-based systems can efficiently improve the efficiency of a business by reducing manual work and improving the organization of business data, The reviewed literature and studies have also proven that a computerized system can efficiently improve the operation of a business, thus the importance of the proposed system for the operation of the business.
+
+
+Table of Comparison
+
+
+
+Criteria
+Proposed System: Web-Based Inventory, Sales and Membership Card System for Boss Rap Motor Shop
+Sari et al. (2020)
+Putra et al. (2021)
+Rahman et al. (2021)
+Ahmad et al. (2020)
+Yusuf et al. (2022)
+
+Web-Based System?
+Yes
+Yes
+Yes
+Yes
+Yes
+Yes
+Focuses on Sales Analytics?
+Yes
+No
+Yes
+Yes
+No
+Yes
+Includes E-Payment?
+Yes
+No
+No
+No
+No
+No
+Improves Inventory Management?
+Yes
+Yes
+Yes
+Yes
+Yes
+No
+Enhances Customer Experience?
+Yes
+Yes
+Yes
+Yes
+No
+Yes
+Helps Enhance Productivity?
+Yes
+Yes
+Yes
+Yes
+Yes
+Yes
+Addresses Security Concerns?
+Yes
+Yes
+Yes
+Yes
+Yes
+Yes
+Has Membership Management?
+Yes
+No
+No
+No
+No
+No
+METHODOLOGY
+
+Research Design
+
+This study employs a descriptive developmental research design. The descriptive method is used to examine and understand the existing processes of Boss Rap Motor Shop in managing inventory, sales transactions, and customer information. It focuses on analyzing the current manual and semi-digital practices, particularly in recording product stocks, processing sales, and handling customer data.
+
+On the other hand, the developmental method is used in the design and development of a Web-Based Inventory, Sales, and Membership Management System for Boss Rap Motor Shop. This method focuses on creating a functional system that addresses the identified issues in the current operational setup and improves business processes through system automation and integration.
+
+The purpose of this research design is to assess the current workflow of the shop and serve as a basis for developing a system that improves efficiency, accuracy, and reliability in business operations. Data were gathered through interviews, observation, and document review to identify issues such as manual encoding errors, fragmented records, and difficulty in tracking transactions and customer history.
+
+Overall, this research design ensures that the proposed system is grounded on actual operational needs and is capable of improving the overall management of inventory, sales, and customer information at Boss Rap Motor Shop.
+
+Research Locale
+
+The study was conducted at Boss Rap Motor Shop, a local business that sells motorcycle parts and accessories. The shop currently operates using manual recording methods for inventory and sales transactions, supplemented by informal digital communication such as Facebook inquiries for customer orders.
+At present, product stocks and sales are recorded through handwritten logs, which limits real-time monitoring and increases the possibility of errors and inconsistencies. Customer information from both in-store and online transactions is also not systematically stored, making it difficult to track purchase history and repeat customers.
+These limitations highlight the need for a more organized and centralized system for managing business operations. In response, the proposed Web-Based Inventory, Sales, and Membership Management System aim to improve data handling by providing a centralized platform for inventory, sales, and customer membership records, thereby enhancing operational efficiency and accuracy at Boss Rap Motor Shop.
+
+Respondents of the Study
+
+The respondents of the study were the shop owner and selected employees of Boss Rap Motor Shop. These individuals were chosen because they are directly involved in the daily operations of the business, particularly in inventory management, sales processing, and customer handling.
+The study used purposive sampling, selecting respondents who have direct knowledge and experience in the shop’s operational processes. Their participation provided essential information on how inventory is recorded, how sales transactions are processed (including walk-in and Facebook-based orders), and how customer data is currently managed.
+Their responses were crucial in identifying existing challenges in the current system, such as difficulties in monitoring stock levels, delays in recording transactions, and the lack of a centralized customer management system. These findings served as the basis for developing the proposed Web-Based Inventory, Sales, and Membership Management System for Boss Rap Motor Shop.
+
+Data Gathering Procedure
+
+The researchers employed several methods to collect the necessary data for the study. These methods were used to gain a comprehensive understanding of the current operational processes of Boss Rap Motor Shop, particularly in terms of inventory management, sales transactions, and customer information handling.
+
+
+Interview
+The researchers conducted interviews with the shop owner and selected employees of Boss Rap Motor Shop. The interview aimed to gather detailed information regarding the current processes used in managing inventory, recording sales transactions (including walk-in and Facebook-based orders), and handling customer information. It also helped identify the challenges and problems encountered in the existing manual system, such as difficulties in tracking stock levels, delays in transaction recording, and lack of centralized customer data.
+Observation
+The researchers observed the actual day-to-day operations of the shop, focusing on how inventory is recorded, how sales transactions are processed, and how customer inquiries are handled. This method allowed the researchers to directly understand the workflow of the shop, including manual encoding practices and the handling of both in-store and online transactions. Observation provided firsthand insight into inefficiencies in the current system that are not always fully expressed during interviews.
+Document Review
+The researchers reviewed existing documents such as product lists, handwritten inventory records, and sales logs used by the shop. These documents were analyzed to understand how data is currently stored, organized, and updated. The review helped identify inconsistencies, redundancy, and limitations in the manual recording system, which supported the justification for developing a centralized web-based system.
+System Development Method
+The researchers used the Waterfall Model in developing the proposed system. The Waterfall Model is a linear and sequential software development approach in which each phase must be completed before proceeding to the next. This model is suitable for the study because it follows a structured process in developing a Web-Based Inventory, Sales, and Membership Management System for Boss Rap Motor Shop.
+Requirement Analysis
+In this phase, the researchers gathered information about the current system used by Boss Rap Motor Shop. Data were collected through interviews, observation, and document review to identify the problems encountered in the manual and semi-digital processes. The researchers analyzed issues related to inventory management, sales recording (including Facebook-based transactions), and customer information handling. The system requirements were then determined based on these findings, including the need for inventory automation, barcode-based product identification, QR code-based membership, and reporting features.
+System Design
+In this phase, the researchers designed the overall structure of the system. This includes the design of the database structure, user interface, and system modules such as inventory management, sales management, membership management, reporting, and online payment recording. The design also defined how barcode scanning will be used for product identification and how QR codes will be implemented for customer membership cards.
+System Development
+In this phase, the actual development of the web-based system was carried out. The researchers used appropriate programming languages and database tools to build the system according to the approved design. The modules for inventory, sales, membership, reporting, and payment recording were developed and integrated into a centralized platform.
+System Testing
+After development, the system was tested to ensure that all functionalities work correctly. This includes testing of inventory updates, sales transactions, barcode scanning for product identification, QR code scanning for membership verification, and report generation. Errors and issues identified during testing were corrected to improve system performance, accuracy, and reliability.
+System Implementation
+After successful testing, the system was implemented and deployed for evaluation at Boss Rap Motor Shop. The system was presented to the shop owner and end users for initial use and assessment. Feedback from the implementation stage was considered for further improvement and refinement of the system.
+Calendar of Activities
+
+Planning Phase
+
+In this phase, the researchers analyzed the current system used by Boss Rap Motor Shop. The study revealed that the shop relies on manual recording for inventory and sales transactions, as well as informal handling of customer orders through Facebook inquiries. This process often results in data inconsistencies, delays in transaction recording, and difficulty in monitoring product availability and sales performance.
+
+Based on the identified problems, the researchers planned the development of a Web-Based Inventory, Sales, and Membership Management System. The system is designed to address these issues by integrating inventory management, sales processing, customer membership, reporting, and online payment recording into a centralized platform. The researchers also identified the key system features, including product management, barcode-based product identification, sales transaction processing, QR code-based membership, and inventory tracking. Additionally, the necessary tools, timeframe, and resources for system development were determined during this phase to ensure the successful completion of the project.
+
+System Design Phase
+
+In this phase, the researchers designed the overall structure and interface of the proposed Web-Based Inventory, Sales, and Membership Management System for Boss Rap Motor Shop. This includes the development of user interfaces such as the Login Page, Dashboard, Inventory Module, Sales Module, Membership Module, and Reporting Module. The system design was created to ensure ease of use, allowing users to efficiently navigate and operate the system.
+The system interface was structured to provide a clear and organized layout for all users, ensuring that each function of the system is easily accessible and understandable. This supports efficient operation of daily business processes such as inventory tracking, sales recording, and customer management.
+
+The database design was also established to properly store and manage all essential data needed in the system. This ensures that information is organized, consistent, and easily retrievable for business operations.
+
+Database Design
+
+The database was designed to store and manage all essential information required in the operation of Boss Rap Motor Shop. It ensures that all records are centralized, secure, and updated in real time.
+The system stores the following types of information:
+Product Information – includes product name, description, category, price, and stock quantity 
+Sales Transactions – includes transaction date, purchased items, quantities, total amount, and payment details 
+Customer Membership Information – includes customer name, contact number, address, membership ID, and QR code 
+User Accounts – includes system users such as the shop owner and employees, along with their login credentials and roles 
+This centralized database allows accurate monitoring of business operations and ensures proper tracking of inventory, sales, and customer records.
+
+System Modules
+
+The system is composed of several functional modules, each designed to handle specific business processes of Boss Rap Motor Shop. These modules work together to ensure efficient management of inventory, sales transactions, customer membership, and reporting.
+
+
+Inventory Management Module
+The Inventory Management Module is responsible for managing and monitoring all product-related information in the system. It allows users to add new products, update existing product details such as name, category, and price, and monitor stock levels. All product records are stored in a centralized database, where each item is assigned a unique identifier for easy tracking.
+
+In operation, the user inputs product information into the system, including product name, category, price, and quantity. Once saved, the system stores the data and makes it available for use in other modules, particularly during sales transactions. When a product is sold or manually updated, the system automatically adjusts the stock level in real time. This ensures that inventory records remain accurate and up to date. Through this module, the system minimizes errors associated with manual tracking and improves the efficiency of inventory monitoring.
+
+Sales Management Module
+
+The Sales Management Module handles the recording and processing of all sales transactions within the system. It allows users to select products, compute total amounts, record transactions, and automatically update inventory. The module supports both walk-in and online transactions, ensuring that all sales are recorded in a centralized system. Additionally, the Sales Management Module supports multiple payment methods to accommodate different customer preferences, including cash payments and digital payments such as e-wallets or online banking. This allows the system to handle both traditional and modern transaction types within a single platform.
+
+During a transaction, the user selects products either by scanning their barcodes or by manually searching the product list. Once selected, the system retrieves product details such as name, price, and available stock, and adds them to the transaction list. The system then automatically calculates the total amount. After confirming the transaction, the system records the sale and deducts the corresponding quantity from the inventory. This process ensures accurate and efficient transaction handling while reducing human error and improving overall speed.
+
+
+Barcode-Based Product Identification
+
+To improve efficiency and accuracy in product selection, the system integrates barcode scanning technology. Each product is assigned a unique barcode that is linked to its record in the database. When a barcode is scanned during a transaction, the system automatically retrieves the corresponding product information and adds it to the transaction list.
+
+This eliminates the need for manual data entry, reducing processing time and minimizing errors. The system also includes a manual search option as a fallback in case the barcode cannot be scanned. The use of barcode technology enhances transaction speed, ensures accurate product identification, and supports real-time inventory updates.
+
+Membership Management Module
+
+The Membership Management Module is designed to register and manage customer information while supporting customer retention strategies. It enables the system to store customer details, track purchase history, and identify repeat or high-value customers.
+
+To become a member, customers are required to provide basic information such as full name, contact number, address, and valid identification. Once registered, the system creates a unique membership record for each customer and stores it in a centralized database. This allows easy retrieval and management of customer information during transactions.
+
+During system use, customer membership can be accessed to link transactions to specific individuals, allowing the system to maintain a record of purchase history. This supports better customer service and enables the business to analyze buying behavior for marketing and retention purposes.
+
+
+
+QR Code-Based Membership Identification
+
+The system incorporates QR code technology to improve customer identification and transaction efficiency. Upon registration, each member is assigned a unique QR code that can be printed or stored digitally.
+During transactions, the QR code is scanned to instantly retrieve customer information from the system. This process allows purchases to be automatically linked to the customer’s account and updates their transaction history in real time. As a result, the system reduces manual data retrieval, minimizes processing time, and improves accuracy in identifying customers.
+
+This feature also supports the tracking of customer purchasing behavior, enabling the shop to identify repeat and high-value customers. 
+
+Reporting Module
+
+The Reporting Module is responsible for generating reports that support business monitoring and decision-making. It provides users with access to important data such as sales performance, inventory status, and customer activity.
+
+The system collects data from various modules and processes it to generate organized reports. Users can request reports based on specific criteria, such as date range or type of transaction. Once generated, the reports can be viewed on the system or printed for documentation purposes. This module eliminates the need for manual report preparation and ensures that business data is accurate, consistent, and readily available.
+
+Through this module, the shop owner can effectively monitor daily operations, evaluate performance, and make informed decisions based on real-time data.
+
+
+Development Phase
+
+In this phase, the researchers began the actual development of the system using appropriate programming languages and database technologies. The designed features from the previous phase were translated into functional modules, including inventory management, sales management, membership management, reporting, and online payment recording.
+
+The researchers developed the user interface components such as the login page, dashboard, and module interfaces for inventory, sales, and membership. The system was integrated with a database to store and manage all records in real time. Key functionalities such as barcode scanning for product identification and QR code generation for membership cards were also implemented to improve efficiency and accuracy.
+
+Additionally, the system was designed to automatically update inventory levels after each transaction and generate reports for sales performance, inventory status, and customer activity. This phase ensures that the system operates according to the planned design and meets the requirements of the study.
+
+
+
+
+
+
+
+Resources 
+
+HARDWARE
+LAPTOP COMPUTER
+
+
+Hardware Components
+Specifications
+Processor (CPU)
+AMD Ryzen 5 5500U with Radeon Graphics          (2.10 GHz)
+RAM
+16.0 GB
+Graphic Processing Unit
+Integrated graphics processing unit (GPU), AMD Ryzen 5 5500U processor.
+Storage
+512 GB
+System Type
+64-bit operating system, x64-based processor
+
+
+SMART PHONE 
+Hardware Components
+Specifications
+IOS SMART PHONE 
+Apple A13 Bionic
+RAM
+4 GB
+STORAGE
+128 GB
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+System Architecture
+ 
+The proposed Web-Based Inventory, Sales, and Membership Card System for Boss Rap Motor Shop utilize a three-tier web architecture. This structure organizes system components into separate layers, enabling efficient processing, scalability, and maintainability. The system is composed of three main layers: the presentation layer, the application layer, and the database layer.
+
+The presentation layer serves as the user interface of the system. It consists of web-based pages accessed through a web browser. The shop owner and employees can log in to the system using internet-connected devices such as computers or laptops. This layer allows users to manage products, record sales transactions, register customer membership information, and access system reports and records.
+
+The application layer handles the processing of user requests and contains the core business logic of the system. It processes all inputs submitted through the presentation layer, such as product entries and sales transactions. It is also responsible for executing system functions including inventory updates, sales computation, and data validation before storing or retrieving information from the database.
+
+The database layer is responsible for the secure storage and management of all system data. This includes product inventories, sales records, membership information, and user accounts. A database management system is used to ensure data integrity, security, and efficient retrieval and updating of records when required.
+
+Overall, the three-tier architecture allows the system to separate user interface, processing logic, and data storage. This improves system performance, enhances security, and ensures better organization of data. It also enables efficient management of inventory, sales, and membership records within the system.
+
+
+
+
+Simple Use Case Diagram Structure
+
+The Simple Use Case Diagram illustrates the interaction between the users and the Web-Based Inventory, Sales, and Membership Card System for Boss Rap Motor Shop. It identifies the main actors of the system, which include the shop owner and employees, and shows the key functions they can perform within the system.
+
+The main use cases of the system include managing inventory, recording sales transactions, and handling customer membership registration. These use cases demonstrate how users interact with the system to perform essential business operations. The diagram also shows that all processes are accessed through a centralized web-based platform, ensuring organized and efficient workflow.
+
+System Interface Design
+
+The System Interface Design presents the layout and visual appearance of the Web-Based Inventory, Sales, and Membership Card System for Boss Rap Motor Shop. It illustrates how users interact with the system and how the system functions are organized across different pages.
+
+The system is designed to be simple, user-friendly, and easy to navigate. Its interface enables the shop owner and employees to efficiently access key functions such as inventory management, sales transactions, and membership registration. Each page is structured with a clear and consistent layout to ensure that users can easily locate the information and features they need.
+
+The system consists of several important pages, including the Login Page, Dashboard, Inventory Page, Sales Page, and Membership Page. The Login Page provides secure access to the system. The Dashboard displays an overview of system activities and summary data. The Inventory Page is used for managing product stocks, while the Sales Page handles transaction recording and monitoring. The Membership Page manages the registration and records of customer memberships.
+
+Overall, the interface design ensures that users can perform their tasks efficiently while maintaining clarity, consistency, and ease of use throughout the system.
+
+User Levels of the System
+The proposed Web-Based Inventory, Sales, and Membership Management System for Boss Rap Motor Shop includes two primary user levels: the Admin and the Customer. Each user level is assigned specific functions and access permissions to ensure proper system operation, data security, and efficient management of business processes.
+1. Admin User Level
+The admin serves as the primary authorized user responsible for managing and monitoring the overall operations of the system. This user level has full access to the major system modules and administrative functions.
+The admin can perform the following functions:
+Manage product inventory by adding, updating, deleting, and categorizing products 
+Monitor stock levels and inventory movement in real time 
+Use barcode scanning functionality for efficient product identification during inventory handling and sales transactions 
+Record and process walk-in and online sales transactions 
+Manage customer membership records and generate QR code-based membership cards 
+View and monitor customer transaction history and membership information 
+Manage user accounts and control system access permissions 
+Record and monitor online payment transactions such as e-wallet and online banking payments 
+Generate and print reports related to sales performance, inventory status, customer activity, and product movement 
+Monitor overall system activities through the dashboard interface  
+Manage the membership loyalty system by configuring point conversion rules and customer reward settings 
+Create, update, and delete promotional offers and discount campaigns within the system 
+Control the implementation of promos, including eligibility conditions, discount values, and promotional durations
+The admin user level ensures that business operations are properly managed, monitored, and maintained within the system.
+
+2. Customer User Level
+The Customer user level is intended for registered members of Boss Rap Motor Shop who interact with the system primarily for membership and customer-related services.
+The Customer can perform the following functions:
+Register as a member by providing required personal information 
+Log in securely using their registered account credentials 
+View available motorcycle products and services offered by the shop 
+Access and present their QR code-based membership identification during transactions 
+View and monitor their transaction history and membership information 
+Track earned membership points and loyalty-related records 
+Send inquiries or messages through the contact page of the system 
+Submit requests for product return or replace, subject to the policies and approval of the shop administrator
+The Customer user level is designed to improve customer engagement, support customer retention, and provide a more organized membership experience within the system.
+
+                                            
+
+Home Page
+
+
+
+
+Figure 1: Home Page Module – This module allows users to view the motor shop’s main information and easily navigate to different sections such as the shop, services, about page, contact page, and login page.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                        
+                                                               Shop Page
+
+
+
+
+Figure 2 Shop Page Module – This module allows users to view and choose different motorcycle parts and products available in the shop.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                                          Service Page
+
+
+
+
+Figure 3 Service Module – This module allows users to view the different motorcycle services offered by the motor shop.
+
+
+
+
+                                                  
+
+
+
+
+
+
+
+
+
+
+
+                                                          About Page
+
+
+
+
+Figure 4 About  Module – This module shows information about the motor shop, including its background and purpose.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                          Contact Page
+
+
+
+
+Figure 5 Contact Module – This module allows users to see the contact information of the motor shop and send messages or inquiries.
+
+
+
+                      
+
+
+
+
+
+
+
+
+
+
+
+
+                          
+
+Login Page
+   
+
+
+Figure 6 Admin/Customer Log in page - This module enables admin and customers to log in to their accounts using their username and password.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Admin Dashboard Page
+
+
+
+Figure 7 Admin Dashboard Module -  This module allows the admin to view and manage important system data and activities in one place.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Admin Inventory Page
+
+Figure 8 Admin Inventory Module - This module allows the admin to manage and monitor all product stock and inventory easily.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+AdminSalesPages
+
+Figure 9 Admin Sales Module -  This module allows the admin to record and track all sales transactions easily.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Admin Member Pages
+
+
+
+Figure 10 Admin Member Module - This module allows the admin to manage and view all member information easily.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+System Reports
+
+
+
+Figure 11 System Report Module: This module allows the admin to view and generate reports of system data and activities easily.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+User Management
+
+
+
+
+Figure 12 User Management: This module allows the admin to manage user accounts and their access easily.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Member Points
+
+
+
+Figure 13 Member points: This module allows members to view and track their earned points easily.
+
+
+REFERENCES
+Abror, K. H., Mansyuri, U., & Arief, R. (2025). Web based used Motorcycle Sales Information System design at WIPA Motor using LaRAVel Framework. Brilliance Research of Artificial Intelligence, 5(1), 451–460. https://doi.org/10.47709/brilliance.v5i1.6452
+Agboola, F. F., Malgwi, Y. M., Mahmud, M. A., & Oguntoye, J. P. (2022). DEVELOPMENT OF a WEB-BASED PLATFORM FOR AUTOMATING AN INVENTORY MANAGEMENT OF a SMALL AND MEDIUM ENTERPRISE. FUDMA Journal of Sciences, 6(5), 57–65. https://doi.org/10.33003/fjs-2022-0605-1064
+Angellin, K., Oetama, R. S., & Amri, M. (2023). Web-Based Inventory and Sales Information System: Indonesian Micro Small Medium Enterprise Case study. JOINS (Journal of Information System), 8(1), 57–66. https://doi.org/10.33633/joins.v8i1.7977
+Ascon, J. E. G., Pittman, J. a. A., Velez, G., Del Carmen Zumaeta-Perez, J., Ortega-Valverde, M. A., Reséndiz, F. S. S.-., & Sotelo, J. F. A. (2023). Financial Management and its relationship with sales management in the MYPes Barranca, Huaura and Huaral - Peru. Leadership in Education and Innovation in Engineering in the Framework of Global Transformations: Integration and Alliances for Integral Development. https://doi.org/10.18687/laccei2023.1.1.1497
+Atakay, B., Onbaşılı, Ö., Özcet, S., Akbulak, İ., Cevher, H. B., Alcaz, H., Gördesli, İ., Paldrak, M., & Staiou, E. (2021). Spare parts inventory management system in a service sector company. In Lecture notes in mechanical engineering (pp. 787–799). https://doi.org/10.1007/978-3-030-90421-0_67
+Aulia, D. (2022). ENHANCEMENTS IN THE MANAGEMENT OF RELATIONSHIPS WITH CUSTOMERS AS a MEANS OF PRESERVING SALES PERFORMANCE. Journal of Applied Management and Business (JAMB), 3(1). https://doi.org/10.37802/jamb.v3i1.242
+Chen, Y. (2023). Research on the Application of Membership System in Market Management: Evidence from China. BCP Business & Management, 47, 37–42. https://doi.org/10.54691/bcpbm.v47i.5166
+Conde, J., Canuto, R., Tablizo, G. R., Templado, J., Trillana, J. E., & Embile, K. J. (2025). MANUAL VERSUS SYSTEM DRIVEN INVENTORY MANAGEMENT: a COMPARATIVE STUDY FOR OPERATIONAL PRODUCTIVITY. https://ojs.aaresearchindex.com/index.php/aasgbcpjmra/article/view/15675
+Divina, J., Olan, A., Perez, N. C., Sarmiento, M., & Acepcion, R. (2025). Data-Driven Point-of-Sale and Inventory System or PASTIL SA TABI: integrating sales forecasting algorithms and predictive analytics. International Journal of Research and Innovation in Applied Science, 10(10), 826–838. https://doi.org/10.51584/ijrias.2025.1010000066
+Faiz, S. A., Santoso, A. B., & Dewi, M. U. (2025). Web-Based Inventory Information System design at Sahabat Store using RAD Method. Jurnal Ilmiah Sistem Informasi, 4(2), 62–72. https://doi.org/10.51903/yehf0357
+Hidayat, M. T., Mulyani, T. D., Syafiq, M. M., & Vernanda, D. (2025). Web-Based Stock Management and Sales Information System for grocery store JAFA Partners. Expert Net., 2(1), 9–19. https://doi.org/10.59923/expertnet.v2i1.283
+Mahardika, F., & Azizah, N. (2024). Designing A Dealer Service Management Information System Motorcycle with Unified Modeling Language (UML) Method. Hanif Journal of Information Systems, 2(1), 1–10. https://doi.org/10.56211/hanif.v2i1.19
+Najwa, N. F., Furqon, M. A., & Fadhillah, Y. D. (2023). Customer Relationship Management System at Aesthetic Clinic. Jurnal Komputer Terapan, 9(2), 153–160. https://doi.org/10.35143/jkt.v9i2.6159
+Saputra, E., & Fauzi, R. (2023). PENERAPAN DATA MINING UNTUK ANALISIS POLA PEMBELIAN KONSUMEN DENGAN ALGORITMA FP-GROWTH PADA DATA TRANSAKSI PENJUALAN SPAREPART MOTOR. Computer and Science Industrial Engineering (COMASIE), 9(6). https://doi.org/10.33884/comasiejournal.v9i6.7865
+Șișu, J. A., Tîrnovanu, A. C., Mujaya, N. J., Ito, S., & Obreja, M. (2024). The role of Digital Solutions in enhancing OrganizationalEfficiency. Review of International Comparative Management, Vol. 25 No. 4 / 2024. https://doi.org/10.24818/rmci.2024.4.764
+Sudirga, R. S., Nurprihatin, F., Rembulan, G. D., & Yuniarto, Y. (2021). AGILE MANUFACTURING THROUGH INVENTORY MANAGEMENT. Jurnal Pengabdian Dan Kewirausahaan, 5(2). https://doi.org/10.30813/jpk.v5i2.2983
+Utami, C. C., Desanti, R. I., & Halim, F. A. (2023). The development of web-based sales and inventory system for a stationary store. Ultima InfoSys Jurnal Ilmu Sistem Informasi, 14(2), 52–57. https://doi.org/10.31937/si.v14i2.3358
+Yuniarto, A. A., & Siregar, I. W. (2025). From manual to digital: Modernizing the sales recording System for growth at MSME Rumah Abon. Journal of Scientific Insights, 2(5), 510–525. https://doi.org/10.69930/jsi.v2i5.537
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

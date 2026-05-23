@@ -13,6 +13,10 @@ export const Login = () => {
     e.preventDefault();
     const user = users.find(u => u.username === username && u.password === password);
     if (user) {
+      if (!user.enabled) {
+        setError('YOUR ACCOUNT HAS BEEN DISABLED. PLEASE CONTACT THE ADMINISTRATOR.');
+        return;
+      }
       setCurrentUser(user);
       if (user.role === 'ADMIN' || user.role === 'EMPLOYEE') {
         navigate('/admin/dashboard');

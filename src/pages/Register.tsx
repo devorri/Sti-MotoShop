@@ -37,6 +37,7 @@ export const Register = () => {
       id: newMemberId,
       name: formData.name,
       contact: formData.contact,
+      address: 'N/A',
       joinDate: new Date().toISOString().split('T')[0],
       points: 0
     };
@@ -47,8 +48,9 @@ export const Register = () => {
       name: formData.name,
       username: formData.username,
       password: formData.password,
-      role: 'CUSTOMER' as any,
-      memberId: newMemberId
+      role: 'CUSTOMER' as const,
+      memberId: newMemberId,
+      enabled: true
     };
 
     // 4. Update Global State
