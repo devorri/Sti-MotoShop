@@ -41,7 +41,7 @@ export const Services: React.FC = () => {
                 <span style={{ fontSize: '0.6rem', color: '#666', fontWeight: 'bold', display: 'block' }}>STARTING PRICE</span>
                 <span style={{ fontSize: '1.4rem', fontWeight: '900' }}>{service.price}</span>
               </div>
-              <Link to="/contact">
+              <Link to={`/contact?message=Hi Boss Rap! I would like to book a ${service.title} service. Price starts at ${service.price}. Please get back to me to confirm scheduling.`}>
                 <button className="primary" style={{ fontSize: '0.7rem' }}>BOOK SERVICE</button>
               </Link>
             </div>
@@ -54,7 +54,7 @@ export const Services: React.FC = () => {
           <h2 style={{ color: '#fff', fontSize: '1.8rem', margin: 0 }}>NEED A CUSTOM MODIFICATION?</h2>
           <p style={{ fontSize: '0.8rem', opacity: 0.8, marginTop: '5px' }}>TALK TO OUR LEAD MECHANICS FOR FULL CUSTOM BUILDS AND SCOOTER RACING UPGRADES.</p>
         </div>
-        <Link to="/contact">
+        <Link to="/contact?message=Hi Boss Rap! I would like to request a free quote for a custom motorcycle/scooter modification or upgrade. Please get back to me.">
           <button style={{ backgroundColor: '#fff', color: '#000', border: 'none', padding: '12px 24px' }}>GET A FREE QUOTE</button>
         </Link>
       </div>

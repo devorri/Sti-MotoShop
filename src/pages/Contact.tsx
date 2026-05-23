@@ -1,14 +1,27 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useAppContext } from '../context/AppContext';
 
 export const Contact: React.FC = () => {
   const { inquiries, setInquiries } = useAppContext();
+  const location = useLocation();
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     message: ''
   });
   const [submitted, setSubmitted] = useState(false);
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const msg = params.get('message');
+    if (msg) {
+      setFormData(prev => ({
+        ...prev,
+        message: msg
+      }));
+    }
+  }, [location.search]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

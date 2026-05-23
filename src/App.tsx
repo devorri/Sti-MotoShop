@@ -2,14 +2,11 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AppProvider, useAppContext } from './context/AppContext';
 import { PublicLayout, AdminLayout } from './components/Layout';
-import { Home, Shop } from './pages/PublicPages';
+import { PublicLanding } from './pages/PublicPages';
 import { Login } from './pages/Login';
 import { Register } from './pages/Register';
 import { Dashboard, UserManagement, Inventory } from './pages/AdminPages';
 import { CustomerDashboard } from './pages/CustomerPages';
-import { Services } from './pages/Services';
-import { About } from './pages/About';
-import { Contact } from './pages/Contact';
 import { Sales } from './pages/Sales';
 import { Members } from './pages/Members';
 import { Reports } from './pages/Reports';
@@ -44,12 +41,15 @@ function App() {
     <AppProvider>
       <Router>
         <Routes>
-          {/* Public Routes */}
-          <Route path="/" element={<PublicLayout><Home /></PublicLayout>} />
-          <Route path="/shop" element={<PublicLayout><Shop /></PublicLayout>} />
-          <Route path="/services" element={<PublicLayout><Services /></PublicLayout>} />
-          <Route path="/about" element={<PublicLayout><About /></PublicLayout>} />
-          <Route path="/contact" element={<PublicLayout><Contact /></PublicLayout>} />
+          {/* Single scrollable public landing page */}
+          <Route path="/" element={<PublicLayout><PublicLanding /></PublicLayout>} />
+          
+          {/* Redirect old individual routes to hash sections on the landing page */}
+          <Route path="/shop" element={<Navigate to="/#shop" replace />} />
+          <Route path="/services" element={<Navigate to="/#services" replace />} />
+          <Route path="/about" element={<Navigate to="/#about" replace />} />
+          <Route path="/contact" element={<Navigate to="/#contact" replace />} />
+          
           <Route path="/login" element={<PublicLayout><Login /></PublicLayout>} />
           <Route path="/register" element={<PublicLayout><Register /></PublicLayout>} />
           

@@ -6,6 +6,21 @@ export const PublicLayout: React.FC<{ children: React.ReactNode }> = ({ children
   const { currentUser, logout } = useAppContext();
   const navigate = useNavigate();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const location = useLocation();
+
+  React.useEffect(() => {
+    if (location.hash) {
+      const id = location.hash.replace('#', '');
+      const element = document.getElementById(id);
+      if (element) {
+        // Small timeout to ensure page content is fully rendered before scrolling
+        const timer = setTimeout(() => {
+          element.scrollIntoView({ behavior: 'smooth' });
+        }, 100);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [location]);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', width: '100%' }}>
@@ -26,33 +41,88 @@ export const PublicLayout: React.FC<{ children: React.ReactNode }> = ({ children
           <h1 style={{ fontSize: '1.2rem', margin: 0, lineHeight: 1 }}>BOSS RAP</h1>
           <p style={{ fontSize: '0.5rem', letterSpacing: '2px', margin: 0 }}>MOTOR SHOP</p>
         </Link>
-
-        {/* Mobile Menu Toggle */}
-        <button 
-          onClick={() => setIsMenuOpen(!isMenuOpen)}
-          style={{ 
-            display: 'none', 
-            background: 'none', 
-            color: '#fff', 
-            border: 'none', 
-            fontSize: '1.5rem',
-            padding: '5px'
-          }}
-          className="mobile-toggle"
-        >
-          {isMenuOpen ? '✕' : '☰'}
-        </button>
-
-        <nav style={{ 
-          display: 'flex', 
-          gap: '20px', 
-          alignItems: 'center',
-        }} className={`main-nav ${isMenuOpen ? 'open' : ''}`}>
-          <Link to="/" className="nav-link" style={{ color: '#fff' }} onClick={() => setIsMenuOpen(false)}>HOME</Link>
-          <Link to="/shop" className="nav-link" style={{ color: '#fff' }} onClick={() => setIsMenuOpen(false)}>SHOP</Link>
-          <Link to="/services" className="nav-link" style={{ color: '#fff' }} onClick={() => setIsMenuOpen(false)}>SERVICES</Link>
-          <Link to="/about" className="nav-link" style={{ color: '#fff' }} onClick={() => setIsMenuOpen(false)}>ABOUT</Link>
-          <Link to="/contact" className="nav-link" style={{ color: '#fff' }} onClick={() => setIsMenuOpen(false)}>CONTACT</Link>
+ 
+         {/* Mobile Menu Toggle */}
+         <button 
+           onClick={() => setIsMenuOpen(!isMenuOpen)}
+           style={{ 
+             display: 'none', 
+             background: 'none', 
+             color: '#fff', 
+             border: 'none', 
+             fontSize: '1.5rem',
+             padding: '5px'
+           }}
+           className="mobile-toggle"
+         >
+           {isMenuOpen ? '✕' : '☰'}
+         </button>
+ 
+         <nav style={{ 
+           display: 'flex', 
+           gap: '20px', 
+           alignItems: 'center',
+         }} className={`main-nav ${isMenuOpen ? 'open' : ''}`}>
+          <Link 
+            to="/" 
+            className="nav-link" 
+            style={{ 
+              color: '#fff', 
+              borderBottom: location.pathname === '/' ? '2px solid #ffe600' : '2px solid transparent', 
+              paddingBottom: '4px' 
+            }} 
+            onClick={() => setIsMenuOpen(false)}
+          >
+            HOME
+          </Link>
+          <Link 
+            to="/shop" 
+            className="nav-link" 
+            style={{ 
+              color: '#fff', 
+              borderBottom: location.pathname === '/shop' ? '2px solid #ffe600' : '2px solid transparent', 
+              paddingBottom: '4px' 
+            }} 
+            onClick={() => setIsMenuOpen(false)}
+          >
+            SHOP
+          </Link>
+          <Link 
+            to="/services" 
+            className="nav-link" 
+            style={{ 
+              color: '#fff', 
+              borderBottom: location.pathname === '/services' ? '2px solid #ffe600' : '2px solid transparent', 
+              paddingBottom: '4px' 
+            }} 
+            onClick={() => setIsMenuOpen(false)}
+          >
+            SERVICES
+          </Link>
+          <Link 
+            to="/about" 
+            className="nav-link" 
+            style={{ 
+              color: '#fff', 
+              borderBottom: location.pathname === '/about' ? '2px solid #ffe600' : '2px solid transparent', 
+              paddingBottom: '4px' 
+            }} 
+            onClick={() => setIsMenuOpen(false)}
+          >
+            ABOUT
+          </Link>
+          <Link 
+            to="/contact" 
+            className="nav-link" 
+            style={{ 
+              color: '#fff', 
+              borderBottom: location.pathname === '/contact' ? '2px solid #ffe600' : '2px solid transparent', 
+              paddingBottom: '4px' 
+            }} 
+            onClick={() => setIsMenuOpen(false)}
+          >
+            CONTACT
+          </Link>
           
           <div style={{ 
             display: 'flex', 
