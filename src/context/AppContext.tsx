@@ -158,7 +158,7 @@ const INITIAL_POINTS_SETTINGS: PointsSettings = {
 };
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [currentUser, setCurrentUserState] = useState<User | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
   const [members, setMembers] = useState<Member[]>([]);
   const [sales, setSales] = useState<Sale[]>([]);
@@ -168,7 +168,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [inquiries, setInquiries] = useState<Inquiry[]>([]);
   const [pointsSettings, setPointsSettingsState] = useState<PointsSettings>(INITIAL_POINTS_SETTINGS);
 
+  // Wrapper function to persist currentUser to localStorage
+  const setCurrentUser = (user: User | null) => {
+    setCurrentUserState(user);
+    if (user) {
+      localStorage.setItem('motoshop_current_user', JSON.stringify(user));
+    } else {
+      localStorage.removeItem('motoshop_current_user');
+    }
+  };
+
   useEffect(() => {
+    const savedCurrentUser = localStorage.getItem('motoshop_current_user');
     const savedProducts = localStorage.getItem('motoshop_products');
     const savedMembers = localStorage.getItem('motoshop_members');
     const savedSales = localStorage.getItem('motoshop_sales');
@@ -178,6 +189,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const savedInquiries = localStorage.getItem('motoshop_inquiries');
     const savedSettings = localStorage.getItem('motoshop_points_settings');
 
+    if (savedCurrentUser) setCurrentUserState(JSON.parse(savedCurrentUser));
     setProducts(savedProducts ? JSON.parse(savedProducts) : INITIAL_PRODUCTS);
     setMembers(savedMembers ? JSON.parse(savedMembers) : INITIAL_MEMBERS);
     setSales(savedSales ? JSON.parse(savedSales) : []);
