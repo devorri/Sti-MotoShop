@@ -21,6 +21,24 @@ export const CustomerDashboard = () => {
   // Find return requests for this member
   const myClaims = returnRequests.filter(r => r.memberId === currentUser?.memberId);
 
+  // Aggregate all unique products purchased
+  const purchasedProductsMap: { [key: string]: { name: string, quantity: number, totalSpent: number } } = {};
+  history.forEach(sale => {
+    sale.items.forEach(item => {
+      if (!purchasedProductsMap[item.productId]) {
+        purchasedProductsMap[item.productId] = {
+          name: item.name,
+          quantity: 0,
+          totalSpent: 0
+        };
+      }
+      purchasedProductsMap[item.productId].quantity += item.quantity;
+      purchasedProductsMap[item.productId].totalSpent += item.price * item.quantity;
+    });
+  });
+  const purchasedProductsList = Object.values(purchasedProductsMap).sort((a, b) => b.quantity - a.quantity);
+
+
   if (!profile) {
     return (
       <div style={{ padding: '5vw', textAlign: 'center' }}>
@@ -97,6 +115,43 @@ export const CustomerDashboard = () => {
           
           {/* Purchase History */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '30px' }}>
+            
+            {/* Unique Purchased Products Summary */}
+            <div className="card">
+              <h3>MY PURCHASED PRODUCTS SUMMARY</h3>
+              <p style={{ fontSize: '0.75rem', opacity: 0.7, margin: '5px 0 15px 0' }}>
+                Summary of all unique parts and items you have purchased from Boss Rap Motor Shop.
+              </p>
+              <div className="table-container">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>PRODUCT NAME</th>
+                      <th>TOTAL QTY BOUGHT</th>
+                      <th>TOTAL SPENT</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {purchasedProductsList.length === 0 ? (
+                      <tr><td colSpan={3} style={{ textAlign: 'center' }}>NO PRODUCTS BOUGHT YET</td></tr>
+                    ) : (
+                      purchasedProductsList.map((prod, idx) => (
+                        <tr key={idx}>
+                          <td style={{ fontWeight: 'bold' }}>{prod.name}</td>
+                          <td>
+                            <span className="badge" style={{ borderColor: 'green', color: 'green', fontWeight: 'bold' }}>
+                              {prod.quantity} units
+                            </span>
+                          </td>
+                          <td style={{ fontWeight: 'bold' }}>₱{prod.totalSpent.toLocaleString()}</td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
             <div className="card">
               <h3>PURCHASE JOURNAL</h3>
               <div className="table-container" style={{ marginTop: '20px' }}>

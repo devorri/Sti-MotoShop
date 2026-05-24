@@ -247,6 +247,7 @@ export const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children 
         <nav style={{ display: 'flex', flexDirection: 'column' }}>
           <TabButton id="dashboard" label="DASHBOARD" />
           <TabButton id="inventory" label="INVENTORY" />
+          <TabButton id="purchase-orders" label="PURCHASE ORDERS" />
           <TabButton id="sales" label="SALES" />
           <TabButton id="members" label="MEMBERS" />
           <TabButton id="promos" label="PROMOTIONS" />

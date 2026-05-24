@@ -13,6 +13,7 @@ import { Reports } from './pages/Reports';
 import { Promos } from './pages/Promos';
 import { Returns } from './pages/Returns';
 import { Inquiries } from './pages/Inquiries';
+import { PurchaseOrders } from './pages/PurchaseOrders';
 import './App.css';
 
 // Guard for checking if user is enabled
@@ -75,6 +76,14 @@ function App() {
             <RouteGuard>
               <AdminLayout>
                 <Inventory />
+              </AdminLayout>
+            </RouteGuard>
+          } />
+
+          <Route path="/admin/purchase-orders" element={
+            <RouteGuard>
+              <AdminLayout>
+                <PurchaseOrders />
               </AdminLayout>
             </RouteGuard>
           } />

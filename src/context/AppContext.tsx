@@ -87,6 +87,23 @@ export interface PointsSettings {
   pointValue: number;       // Value of 1 point in PHP for discounts
 }
 
+export interface PurchaseOrderItem {
+  productId: string;
+  name: string;
+  quantity: number;
+  costPrice: number;
+}
+
+export interface PurchaseOrder {
+  id: string;
+  supplierName: string;
+  items: PurchaseOrderItem[];
+  totalCost: number;
+  status: 'PENDING' | 'RECEIVED';
+  dateOrdered: string;
+  dateReceived?: string;
+}
+
 interface AppContextType {
   currentUser: User | null;
   setCurrentUser: (user: User | null) => void;
@@ -106,8 +123,11 @@ interface AppContextType {
   setInquiries: React.Dispatch<React.SetStateAction<Inquiry[]>>;
   pointsSettings: PointsSettings;
   setPointsSettings: (settings: PointsSettings) => void;
+  purchaseOrders: PurchaseOrder[];
+  setPurchaseOrders: React.Dispatch<React.SetStateAction<PurchaseOrder[]>>;
   logout: () => void;
 }
+
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
@@ -157,6 +177,33 @@ const INITIAL_POINTS_SETTINGS: PointsSettings = {
   pointValue: 1
 };
 
+const INITIAL_PURCHASE_ORDERS: PurchaseOrder[] = [
+  {
+    id: 'PO-2026-0001',
+    supplierName: 'MOTO DISTRIBUTORS INC.',
+    items: [
+      { productId: '1', name: 'Engine Oil 1L', quantity: 20, costPrice: 300 },
+      { productId: '2', name: 'Brake Pad Set', quantity: 10, costPrice: 800 }
+    ],
+    totalCost: 14000,
+    status: 'RECEIVED',
+    dateOrdered: '2026-05-10T08:00:00Z',
+    dateReceived: '2026-05-12T14:30:00Z'
+  },
+  {
+    id: 'PO-2026-0002',
+    supplierName: 'PREMIUM PARTS CORP.',
+    items: [
+      { productId: '3', name: 'Tire 17"', quantity: 15, costPrice: 1800 },
+      { productId: '4', name: 'Spark Plug', quantity: 50, costPrice: 90 }
+    ],
+    totalCost: 31500,
+    status: 'PENDING',
+    dateOrdered: '2026-05-22T09:15:00Z'
+  }
+];
+
+
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [currentUser, setCurrentUserState] = useState<User | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
@@ -167,6 +214,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [returnRequests, setReturnRequests] = useState<ReturnRequest[]>([]);
   const [inquiries, setInquiries] = useState<Inquiry[]>([]);
   const [pointsSettings, setPointsSettingsState] = useState<PointsSettings>(INITIAL_POINTS_SETTINGS);
+  const [purchaseOrders, setPurchaseOrders] = useState<PurchaseOrder[]>([]);
+
 
   // Wrapper function to persist currentUser to localStorage
   const setCurrentUser = (user: User | null) => {
@@ -188,6 +237,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const savedReturns = localStorage.getItem('motoshop_returns');
     const savedInquiries = localStorage.getItem('motoshop_inquiries');
     const savedSettings = localStorage.getItem('motoshop_points_settings');
+    const savedPurchaseOrders = localStorage.getItem('motoshop_purchase_orders');
 
     if (savedCurrentUser) setCurrentUserState(JSON.parse(savedCurrentUser));
     setProducts(savedProducts ? JSON.parse(savedProducts) : INITIAL_PRODUCTS);
@@ -198,7 +248,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setReturnRequests(savedReturns ? JSON.parse(savedReturns) : []);
     setInquiries(savedInquiries ? JSON.parse(savedInquiries) : INITIAL_INQUIRIES);
     setPointsSettingsState(savedSettings ? JSON.parse(savedSettings) : INITIAL_POINTS_SETTINGS);
+    setPurchaseOrders(savedPurchaseOrders ? JSON.parse(savedPurchaseOrders) : INITIAL_PURCHASE_ORDERS);
   }, []);
+
 
   useEffect(() => {
     if (products.length > 0) localStorage.setItem('motoshop_products', JSON.stringify(products));
@@ -228,10 +280,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     localStorage.setItem('motoshop_inquiries', JSON.stringify(inquiries));
   }, [inquiries]);
 
+  useEffect(() => {
+    localStorage.setItem('motoshop_purchase_orders', JSON.stringify(purchaseOrders));
+  }, [purchaseOrders]);
+
   const setPointsSettings = (settings: PointsSettings) => {
     setPointsSettingsState(settings);
     localStorage.setItem('motoshop_points_settings', JSON.stringify(settings));
   };
+
 
   const logout = () => setCurrentUser(null);
 
@@ -246,10 +303,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       returnRequests, setReturnRequests,
       inquiries, setInquiries,
       pointsSettings, setPointsSettings,
+      purchaseOrders, setPurchaseOrders,
       logout 
     }}>
       {children}
     </AppContext.Provider>
+
   );
 };
 
