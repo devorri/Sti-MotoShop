@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { useAppContext } from '../context/AppContext';
-import type { Product, SaleItem } from '../context/AppContext';
+import type { Product, Sale, SaleItem } from '../context/AppContext';
 
 export const Sales: React.FC = () => {
   const { products, setProducts, members, setMembers, sales, setSales, promos, pointsSettings } = useAppContext();
+  const orderStatuses: NonNullable<Sale['orderStatus']>[] = ['ORDER PLACED', 'PREPARING', 'READY FOR PICKUP', 'OUT FOR DELIVERY', 'COMPLETED'];
   
   // Cart & Transaction states
   const [cart, setCart] = useState<SaleItem[]>([]);
@@ -134,6 +135,11 @@ export const Sales: React.FC = () => {
       total,
       date: new Date().toISOString(),
       memberId: selectedMemberId || undefined,
+      channel: orderType,
+      fulfillmentType: orderType === 'ONLINE/FACEBOOK' ? 'STORE PICKUP' as const : 'COUNTER' as const,
+      orderStatus: orderType === 'ONLINE/FACEBOOK' ? 'ORDER PLACED' as const : 'COMPLETED' as const,
+      trackingCode: `${orderType === 'ONLINE/FACEBOOK' ? 'PICKUP' : 'COUNTER'}-${saleId}`,
+      notes: orderType === 'ONLINE/FACEBOOK' ? 'FACEBOOK / ONLINE ORDER RECORDED BY STAFF' : 'WALK-IN COUNTER SALE',
       paymentMethod,
       paymentRef: paymentMethod !== 'CASH' ? paymentRef : undefined
     };
@@ -169,6 +175,12 @@ export const Sales: React.FC = () => {
 
   const printReceipt = () => {
     window.print();
+  };
+
+  const updateOrderStatus = (saleId: string, status: NonNullable<Sale['orderStatus']>) => {
+    setSales(sales.map(sale => 
+      sale.id === saleId ? { ...sale, orderStatus: status } : sale
+    ));
   };
 
   return (
@@ -453,7 +465,7 @@ export const Sales: React.FC = () => {
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                   <span>Channel:</span>
-                  <span>{showReceipt.paymentRef ? 'ONLINE/FB' : 'WALK-IN'}</span>
+                  <span>{showReceipt.channel || 'WALK-IN'}</span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                   <span>Payment:</span>
@@ -521,6 +533,58 @@ export const Sales: React.FC = () => {
           </div>
         </div>
       )}
+
+      <div className="card" style={{ marginTop: '30px' }}>
+        <h3>SALES TRANSACTION RECORDS</h3>
+        <p style={{ fontSize: '0.75rem', opacity: 0.7, margin: '5px 0 20px 0' }}>
+          Monitor walk-in and Facebook / online transactions, payment references, and customer order status.
+        </p>
+
+        <div className="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>RECEIPT ID</th>
+                <th>DATE</th>
+                <th>MEMBER</th>
+                <th>CHANNEL</th>
+                <th>PAYMENT</th>
+                <th>REF #</th>
+                <th>TOTAL</th>
+                <th>ORDER STATUS</th>
+              </tr>
+            </thead>
+            <tbody>
+              {sales.length === 0 ? (
+                <tr><td colSpan={8} style={{ textAlign: 'center' }}>NO SALES RECORDED</td></tr>
+              ) : (
+                sales.slice().reverse().map(sale => (
+                  <tr key={sale.id}>
+                    <td style={{ fontWeight: 'bold' }}>{sale.id}</td>
+                    <td style={{ fontSize: '0.7rem' }}>{new Date(sale.date).toLocaleDateString()}</td>
+                    <td>{sale.memberId || 'WALK-IN'}</td>
+                    <td><span className="badge" style={{ fontSize: '0.55rem' }}>{sale.channel || 'WALK-IN'}</span></td>
+                    <td>{sale.paymentMethod}</td>
+                    <td style={{ fontSize: '0.7rem' }}>{sale.paymentRef || '-'}</td>
+                    <td style={{ fontWeight: 'bold' }}>₱{sale.total.toLocaleString()}</td>
+                    <td>
+                      <select 
+                        value={sale.orderStatus || 'COMPLETED'}
+                        onChange={e => updateOrderStatus(sale.id, e.target.value as NonNullable<Sale['orderStatus']>)}
+                        style={{ fontSize: '0.65rem', padding: '5px', minWidth: '150px' }}
+                      >
+                        {orderStatuses.map(status => (
+                          <option key={status} value={status}>{status}</option>
+                        ))}
+                      </select>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
 
       <style>{`
         @media print {

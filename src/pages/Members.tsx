@@ -2,10 +2,11 @@ import React, { useState } from 'react';
 import { useAppContext } from '../context/AppContext';
 
 export const Members: React.FC = () => {
-  const { members, setMembers, users, setUsers, pointsSettings, setPointsSettings } = useAppContext();
+  const { members, setMembers, users, setUsers, sales, pointsSettings, setPointsSettings } = useAppContext();
   const [showAdd, setShowAdd] = useState(false);
   const [newMember, setNewMember] = useState({ name: '', contact: '', address: '', username: '', password: '' });
   const [activeQRMember, setActiveQRMember] = useState<any | null>(null);
+  const [activeHistoryMember, setActiveHistoryMember] = useState<any | null>(null);
   
   // Local points settings form state
   const [ptsRule, setPtsRule] = useState({
@@ -18,6 +19,10 @@ export const Members: React.FC = () => {
     e.preventDefault();
     if (!newMember.name || !newMember.contact || !newMember.username || !newMember.password) {
       alert('PLEASE FILL OUT ALL FIELDS.');
+      return;
+    }
+    if (users.some(u => u.username.toLowerCase() === newMember.username.toLowerCase())) {
+      alert('USERNAME ALREADY EXISTS.');
       return;
     }
 
@@ -99,12 +104,20 @@ export const Members: React.FC = () => {
                         <span className="badge" style={{ backgroundColor: '#000', color: '#fff' }}>{m.points} pts</span>
                       </td>
                       <td>
-                        <button 
-                          style={{ fontSize: '0.65rem', padding: '4px 8px' }}
-                          onClick={() => setActiveQRMember(m)}
-                        >
-                          VIEW QR CARD
-                        </button>
+                        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                          <button 
+                            style={{ fontSize: '0.65rem', padding: '4px 8px' }}
+                            onClick={() => setActiveQRMember(m)}
+                          >
+                            VIEW QR CARD
+                          </button>
+                          <button 
+                            style={{ fontSize: '0.65rem', padding: '4px 8px' }}
+                            onClick={() => setActiveHistoryMember(m)}
+                          >
+                            VIEW HISTORY
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))
@@ -174,6 +187,58 @@ export const Members: React.FC = () => {
               </div>
             </div>
             <button style={{ marginTop: '20px', width: '100%' }} onClick={() => setActiveQRMember(null)}>CLOSE CARD</button>
+          </div>
+        </div>
+      )}
+
+      {/* MEMBER TRANSACTION HISTORY MODAL */}
+      {activeHistoryMember && (
+        <div className="modal-overlay" style={{ zIndex: 9999 }}>
+          <div className="modal" style={{ maxWidth: '800px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '20px', marginBottom: '20px' }}>
+              <div>
+                <h3>{activeHistoryMember.name} TRANSACTION HISTORY</h3>
+                <p style={{ fontSize: '0.75rem', opacity: 0.7, marginTop: '5px' }}>
+                  Member ID: {activeHistoryMember.id} | Points: {activeHistoryMember.points}
+                </p>
+              </div>
+              <button onClick={() => setActiveHistoryMember(null)} style={{ fontSize: '0.7rem' }}>CLOSE</button>
+            </div>
+
+            <div className="table-container">
+              <table>
+                <thead>
+                  <tr>
+                    <th>RECEIPT ID</th>
+                    <th>DATE</th>
+                    <th>CHANNEL</th>
+                    <th>ITEMS</th>
+                    <th>PAYMENT</th>
+                    <th>TOTAL</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {sales.filter(s => s.memberId === activeHistoryMember.id).length === 0 ? (
+                    <tr><td colSpan={6} style={{ textAlign: 'center' }}>NO TRANSACTIONS FOUND FOR THIS MEMBER</td></tr>
+                  ) : (
+                    sales
+                      .filter(s => s.memberId === activeHistoryMember.id)
+                      .slice()
+                      .reverse()
+                      .map(s => (
+                        <tr key={s.id}>
+                          <td style={{ fontWeight: 'bold' }}>{s.id}</td>
+                          <td style={{ fontSize: '0.7rem' }}>{new Date(s.date).toLocaleDateString()}</td>
+                          <td><span className="badge" style={{ fontSize: '0.55rem' }}>{s.channel || 'WALK-IN'}</span></td>
+                          <td style={{ fontSize: '0.7rem' }}>{s.items.map(i => `${i.name} (x${i.quantity})`).join(', ')}</td>
+                          <td style={{ fontSize: '0.7rem' }}>{s.paymentMethod}{s.paymentRef ? ` / ${s.paymentRef}` : ''}</td>
+                          <td style={{ fontWeight: 'bold' }}>₱{s.total.toLocaleString()}</td>
+                        </tr>
+                      ))
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       )}

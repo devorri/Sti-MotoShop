@@ -97,11 +97,18 @@ export const UserManagement = () => {
   const [newUser, setNewUser] = useState({ name: '', username: '', password: '', role: 'EMPLOYEE' as any });
 
   const addUser = () => {
-    if (newUser.name && newUser.username) {
-      setUsers([...users, { ...newUser, id: `U_${Date.now()}`, enabled: true }]);
-      setShowAdd(false);
-      setNewUser({ name: '', username: '', password: '', role: 'EMPLOYEE' });
+    if (!newUser.name || !newUser.username || !newUser.password) {
+      alert('PLEASE COMPLETE THE STAFF ACCOUNT DETAILS.');
+      return;
     }
+    if (users.some(u => u.username.toLowerCase() === newUser.username.toLowerCase())) {
+      alert('USERNAME ALREADY EXISTS.');
+      return;
+    }
+
+    setUsers([...users, { ...newUser, id: `U_${Date.now()}`, enabled: true }]);
+    setShowAdd(false);
+    setNewUser({ name: '', username: '', password: '', role: 'EMPLOYEE' });
   };
 
   const toggleUserStatus = (id: string) => {
