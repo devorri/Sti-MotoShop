@@ -31,38 +31,87 @@ export const Login = () => {
   };
 
   return (
-    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '80vh' }}>
-      <div className="modal" style={{ maxWidth: '400px' }}>
-        <h2 style={{ textAlign: 'center', marginBottom: '8px' }}>BOSS RAP</h2>
-        <p style={{ textAlign: 'center', fontSize: '0.8rem', marginBottom: '32px', letterSpacing: '4px' }}>MOTOSHOP LOGIN</p>
+    <div style={{ 
+      display: 'flex', 
+      justifyContent: 'center', 
+      alignItems: 'center', 
+      minHeight: '85vh',
+      padding: '40px 20px',
+      background: 'radial-gradient(circle at 50% 50%, rgba(0, 210, 255, 0.1) 0%, rgba(7, 9, 14, 0.95) 70%)'
+    }}>
+      <div className="card" style={{ maxWidth: '440px', width: '100%', padding: '40px 32px' }}>
+        <div style={{ textAlign: 'center', marginBottom: '28px' }}>
+          <img 
+            src="/boss-rap-logo.png" 
+            alt="BOSS RAP MOTOR SHOP" 
+            style={{ 
+              maxHeight: '75px', 
+              marginBottom: '14px',
+              filter: 'drop-shadow(0 0 12px rgba(0, 210, 255, 0.5))' 
+            }} 
+          />
+          <h2 style={{ fontSize: '1.4rem', color: '#fff', margin: 0 }}>MEMBER & STAFF LOGIN</h2>
+          <p style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '4px', fontFamily: 'var(--font-header)' }}>
+            ACCESS YOUR ORDERS, DISCOUNTS & DASHBOARD
+          </p>
+        </div>
+
         <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
           <div>
-            <label style={{ fontSize: '0.7rem', fontWeight: 'bold' }}>USERNAME</label>
+            <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--accent-cyan)', fontFamily: 'var(--font-header)' }}>
+              USERNAME
+            </label>
             <input
               type="text"
               value={username}
               onChange={e => setUsername(e.target.value)}
+              placeholder="Enter your username"
               required
-              style={{ marginTop: '5px' }}
+              style={{ marginTop: '6px' }}
             />
           </div>
+
           <div>
-            <label style={{ fontSize: '0.7rem', fontWeight: 'bold' }}>PASSWORD</label>
+            <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--accent-cyan)', fontFamily: 'var(--font-header)' }}>
+              PASSWORD
+            </label>
             <input
               type="password"
               value={password}
               onChange={e => setPassword(e.target.value)}
+              placeholder="Enter your password"
               required
-              style={{ marginTop: '5px' }}
+              style={{ marginTop: '6px' }}
             />
           </div>
-          {error && <p style={{ color: 'red', fontSize: '0.7rem', fontWeight: 'bold' }}>{error}</p>}
-          <button type="submit" className="primary" style={{ marginTop: '10px' }}>LOG IN</button>
-        </form>
-        <div style={{ marginTop: '20px', textAlign: 'center' }}>
-          <p style={{ fontSize: '0.8rem' }}>NEW CUSTOMER? <Link to="/register" style={{ color: '#000', fontWeight: 'bold' }}>REGISTER HERE</Link></p>
-        </div>
 
+          {error && (
+            <div style={{ 
+              backgroundColor: 'rgba(255, 30, 39, 0.15)', 
+              border: '1px solid var(--accent-red)', 
+              padding: '10px 14px', 
+              borderRadius: '6px',
+              color: '#ff4d53', 
+              fontSize: '0.75rem', 
+              fontWeight: 700 
+            }}>
+              ⚠️ {error}
+            </div>
+          )}
+
+          <button type="submit" className="primary" style={{ marginTop: '10px', padding: '14px' }}>
+            ⚡ LOG IN TO ACCOUNT
+          </button>
+        </form>
+
+        <div style={{ marginTop: '28px', textAlign: 'center', borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: '20px' }}>
+          <p style={{ fontSize: '0.85rem', color: '#94a3b8' }}>
+            NEW TO BOSS RAP?{' '}
+            <Link to="/register" style={{ color: 'var(--accent-cyan)', fontWeight: 700, textDecoration: 'none' }}>
+              REGISTER HERE
+            </Link>
+          </p>
+        </div>
       </div>
     </div>
   );

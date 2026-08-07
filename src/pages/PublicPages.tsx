@@ -8,117 +8,184 @@ import { Contact } from './Contact';
 
 export const Home: React.FC = () => {
   return (
-    <div style={{ backgroundColor: '#fff', color: '#000' }}>
+    <div style={{ backgroundColor: '#07090e', color: '#f8fafc', minHeight: '100vh' }}>
       {/* Hero Section */}
       <section style={{ 
-        padding: '120px 20px', 
+        padding: '100px 24px 120px', 
         textAlign: 'center', 
-        borderBottom: '3px solid #000',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
-        background: 'radial-gradient(circle at center, #1a1a1e 0%, #000000 100%)',
+        background: 'radial-gradient(circle at 50% 30%, rgba(0, 210, 255, 0.12) 0%, rgba(255, 30, 39, 0.08) 50%, #07090e 90%)',
         color: '#fff',
         position: 'relative',
-        overflow: 'hidden'
+        overflow: 'hidden',
+        borderBottom: '1px solid rgba(0, 210, 255, 0.2)'
       }}>
-        {/* Decorative Grid Lines */}
-        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, opacity: 0.05, background: 'linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)', backgroundSize: '40px 40px' }}></div>
+        {/* Carbon Background Pattern */}
+        <div style={{ 
+          position: 'absolute', 
+          top: 0, 
+          left: 0, 
+          right: 0, 
+          bottom: 0, 
+          opacity: 0.08, 
+          backgroundImage: 'radial-gradient(#ffffff 1px, transparent 1px)', 
+          backgroundSize: '24px 24px' 
+        }}></div>
         
-        <div style={{ zIndex: 2, maxWidth: '800px' }}>
-          <span className="badge" style={{ borderColor: '#fff', color: '#fff', backgroundColor: 'transparent', marginBottom: '20px', padding: '4px 12px', fontSize: '0.75rem', letterSpacing: '2px' }}>EST. 2008</span>
-          <h1 style={{ fontSize: 'clamp(3rem, 8vw, 5.5rem)', fontWeight: '950', letterSpacing: '-1px', margin: '0 0 10px 0', textTransform: 'uppercase', lineHeight: 0.9 }}>BOSS RAP</h1>
-          <p style={{ fontSize: 'clamp(1rem, 2.5vw, 1.6rem)', color: '#fff', fontWeight: 'bold', letterSpacing: '4px', textTransform: 'uppercase', margin: '0 0 40px 0' }}>MOTOR SHOP</p>
-          <p style={{ fontSize: '0.95rem', opacity: 0.8, lineHeight: '1.6', maxWidth: '600px', margin: '0 auto 40px', color: '#ccc' }}>
-            BULACAN'S PREMIER DESTINATION FOR PROFESSIONAL MOTORCYCLE TUNE-UPS, HIGH-PERFORMANCE UPGRADES, AND GENUINE OEM SPARE PARTS.
+        <div style={{ zIndex: 2, maxWidth: '900px', width: '100%' }}>
+          <span className="badge" style={{ marginBottom: '24px', padding: '6px 16px', fontSize: '0.75rem', letterSpacing: '0.2em' }}>
+            ⚡ EST. 2008 • BALIWAG, BULACAN
+          </span>
+
+          {/* Hero Logo Emblem */}
+          <div style={{ marginBottom: '28px' }}>
+            <img 
+              src="/boss-rap-logo.png" 
+              alt="BOSS RAP MOTOR SHOP LOGO" 
+              style={{ 
+                maxWidth: '380px', 
+                width: '85%', 
+                height: 'auto',
+                filter: 'drop-shadow(0 0 25px rgba(0, 210, 255, 0.45)) drop-shadow(0 0 10px rgba(255, 30, 39, 0.3))' 
+              }}
+              className="hero-logo-img"
+            />
+          </div>
+
+          <h1 style={{ 
+            fontSize: 'clamp(2.5rem, 6vw, 4.8rem)', 
+            fontWeight: '900', 
+            letterSpacing: '0.04em', 
+            margin: '0 0 16px 0', 
+            lineHeight: 1.05,
+            background: 'linear-gradient(135deg, #ffffff 30%, #00d2ff 70%, #ff1e27 100%)',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            textShadow: '0 10px 30px rgba(0,0,0,0.8)'
+          }}>
+            HIGH-PERFORMANCE TUNING & SPARES
+          </h1>
+          
+          <p style={{ 
+            fontSize: 'clamp(0.95rem, 2vw, 1.25rem)', 
+            color: '#cbd5e1', 
+            fontWeight: '500', 
+            lineHeight: '1.7', 
+            maxWidth: '720px', 
+            margin: '0 auto 40px' 
+          }}>
+            Bulacan's trusted racing sanctuary for professional CVT tuning, engine overhauls, high-grade synthetic lubricants, and genuine OEM spare parts.
           </p>
-          <div style={{ display: 'flex', gap: '20px', justifyContent: 'center', flexWrap: 'wrap' }}>
-            <Link to="/shop"><button className="primary" style={{ backgroundColor: '#fff', borderColor: '#fff', color: '#000', padding: '16px 40px', minWidth: '220px', fontSize: '0.8rem', letterSpacing: '1px' }}>EXPLORE INVENTORY</button></Link>
-            <Link to="/services"><button style={{ backgroundColor: 'transparent', borderColor: '#fff', color: '#fff', padding: '16px 40px', minWidth: '220px', fontSize: '0.8rem', letterSpacing: '1px' }}>OUR SERVICES</button></Link>
+
+          <div style={{ display: 'flex', gap: '18px', justifyContent: 'center', flexWrap: 'wrap' }}>
+            <Link to="/shop">
+              <button className="primary" style={{ padding: '16px 36px', fontSize: '0.85rem' }}>
+                🛒 EXPLORE INVENTORY
+              </button>
+            </Link>
+            <Link to="/services">
+              <button className="btn" style={{ padding: '16px 36px', fontSize: '0.85rem' }}>
+                🔧 OUR SERVICES & TUNING
+              </button>
+            </Link>
           </div>
         </div>
       </section>
 
-      {/* Quick Stats */}
+      {/* Quick Stats Grid */}
       <section style={{ 
-        display: 'grid', 
-        gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', 
-        borderBottom: '3px solid #000',
-        backgroundColor: '#fff'
+        maxWidth: '1400px', 
+        margin: '-30px auto 60px',
+        padding: '0 24px',
+        position: 'relative',
+        zIndex: 10
       }}>
-        <div style={{ padding: '60px 40px', borderRight: '2px solid #000', borderBottom: '2px solid #000', textAlign: 'center' }} className="stat-box">
-          <h3 style={{ fontSize: '3rem', fontWeight: '900' }}>500+</h3>
-          <p style={{ fontSize: '0.75rem', marginTop: '10px', fontWeight: 'bold', letterSpacing: '2px' }}>GENUINE SPARE PARTS</p>
-        </div>
-        <div style={{ padding: '60px 40px', borderRight: '2px solid #000', borderBottom: '2px solid #000', textAlign: 'center' }} className="stat-box">
-          <h3 style={{ fontSize: '3rem', fontWeight: '900' }}>1,500+</h3>
-          <p style={{ fontSize: '0.75rem', marginTop: '10px', fontWeight: 'bold', letterSpacing: '2px' }}>REGISTERED MEMEBERS</p>
-        </div>
-        <div style={{ padding: '60px 40px', borderBottom: '2px solid #000', textAlign: 'center' }} className="stat-box">
-          <h3 style={{ fontSize: '3rem', fontWeight: '900' }}>15+ YEARS</h3>
-          <p style={{ fontSize: '0.75rem', marginTop: '10px', fontWeight: 'bold', letterSpacing: '2px' }}>ON-THE-ROAD EXPERTISE</p>
+        <div style={{
+          display: 'grid', 
+          gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', 
+          gap: '20px'
+        }}>
+          <div className="card" style={{ textAlign: 'center', padding: '30px 20px' }}>
+            <span style={{ fontSize: '2rem', display: 'block', marginBottom: '8px' }}>📦</span>
+            <h3 style={{ fontSize: '2.5rem', fontWeight: '900', color: 'var(--accent-cyan)' }}>500+</h3>
+            <p style={{ fontSize: '0.75rem', marginTop: '6px', fontWeight: '700', color: '#94a3b8', letterSpacing: '0.1em' }}>GENUINE OEM PARTS</p>
+          </div>
+          <div className="card" style={{ textAlign: 'center', padding: '30px 20px' }}>
+            <span style={{ fontSize: '2rem', display: 'block', marginBottom: '8px' }}>🏁</span>
+            <h3 style={{ fontSize: '2.5rem', fontWeight: '900', color: 'var(--accent-red)' }}>1,500+</h3>
+            <p style={{ fontSize: '0.75rem', marginTop: '6px', fontWeight: '700', color: '#94a3b8', letterSpacing: '0.1em' }}>CLUB MEMBERS</p>
+          </div>
+          <div className="card" style={{ textAlign: 'center', padding: '30px 20px' }}>
+            <span style={{ fontSize: '2rem', display: 'block', marginBottom: '8px' }}>🏆</span>
+            <h3 style={{ fontSize: '2.5rem', fontWeight: '900', color: 'var(--accent-gold)' }}>15+ YEARS</h3>
+            <p style={{ fontSize: '0.75rem', marginTop: '6px', fontWeight: '700', color: '#94a3b8', letterSpacing: '0.1em' }}>ON-ROAD EXPERTISE</p>
+          </div>
         </div>
       </section>
 
       {/* Featured Services Preview */}
-      <section style={{ padding: '100px 20px', maxWidth: '1400px', margin: '0 auto' }}>
-        <div style={{ textAlign: 'center', marginBottom: '60px' }}>
-          <h2 style={{ fontSize: '2rem', fontWeight: '900' }}>POPULAR MAINTENANCE SERVICES</h2>
-          <p style={{ fontSize: '0.85rem', opacity: 0.6, marginTop: '8px' }}>RIDE SAFE WITH EXPERT REPAIRS AND GENUINE SPARES</p>
+      <section style={{ padding: '60px 24px 80px', maxWidth: '1400px', margin: '0 auto' }}>
+        <div style={{ textAlign: 'center', marginBottom: '50px' }}>
+          <span className="badge" style={{ marginBottom: '10px' }}>EXPERT MAINTENANCE</span>
+          <h2 style={{ fontSize: '2.2rem', fontWeight: '900', color: '#fff' }}>POPULAR TUNING SERVICES</h2>
+          <p style={{ fontSize: '0.9rem', color: '#94a3b8', marginTop: '8px' }}>PRECISION CARE FOR MAXIMUM ACCELERATION AND SAFETY</p>
         </div>
         
         <div style={{ 
           display: 'grid', 
           gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', 
-          gap: '30px' 
+          gap: '24px' 
         }}>
           {[
-            { name: 'ENGINE TUNE-UP', desc: 'Full throttle body cleaning, valve clearance adjustment, and electronics calibration.', label: '₱500+' },
-            { name: 'SYNTHETIC OIL CHANGE', desc: 'Premium 4T engine lubricant drain & replace, filter inspection, and chain lubing.', label: '₱350+' },
-            { name: 'EXHAUST / CV UPGRADE', desc: 'Professional performance CVT cleaning and aftermarket exhaust fitting.', label: '₱350+' },
-            { name: 'ENGINE OVERHAUL', desc: 'Cylinder re-boring, carbon scrubbing, gasket replacement, and full piston tuning.', label: '₱5,000+' }
+            { name: 'ENGINE TUNE-UP', desc: 'Full throttle body cleaning, FI diagnostic scan, valve clearance adjustment, and electronics calibration.', label: '₱500+' },
+            { name: 'SYNTHETIC OIL CHANGE', desc: 'Premium 4T racing engine lubricant drain & replace, filter inspection, and chain tensioning.', label: '₱350+' },
+            { name: 'CVT CLEANING & UPGRADE', desc: 'Professional performance CVT cleaning, pulley resurfacing, clutch bell deglazing, and belt fitting.', label: '₱450+' },
+            { name: 'ENGINE OVERHAUL', desc: 'Cylinder re-boring, carbon scrubbing, gasket replacement, and full racing piston tuning.', label: '₱5,000+' }
           ].map(service => (
             <div key={service.name} className="card" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', height: '100%' }}>
               <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #eee', paddingBottom: '10px', marginBottom: '15px' }}>
-                  <h4 style={{ fontSize: '1rem', margin: 0 }}>{service.name}</h4>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '12px', marginBottom: '16px' }}>
+                  <h4 style={{ fontSize: '1.05rem', margin: 0, color: '#fff' }}>{service.name}</h4>
                   <span className="badge">{service.label}</span>
                 </div>
-                <p style={{ fontSize: '0.8rem', lineHeight: '1.6', opacity: 0.7 }}>{service.desc}</p>
+                <p style={{ fontSize: '0.85rem', lineHeight: '1.6', color: '#94a3b8' }}>{service.desc}</p>
               </div>
-              <Link to="/services" style={{ marginTop: '20px' }}>
-                <button style={{ width: '100%', fontSize: '0.65rem' }}>LEARN MORE</button>
+              <Link to="/services" style={{ marginTop: '24px' }}>
+                <button className="btn" style={{ width: '100%', fontSize: '0.7rem' }}>BOOK SERVICE</button>
               </Link>
             </div>
           ))}
         </div>
       </section>
 
-      {/* CTA Join Club */}
+      {/* CTA Join Club Banner */}
       <section style={{ 
-        padding: '80px 20px', 
+        padding: '80px 24px', 
         textAlign: 'center', 
-        background: '#000', 
+        background: 'linear-gradient(135deg, rgba(0, 82, 255, 0.2) 0%, rgba(255, 30, 39, 0.2) 100%)', 
         color: '#fff', 
-        borderTop: '3px solid #000'
+        borderTop: '1px solid rgba(0, 210, 255, 0.2)',
+        borderBottom: '1px solid rgba(0, 210, 255, 0.2)',
+        position: 'relative'
       }}>
         <div style={{ maxWidth: '800px', margin: '0 auto' }}>
-          <h2 style={{ color: '#fff', fontSize: '2rem', marginBottom: '15px' }}>JOIN THE BOSS RAP RIDER CLUB</h2>
-          <p style={{ fontSize: '0.9rem', opacity: 0.8, marginBottom: '30px', color: '#ccc' }}>
-            Earn 1 points for every ₱100 spent. Redeem points for custom parts discounts. Access your virtual QR membership card instantly on your dashboard.
+          <span className="badge badge-red" style={{ marginBottom: '16px' }}>EXCLUSIVE MEMBER REWARDS</span>
+          <h2 style={{ color: '#fff', fontSize: '2.4rem', marginBottom: '16px', fontWeight: 900 }}>
+            JOIN THE BOSS RAP RIDER CLUB
+          </h2>
+          <p style={{ fontSize: '0.95rem', color: '#cbd5e1', lineHeight: '1.7', marginBottom: '32px' }}>
+            Earn 1 membership point for every ₱100 spent. Collect points to redeem free oil changes and parts discounts. Show your digital membership QR code at the shop counter!
           </p>
           <Link to="/register">
-            <button className="primary" style={{ backgroundColor: '#fff', color: '#000', border: 'none', padding: '15px 35px' }}>REGISTER AS A MEMBER</button>
+            <button className="primary" style={{ padding: '16px 40px', fontSize: '0.85rem' }}>
+              ⚡ REGISTER FOR FREE MEMBERSHIP
+            </button>
           </Link>
         </div>
       </section>
-
-      <style>{`
-        @media (max-width: 768px) {
-          .stat-box { border-right: none !important; }
-        }
-      `}</style>
     </div>
   );
 };
@@ -381,26 +448,43 @@ export const Shop: React.FC = () => {
         .product-grid {
           display: grid;
           grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-          gap: 30px;
+          gap: 24px;
         }
         .product-card {
-          border: 3px solid #000;
-          background: #fff;
-          box-shadow: 6px 6px 0px #000;
-          transition: all 0.15s ease-out;
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          background: rgba(14, 20, 33, 0.85);
+          backdrop-filter: blur(12px);
+          box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
           display: flex;
           flex-direction: column;
           height: 100%;
           cursor: pointer;
+          border-radius: 14px;
+          overflow: hidden;
+          position: relative;
+        }
+        .product-card::before {
+          content: '';
+          position: absolute;
+          top: 0; left: 0; right: 0;
+          height: 2px;
+          background: linear-gradient(90deg, transparent, #00d2ff, #ff1e27, transparent);
+          opacity: 0.5;
+          transition: opacity 0.3s;
         }
         .product-card:hover {
-          transform: translate(-4px, -4px);
-          box-shadow: 10px 10px 0px #ffe600;
+          transform: translateY(-4px);
+          border-color: rgba(0, 210, 255, 0.3);
+          box-shadow: 0 12px 30px rgba(0, 0, 0, 0.5), 0 0 15px rgba(0, 210, 255, 0.1);
+        }
+        .product-card:hover::before {
+          opacity: 1;
         }
         .product-image {
           aspect-ratio: 16 / 10;
-          background: radial-gradient(circle, #fcfcfc 0%, #edf0f2 100%);
-          border-bottom: 3px solid #000;
+          background: radial-gradient(circle, rgba(15, 23, 42, 0.9) 0%, rgba(7, 9, 14, 0.95) 100%);
+          border-bottom: 1px solid rgba(255, 255, 255, 0.06);
           display: flex;
           flex-direction: column;
           align-items: center;
@@ -411,12 +495,10 @@ export const Shop: React.FC = () => {
         .product-image::after {
           content: '';
           position: absolute;
-          top: 0;
-          left: 0;
-          right: 0;
-          bottom: 0;
-          background: linear-gradient(rgba(0,0,0,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(0,0,0,0.03) 1px, transparent 1px);
-          background-size: 20px 20px;
+          top: 0; left: 0; right: 0; bottom: 0;
+          background: radial-gradient(#00d2ff 0.5px, transparent 0.5px);
+          background-size: 16px 16px;
+          opacity: 0.06;
           pointer-events: none;
         }
         .product-card:hover .gear-icon {
@@ -426,72 +508,81 @@ export const Shop: React.FC = () => {
           from { transform: rotate(0deg); }
           to { transform: rotate(360deg); }
         }
-        @keyframes fadeIn {
-          from { opacity: 0; }
-          to { opacity: 1; }
-        }
         @keyframes slideLeft {
           from { transform: translateX(100%); }
           to { transform: translateX(0); }
         }
         .filter-btn {
-          font-size: 0.7rem;
+          font-size: 0.72rem;
           padding: 8px 16px;
-          border: 2.5px solid #000;
-          background: #fff;
-          font-weight: 900;
-          box-shadow: 2px 2px 0px #000;
-          transition: all 0.1s ease;
-          letter-spacing: 1px;
+          border: 1px solid rgba(0, 210, 255, 0.3);
+          background: rgba(15, 23, 42, 0.8);
+          color: #94a3b8;
+          font-weight: 700;
+          font-family: var(--font-header);
+          border-radius: 6px;
+          transition: all 0.2s ease;
+          letter-spacing: 0.05em;
         }
         .filter-btn:hover, .filter-btn.active {
-          background: #000;
+          background: linear-gradient(135deg, #0052ff, #00d2ff);
           color: #fff;
-          transform: translate(-2px, -2px);
-          box-shadow: 4px 4px 0px #ffe600;
+          border-color: #00d2ff;
+          box-shadow: 0 0 15px rgba(0, 210, 255, 0.3);
+          transform: translateY(-1px);
         }
         .checkout-input {
           width: 100%;
-          padding: 10px;
-          border: 2px solid #000;
+          padding: 12px 16px;
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          border-radius: 8px;
           font-family: inherit;
-          margin-top: 5px;
+          margin-top: 6px;
           outline: none;
-          background: #fff;
-          font-size: 0.8rem;
+          background: rgba(10, 15, 26, 0.9);
+          color: #f8fafc;
+          font-size: 0.85rem;
+          transition: all 0.2s ease;
         }
         .checkout-input:focus {
-          background: #fafaf3;
-          border-color: #ffe600;
+          background: rgba(15, 23, 42, 0.95);
+          border-color: #00d2ff;
+          box-shadow: 0 0 0 3px rgba(0, 210, 255, 0.15);
         }
         .action-button-neo {
           cursor: pointer;
-          font-family: inherit;
-          font-weight: 900;
+          font-family: var(--font-header);
+          font-weight: 700;
           text-transform: uppercase;
+          letter-spacing: 0.06em;
           padding: 12px 20px;
-          background: #fff;
-          border: 2.5px solid #000;
-          box-shadow: 4px 4px 0px #000;
-          transition: all 0.1s ease;
+          background: rgba(15, 23, 42, 0.8);
+          color: #f8fafc;
+          border: 1px solid rgba(0, 210, 255, 0.3);
+          border-radius: 6px;
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+          transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+          font-size: 0.8rem;
         }
         .action-button-neo:hover {
-          background: #000;
-          color: #fff;
-          transform: translate(-2px, -2px);
-          box-shadow: 6px 6px 0px #ffe600;
+          background: rgba(0, 210, 255, 0.15);
+          border-color: #00d2ff;
+          color: #ffffff;
+          transform: translateY(-2px);
+          box-shadow: 0 0 20px rgba(0, 210, 255, 0.25);
         }
         .action-button-neo.primary {
-          background: #000;
+          background: linear-gradient(135deg, #0052ff 0%, #0036ab 100%);
           color: #fff;
+          border: 1px solid #00d2ff;
+          box-shadow: 0 4px 15px rgba(0, 82, 255, 0.4);
         }
         .action-button-neo.primary:hover {
-          background: #ffe600;
-          color: #000;
-          box-shadow: 6px 6px 0px #000;
+          background: linear-gradient(135deg, #00d2ff 0%, #0052ff 100%);
+          box-shadow: 0 0 20px rgba(0, 210, 255, 0.25);
         }
         .action-button-neo:disabled {
-          opacity: 0.5;
+          opacity: 0.4;
           cursor: not-allowed;
           box-shadow: none;
           transform: none;
@@ -499,9 +590,10 @@ export const Shop: React.FC = () => {
         .quantity-counter {
           display: flex;
           align-items: center;
-          border: 2px solid #000;
-          background: #fff;
-          box-shadow: 2px 2px 0px #000;
+          border: 1px solid rgba(0, 210, 255, 0.3);
+          background: rgba(15, 23, 42, 0.8);
+          border-radius: 6px;
+          overflow: hidden;
         }
         .quantity-counter button {
           border: none;
@@ -509,9 +601,11 @@ export const Shop: React.FC = () => {
           font-weight: bold;
           padding: 4px 10px;
           font-size: 0.85rem;
+          color: #f8fafc;
+          border-radius: 0;
         }
         .quantity-counter button:hover {
-          background: #000;
+          background: rgba(0, 210, 255, 0.2);
           color: #fff;
         }
       `}</style>
@@ -524,10 +618,10 @@ export const Shop: React.FC = () => {
           bottom: '30px',
           right: '30px',
           zIndex: 999,
-          backgroundColor: '#ffe600',
-          color: '#000',
-          border: '3px solid #000',
-          boxShadow: '5px 5px 0px #000',
+          background: 'linear-gradient(135deg, #0052ff, #00d2ff)',
+          color: '#fff',
+          border: '2px solid #00d2ff',
+          boxShadow: '0 4px 20px rgba(0, 210, 255, 0.5)',
           borderRadius: '50%',
           display: 'flex',
           alignItems: 'center',
@@ -545,7 +639,7 @@ export const Shop: React.FC = () => {
             position: 'absolute',
             top: '-5px',
             right: '-5px',
-            backgroundColor: '#000',
+            background: 'linear-gradient(135deg, #ff1e27, #a80006)',
             color: '#fff',
             borderRadius: '50%',
             width: '24px',
@@ -555,7 +649,7 @@ export const Shop: React.FC = () => {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            border: '2px solid #fff'
+            border: '2px solid #07090e'
           }}>
             {cart.reduce((sum, item) => sum + item.quantity, 0)}
           </span>
@@ -564,8 +658,9 @@ export const Shop: React.FC = () => {
 
       {/* Header section */}
       <section style={{ marginBottom: '50px' }}>
-        <h1 style={{ fontSize: '2.8rem', fontWeight: '950', letterSpacing: '-1px' }}>SHOP SPARE PARTS</h1>
-        <p style={{ fontSize: '0.9rem', opacity: 0.7, marginTop: '5px', fontWeight: 'bold' }}>EXPLORE HIGH-QUALITY OEM MOTOR PARTS AND ACCESORIES.</p>
+        <span className="badge" style={{ marginBottom: '12px' }}>GENUINE OEM PARTS</span>
+        <h1 style={{ fontSize: '2.5rem', fontWeight: 900, color: '#ffffff' }}>SHOP SPARE PARTS & ACCESSORIES</h1>
+        <p style={{ fontSize: '0.95rem', color: '#94a3b8', marginTop: '8px' }}>EXPLORE HIGH-QUALITY OEM MOTORCYCLE PARTS AND RACING ACCESSORIES.</p>
       </section>
 
       {/* Filter and Search Navbar */}
@@ -576,7 +671,7 @@ export const Shop: React.FC = () => {
         marginBottom: '40px',
         flexWrap: 'wrap',
         gap: '20px',
-        borderBottom: '3px solid #000',
+        borderBottom: '1px solid rgba(255,255,255,0.08)',
         paddingBottom: '24px'
       }}>
         {/* Category Filters */}
@@ -599,24 +694,28 @@ export const Shop: React.FC = () => {
             placeholder="Search parts by name, code, barcode..." 
             style={{ 
               width: '100%', 
-              padding: '12px', 
-              border: '2.5px solid #000', 
-              boxShadow: '3px 3px 0px #000', 
-              fontSize: '0.85rem' 
+              padding: '12px 16px', 
+              paddingRight: '36px',
+              border: '1px solid rgba(0, 210, 255, 0.3)', 
+              borderRadius: '8px',
+              background: 'rgba(15, 23, 42, 0.8)',
+              color: '#f8fafc',
+              fontSize: '0.85rem',
+              fontFamily: 'inherit'
             }}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
-          <span style={{ position: 'absolute', right: '12px', top: '12px', opacity: 0.5 }}>🔍</span>
+          <span style={{ position: 'absolute', right: '14px', top: '13px', opacity: 0.5 }}>🔍</span>
         </div>
       </div>
 
       {/* Products Grid */}
       {filteredProducts.length === 0 ? (
-        <div className="card" style={{ padding: '80px 20px', textAlign: 'center', border: '3px solid #000' }}>
+        <div className="card" style={{ padding: '80px 20px', textAlign: 'center' }}>
           <span style={{ fontSize: '3rem' }}>🔩</span>
-          <h3 style={{ marginTop: '20px' }}>NO PRODUCTS MATCH YOUR FILTERS</h3>
-          <p style={{ opacity: 0.7, marginTop: '10px', fontSize: '0.9rem' }}>Try adjusting your search terms or selecting a different category filter.</p>
+          <h3 style={{ marginTop: '20px', color: '#fff' }}>NO PRODUCTS MATCH YOUR FILTERS</h3>
+          <p style={{ color: '#94a3b8', marginTop: '10px', fontSize: '0.9rem' }}>Try adjusting your search terms or selecting a different category filter.</p>
         </div>
       ) : (
         <div className="product-grid">
@@ -629,26 +728,26 @@ export const Shop: React.FC = () => {
               {/* Product Card Image Wrapper */}
               <div className="product-image">
                 {getCategoryIcon(product.category)}
-                <span style={{ fontSize: '0.55rem', color: '#666', fontWeight: 'bold', marginTop: '8px', letterSpacing: '2px' }}>BOSS RAP SPARES</span>
-                <code style={{ position: 'absolute', bottom: '8px', right: '8px', fontSize: '0.55rem', opacity: 0.6, background: '#fff', border: '1.5px solid #000', padding: '1px 5px' }}>BC: {product.barcode}</code>
+                <span style={{ fontSize: '0.55rem', color: '#64748b', fontWeight: 'bold', marginTop: '8px', letterSpacing: '2px' }}>BOSS RAP SPARES</span>
+                <code style={{ position: 'absolute', bottom: '8px', right: '8px', fontSize: '0.55rem', opacity: 0.6, background: 'rgba(15,23,42,0.8)', border: '1px solid rgba(255,255,255,0.1)', padding: '2px 6px', borderRadius: '4px', color: '#94a3b8' }}>BC: {product.barcode}</code>
               </div>
               
               {/* Product Card Details */}
               <div style={{ padding: '20px', flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: '15px' }}>
                 <div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span className="badge" style={{ backgroundColor: '#000', color: '#fff', fontSize: '0.6rem' }}>{product.category.toUpperCase()}</span>
+                    <span className="badge" style={{ fontSize: '0.6rem' }}>{product.category.toUpperCase()}</span>
                     {product.stock <= product.lowStockLevel && product.stock > 0 && (
-                      <span className="badge danger" style={{ background: '#ffe600', color: '#000', fontSize: '0.55rem' }}>LOW STOCK</span>
+                      <span className="badge warning" style={{ fontSize: '0.55rem' }}>LOW STOCK</span>
                     )}
                   </div>
-                  <h4 style={{ margin: '10px 0 5px 0', fontSize: '1.1rem', lineHeight: '1.3', letterSpacing: '-0.5px' }}>{product.name}</h4>
-                  <p style={{ fontSize: '0.75rem', opacity: 0.7, lineHeight: '1.5', margin: 0 }}>{product.description}</p>
+                  <h4 style={{ margin: '10px 0 5px 0', fontSize: '1.1rem', lineHeight: '1.3', color: '#fff' }}>{product.name}</h4>
+                  <p style={{ fontSize: '0.78rem', color: '#94a3b8', lineHeight: '1.5', margin: 0 }}>{product.description}</p>
                 </div>
                 
-                <div style={{ borderTop: '2px solid #eee', paddingTop: '15px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'auto' }}>
-                  <span style={{ fontWeight: '900', fontSize: '1.4rem', color: '#000' }}>₱{product.price.toLocaleString()}</span>
-                  <span className={`badge ${product.stock <= product.lowStockLevel ? 'danger' : ''}`} style={{ fontSize: '0.6rem', border: '2px solid #000' }}>
+                <div style={{ borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: '15px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'auto' }}>
+                  <span style={{ fontWeight: 900, fontSize: '1.4rem', color: 'var(--accent-cyan)', fontFamily: 'var(--font-header)' }}>₱{product.price.toLocaleString()}</span>
+                  <span className={`badge ${product.stock <= product.lowStockLevel ? 'danger' : 'success'}`} style={{ fontSize: '0.6rem' }}>
                     {product.stock > 0 ? `${product.stock} IN STOCK` : 'OUT OF STOCK'}
                   </span>
                 </div>

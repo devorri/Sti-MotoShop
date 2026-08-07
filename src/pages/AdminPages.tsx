@@ -85,9 +85,16 @@ export const Dashboard = () => {
 };
 
 const StatCard = ({ label, value, highlight = false }: { label: string, value: string, highlight?: boolean }) => (
-  <div className="card" style={{ border: highlight ? '4px solid #000' : '2px solid #000', display: 'flex', flexDirection: 'column', gap: '5px' }}>
-    <p style={{ fontSize: '0.7rem', fontWeight: 'bold', color: '#666' }}>{label}</p>
-    <h3 style={{ fontSize: '1.8rem', margin: 0 }}>{value}</h3>
+  <div className="card" style={{ 
+    borderColor: highlight ? 'var(--accent-red)' : 'var(--border-subtle)', 
+    boxShadow: highlight ? 'var(--shadow-neon-red)' : 'var(--shadow-glass)',
+    display: 'flex', 
+    flexDirection: 'column', 
+    gap: '6px',
+    padding: '20px'
+  }}>
+    <p style={{ fontSize: '0.7rem', fontWeight: 700, color: highlight ? '#ff4d53' : 'var(--accent-cyan)', fontFamily: 'var(--font-header)', letterSpacing: '0.05em', margin: 0 }}>{label}</p>
+    <h3 style={{ fontSize: '1.8rem', margin: 0, color: '#ffffff', fontWeight: 900 }}>{value}</h3>
   </div>
 );
 
