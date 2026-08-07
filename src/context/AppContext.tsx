@@ -39,6 +39,11 @@ export interface Sale {
   total: number;
   date: string;
   memberId?: string;
+  channel?: 'WALK-IN' | 'ONLINE/FACEBOOK';
+  fulfillmentType?: 'STORE PICKUP' | 'DELIVERY' | 'COUNTER';
+  orderStatus?: 'ORDER PLACED' | 'PREPARING' | 'READY FOR PICKUP' | 'OUT FOR DELIVERY' | 'COMPLETED';
+  trackingCode?: string;
+  notes?: string;
   paymentMethod: 'CASH' | 'E-WALLET' | 'ONLINE BANK';
   paymentRef?: string; // Reference number for E-Wallet / Online Banking
 }
@@ -105,6 +110,7 @@ export interface PurchaseOrder {
 }
 
 interface AppContextType {
+  initialized: boolean;
   currentUser: User | null;
   setCurrentUser: (user: User | null) => void;
   products: Product[];
@@ -144,6 +150,122 @@ const INITIAL_MEMBERS: Member[] = [
   { id: 'M002', name: 'JANE SMITH', contact: '09987654321', address: 'Pulilan, Bulacan', joinDate: '2024-02-15', points: 50 },
   { id: 'M003', name: 'ROBERT FOX', contact: '09887766554', address: 'Bustos, Bulacan', joinDate: '2024-03-20', points: 0 },
 ];
+
+const INITIAL_SALES: Sale[] = [
+  {
+    id: 'S_ONL1001',
+    items: [
+      { productId: '1', name: 'Engine Oil 1L', quantity: 2, price: 450 },
+      { productId: '4', name: 'Spark Plug', quantity: 1, price: 150 }
+    ],
+    subtotal: 1050,
+    discountApplied: 105,
+    total: 945,
+    date: '2026-05-26T09:30:00Z',
+    memberId: 'M001',
+    channel: 'ONLINE/FACEBOOK',
+    fulfillmentType: 'DELIVERY',
+    orderStatus: 'ORDER PLACED',
+    trackingCode: 'LALA-S_ONL1001',
+    notes: 'SHIPPING: LALAMOVE. ADDR: BALIUAG, BULACAN. PHONE: 09123456789',
+    paymentMethod: 'E-WALLET',
+    paymentRef: 'GCASH-7821'
+  },
+  {
+    id: 'S_ONL1002',
+    items: [
+      { productId: '2', name: 'Brake Pad Set', quantity: 1, price: 1200 }
+    ],
+    subtotal: 1200,
+    discountApplied: 120,
+    total: 1080,
+    date: '2026-05-27T13:15:00Z',
+    memberId: 'M001',
+    channel: 'ONLINE/FACEBOOK',
+    fulfillmentType: 'DELIVERY',
+    orderStatus: 'PREPARING',
+    trackingCode: 'LALA-S_ONL1002',
+    notes: 'SHIPPING: LALAMOVE. ADDR: BALIUAG, BULACAN. PHONE: 09123456789',
+    paymentMethod: 'ONLINE BANK',
+    paymentRef: 'BDO-4491'
+  },
+  {
+    id: 'S_ONL1003',
+    items: [
+      { productId: '3', name: 'Tire 17"', quantity: 1, price: 2500 }
+    ],
+    subtotal: 2500,
+    discountApplied: 250,
+    total: 2250,
+    date: '2026-05-28T11:00:00Z',
+    memberId: 'M001',
+    channel: 'ONLINE/FACEBOOK',
+    fulfillmentType: 'STORE PICKUP',
+    orderStatus: 'READY FOR PICKUP',
+    trackingCode: 'PICKUP-S_ONL1003',
+    notes: 'STORE PICKUP',
+    paymentMethod: 'CASH'
+  },
+  {
+    id: 'S_ONL1004',
+    items: [
+      { productId: '4', name: 'Spark Plug', quantity: 4, price: 150 }
+    ],
+    subtotal: 600,
+    discountApplied: 0,
+    total: 600,
+    date: '2026-05-29T15:45:00Z',
+    memberId: 'M001',
+    channel: 'ONLINE/FACEBOOK',
+    fulfillmentType: 'DELIVERY',
+    orderStatus: 'OUT FOR DELIVERY',
+    trackingCode: 'LALA-S_ONL1004',
+    notes: 'SHIPPING: LALAMOVE. ADDR: BALIUAG, BULACAN. PHONE: 09123456789',
+    paymentMethod: 'E-WALLET',
+    paymentRef: 'GCASH-9902'
+  },
+  {
+    id: 'S00001005',
+    items: [
+      { productId: '1', name: 'Engine Oil 1L', quantity: 1, price: 450 }
+    ],
+    subtotal: 450,
+    discountApplied: 0,
+    total: 450,
+    date: '2026-05-30T10:20:00Z',
+    memberId: 'M001',
+    channel: 'WALK-IN',
+    fulfillmentType: 'COUNTER',
+    orderStatus: 'COMPLETED',
+    trackingCode: 'COUNTER-S00001005',
+    notes: 'WALK-IN COUNTER SALE',
+    paymentMethod: 'CASH'
+  },
+  {
+    id: 'S_ONL2001',
+    items: [
+      { productId: '2', name: 'Brake Pad Set', quantity: 1, price: 1200 }
+    ],
+    subtotal: 1200,
+    discountApplied: 120,
+    total: 1080,
+    date: '2026-05-29T13:15:00Z',
+    memberId: 'M002',
+    channel: 'ONLINE/FACEBOOK',
+    fulfillmentType: 'STORE PICKUP',
+    orderStatus: 'READY FOR PICKUP',
+    trackingCode: 'PICKUP-S_ONL2001',
+    notes: 'STORE PICKUP',
+    paymentMethod: 'ONLINE BANK',
+    paymentRef: 'BDO-4491'
+  }
+];
+
+const mergeDemoSales = (savedSales: Sale[]) => {
+  const demoIds = new Set(INITIAL_SALES.map(sale => sale.id));
+  const userCreatedSales = savedSales.filter(sale => !demoIds.has(sale.id));
+  return [...userCreatedSales, ...INITIAL_SALES];
+};
 
 const INITIAL_USERS: User[] = [
   // ADMINS
@@ -205,6 +327,7 @@ const INITIAL_PURCHASE_ORDERS: PurchaseOrder[] = [
 
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [initialized, setInitialized] = useState(false);
   const [currentUser, setCurrentUserState] = useState<User | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
   const [members, setMembers] = useState<Member[]>([]);
@@ -242,13 +365,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (savedCurrentUser) setCurrentUserState(JSON.parse(savedCurrentUser));
     setProducts(savedProducts ? JSON.parse(savedProducts) : INITIAL_PRODUCTS);
     setMembers(savedMembers ? JSON.parse(savedMembers) : INITIAL_MEMBERS);
-    setSales(savedSales ? JSON.parse(savedSales) : []);
+    setSales(savedSales ? mergeDemoSales(JSON.parse(savedSales)) : INITIAL_SALES);
     setUsers(savedUsers ? JSON.parse(savedUsers) : INITIAL_USERS);
     setPromos(savedPromos ? JSON.parse(savedPromos) : INITIAL_PROMOS);
     setReturnRequests(savedReturns ? JSON.parse(savedReturns) : []);
     setInquiries(savedInquiries ? JSON.parse(savedInquiries) : INITIAL_INQUIRIES);
     setPointsSettingsState(savedSettings ? JSON.parse(savedSettings) : INITIAL_POINTS_SETTINGS);
     setPurchaseOrders(savedPurchaseOrders ? JSON.parse(savedPurchaseOrders) : INITIAL_PURCHASE_ORDERS);
+    setInitialized(true);
   }, []);
 
 
@@ -294,6 +418,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   return (
     <AppContext.Provider value={{ 
+      initialized,
       currentUser, setCurrentUser, 
       products, setProducts, 
       members, setMembers, 

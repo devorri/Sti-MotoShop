@@ -18,7 +18,11 @@ import './App.css';
 
 // Guard for checking if user is enabled
 const RouteGuard: React.FC<{ children: React.ReactNode, adminOnly?: boolean }> = ({ children, adminOnly = false }) => {
-  const { currentUser } = useAppContext();
+  const { initialized, currentUser } = useAppContext();
+
+  if (!initialized) {
+    return <div style={{ padding: '40px', textAlign: 'center', fontWeight: 'bold' }}>LOADING SYSTEM ACCESS...</div>;
+  }
   
   if (!currentUser) {
     return <Navigate to="/login" replace />;

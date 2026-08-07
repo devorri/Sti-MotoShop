@@ -37,6 +37,8 @@ export const Reports: React.FC = () => {
   const totalRevenue = filteredSales.reduce((sum, s) => sum + s.total, 0);
   const totalTransactions = filteredSales.length;
   const avgOrderValue = totalTransactions > 0 ? totalRevenue / totalTransactions : 0;
+  const lowStockCount = products.filter(p => p.stock <= p.lowStockLevel).length;
+  const totalStockOnHand = products.reduce((sum, p) => sum + p.stock, 0);
 
   // Product Movement (Fast / Slow-moving analysis)
   // Track quantities sold
@@ -187,6 +189,11 @@ export const Reports: React.FC = () => {
           <h3 style={{ fontSize: '2rem', margin: '5px 0' }}>₱{avgOrderValue.toLocaleString(undefined, { minimumFractionDigits: 2 })}</h3>
           <span style={{ fontSize: '0.6rem', opacity: 0.7 }}>Average basket size value</span>
         </div>
+        <div className="card" style={{ border: '2px solid #000' }}>
+          <span style={{ fontSize: '0.65rem', color: '#666', fontWeight: 'bold' }}>INVENTORY STATUS</span>
+          <h3 style={{ fontSize: '2rem', margin: '5px 0' }}>{lowStockCount} LOW</h3>
+          <span style={{ fontSize: '0.6rem', opacity: 0.7 }}>{totalStockOnHand} total units on hand</span>
+        </div>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '30px', marginBottom: '40px' }} className="reports-middle-grid">
@@ -259,12 +266,13 @@ export const Reports: React.FC = () => {
                   <th>DATE</th>
                   <th>ITEMS</th>
                   <th>METHOD</th>
+                  <th>REF #</th>
                   <th>TOTAL</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredSales.length === 0 ? (
-                  <tr><td colSpan={5} style={{ textAlign: 'center' }}>NO TRANSACTIONS IN FILTER RANGE</td></tr>
+                  <tr><td colSpan={6} style={{ textAlign: 'center' }}>NO TRANSACTIONS IN FILTER RANGE</td></tr>
                 ) : (
                   filteredSales.map(s => (
                     <tr key={s.id}>
@@ -276,6 +284,7 @@ export const Reports: React.FC = () => {
                       <td>
                         <span className="badge" style={{ fontSize: '0.55rem' }}>{s.paymentMethod}</span>
                       </td>
+                      <td style={{ fontSize: '0.65rem' }}>{s.paymentRef || '-'}</td>
                       <td style={{ fontWeight: 'bold' }}>₱{s.total.toLocaleString()}</td>
                     </tr>
                   ))

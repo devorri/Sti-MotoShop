@@ -5,7 +5,7 @@ export const CustomerDashboard = () => {
   const { currentUser, members, sales, returnRequests, setReturnRequests } = useAppContext();
 
   // Active view tab state
-  const [activeTab, setActiveTab] = useState<'PROFILE' | 'RETURN_CLAIM'>('PROFILE');
+  const [activeTab, setActiveTab] = useState<'PROFILE' | 'TRACKING' | 'RETURN_CLAIM'>('PROFILE');
 
   // Return request form state
   const [selectedSaleId, setSelectedSaleId] = useState('');
@@ -18,8 +18,15 @@ export const CustomerDashboard = () => {
   const profile = members.find(m => m.id === currentUser?.memberId);
   // Find transactions for this member
   const history = sales.filter(s => s.memberId === currentUser?.memberId);
+  const trackedOrders = history.slice().sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   // Find return requests for this member
   const myClaims = returnRequests.filter(r => r.memberId === currentUser?.memberId);
+
+  const getStatusStyle = (status?: string) => {
+    if (status === 'COMPLETED' || status === 'READY FOR PICKUP') return { borderColor: 'green', color: 'green' };
+    if (status === 'OUT FOR DELIVERY' || status === 'PREPARING') return { borderColor: 'orange', color: 'orange' };
+    return { borderColor: '#666', color: '#666' };
+  };
 
   // Aggregate all unique products purchased
   const purchasedProductsMap: { [key: string]: { name: string, quantity: number, totalSpent: number } } = {};
@@ -99,6 +106,13 @@ export const CustomerDashboard = () => {
             style={{ fontSize: '0.75rem' }}
           >
             My Profile & History
+          </button>
+          <button 
+            className={activeTab === 'TRACKING' ? 'primary' : ''} 
+            onClick={() => setActiveTab('TRACKING')}
+            style={{ fontSize: '0.75rem' }}
+          >
+            Track Orders
           </button>
           <button 
             className={activeTab === 'RETURN_CLAIM' ? 'primary' : ''} 
@@ -318,6 +332,53 @@ export const CustomerDashboard = () => {
               <p style={{ fontSize: '0.55rem', opacity: 0.8, margin: 0 }}>PRESENT THIS QR CARD AT THE COUNTER FOR REGISTER SCANNING & REWARDS</p>
             </div>
 
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'TRACKING' && (
+        <div className="card">
+          <h3>ORDER STATUS TRACKING</h3>
+          <p style={{ fontSize: '0.75rem', opacity: 0.7, margin: '5px 0 20px 0' }}>
+            Status records for orders linked to your member account.
+          </p>
+          <div className="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>TRACKING CODE</th>
+                  <th>RECEIPT ID</th>
+                  <th>DATE</th>
+                  <th>CHANNEL</th>
+                  <th>FULFILLMENT</th>
+                  <th>ITEMS</th>
+                  <th>STATUS</th>
+                </tr>
+              </thead>
+              <tbody>
+                {trackedOrders.length === 0 ? (
+                  <tr><td colSpan={7} style={{ textAlign: 'center' }}>NO TRACKABLE ORDERS FOUND</td></tr>
+                ) : (
+                  trackedOrders.map(order => (
+                    <tr key={order.id}>
+                      <td style={{ fontWeight: 'bold' }}>{order.trackingCode || `TRACK-${order.id}`}</td>
+                      <td>{order.id}</td>
+                      <td style={{ fontSize: '0.75rem' }}>{new Date(order.date).toLocaleDateString()}</td>
+                      <td><span className="badge" style={{ fontSize: '0.6rem' }}>{order.channel || 'WALK-IN'}</span></td>
+                      <td>{order.fulfillmentType || 'COUNTER'}</td>
+                      <td style={{ fontSize: '0.75rem' }}>
+                        {order.items.map(i => `${i.name} (x${i.quantity})`).join(', ')}
+                      </td>
+                      <td>
+                        <span className="badge" style={{ ...getStatusStyle(order.orderStatus), fontWeight: 'bold' }}>
+                          {order.orderStatus || 'COMPLETED'}
+                        </span>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
           </div>
         </div>
       )}

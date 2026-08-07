@@ -370,6 +370,7 @@ export const Shop: React.FC = () => {
     }
 
     const saleId = `S_ONL${Date.now().toString().slice(-6)}`;
+    const isDelivery = checkoutForm.deliveryType === 'DELIVERY';
     const saleItems = cart.map(item => ({
       productId: item.product.id,
       name: item.product.name,
@@ -385,10 +386,14 @@ export const Shop: React.FC = () => {
       total,
       date: new Date().toISOString(),
       memberId: currentUser?.memberId || undefined,
+      channel: 'ONLINE/FACEBOOK' as const,
+      fulfillmentType: isDelivery ? 'DELIVERY' as const : 'STORE PICKUP' as const,
+      orderStatus: isDelivery ? 'PREPARING' as const : 'ORDER PLACED' as const,
+      trackingCode: `${isDelivery ? 'LALA' : 'PICKUP'}-${saleId}`,
       paymentMethod: checkoutForm.paymentMethod,
       paymentRef: checkoutForm.paymentMethod !== 'CASH' ? checkoutForm.paymentRef : undefined,
       // Pass shipping details in metadata format if necessary
-      notes: checkoutForm.deliveryType === 'DELIVERY' 
+      notes: isDelivery 
         ? `SHIPPING: LALAMOVE. ADDR: ${checkoutForm.address.toUpperCase()}. PHONE: ${checkoutForm.phone}`
         : 'STORE PICKUP'
     };
