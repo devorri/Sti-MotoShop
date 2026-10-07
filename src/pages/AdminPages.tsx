@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useAppContext } from '../context/AppContext';
 import type { Sale, Product, User } from '../context/AppContext';
+import { supabase } from '../supabase';
 import {
   Users,
   Package,
@@ -169,7 +170,7 @@ export const Dashboard: React.FC = () => {
   });
 
   // Order status advance
-  const advanceOrderStatus = (saleId: string) => {
+  const advanceOrderStatus = async (saleId: string) => {
     const statusFlow: Sale['orderStatus'][] = [
       'ORDER PLACED',
       'PREPARING',
@@ -178,14 +179,29 @@ export const Dashboard: React.FC = () => {
       'COMPLETED'
     ];
 
-    setSales(sales.map(s => {
-      if (s.id === saleId) {
-        const currentIdx = statusFlow.indexOf(s.orderStatus || 'ORDER PLACED');
-        const nextIdx = currentIdx < statusFlow.length - 1 ? currentIdx + 1 : currentIdx;
-        return { ...s, orderStatus: statusFlow[nextIdx] };
-      }
-      return s;
-    }));
+    const sale = sales.find(s => s.id === saleId);
+    if (!sale) return;
+
+    const currentIdx = statusFlow.indexOf(sale.orderStatus || 'ORDER PLACED');
+    const nextIdx = currentIdx < statusFlow.length - 1 ? currentIdx + 1 : currentIdx;
+    const newStatus = statusFlow[nextIdx];
+
+    // Persist to Supabase first
+    const { error } = await supabase
+      .from('sales')
+      .update({ order_status: newStatus })
+      .eq('id', saleId);
+
+    if (error) {
+      console.error('Failed to update order status:', error);
+      alert('Failed to update order status: ' + error.message);
+      return;
+    }
+
+    // Then update local state
+    setSales(sales.map(s =>
+      s.id === saleId ? { ...s, orderStatus: newStatus } : s
+    ));
   };
 
   // Add Product Handler
