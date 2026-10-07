@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useAppContext } from '../context/AppContext';
 
 export const Promos: React.FC = () => {
-  const { promos, setPromos } = useAppContext();
+  const { promos, savePromo, deletePromo } = useAppContext();
   const [showAdd, setShowAdd] = useState(false);
   const [newPromo, setNewPromo] = useState({
     name: '',
@@ -13,7 +13,7 @@ export const Promos: React.FC = () => {
     endDate: '',
   });
 
-  const handleAddPromo = (e: React.FormEvent) => {
+  const handleAddPromo = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newPromo.name || !newPromo.description || !newPromo.startDate || !newPromo.endDate) {
       alert('PLEASE FILL OUT ALL REQUIRED FIELDS.');
@@ -32,7 +32,7 @@ export const Promos: React.FC = () => {
       active: true
     };
 
-    setPromos([...promos, newCampaign]);
+    await savePromo(newCampaign);
     setShowAdd(false);
     setNewPromo({
       name: '',
@@ -44,16 +44,13 @@ export const Promos: React.FC = () => {
     });
   };
 
-  const togglePromoStatus = (id: string) => {
-    const updated = promos.map(p => 
-      p.id === id ? { ...p, active: !p.active } : p
-    );
-    setPromos(updated);
+  const togglePromoStatus = async (promo: any) => {
+    await savePromo({ ...promo, active: !promo.active });
   };
 
-  const deletePromo = (id: string) => {
+  const handleDeletePromo = async (id: string) => {
     if (confirm('ARE YOU SURE YOU WANT TO DELETE THIS CAMPAIGN?')) {
-      setPromos(promos.filter(p => p.id !== id));
+      await deletePromo(id);
     }
   };
 
@@ -100,17 +97,18 @@ export const Promos: React.FC = () => {
                     <td>{p.endDate}</td>
                     <td>
                       <button 
-                        onClick={() => togglePromoStatus(p.id)}
-                        className={p.active ? 'primary' : ''}
-                        style={{ fontSize: '0.6rem', padding: '4px 8px', width: '80px' }}
+                        onClick={() => togglePromoStatus(p)}
+                        className={p.active ? 'btn-primary' : 'btn'}
+                        style={{ fontSize: '0.65rem', padding: '4px 8px', width: '80px' }}
                       >
                         {p.active ? 'ACTIVE' : 'INACTIVE'}
                       </button>
                     </td>
                     <td>
                       <button 
-                        style={{ fontSize: '0.6rem', padding: '4px 8px', color: 'red', borderColor: 'red' }}
-                        onClick={() => deletePromo(p.id)}
+                        className="btn-danger"
+                        style={{ fontSize: '0.65rem', padding: '4px 8px' }}
+                        onClick={() => handleDeletePromo(p.id)}
                       >
                         DELETE
                       </button>

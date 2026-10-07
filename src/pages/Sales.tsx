@@ -1,106 +1,241 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useAppContext } from '../context/AppContext';
-import type { Product, Sale, SaleItem } from '../context/AppContext';
+import type { Product, SaleItem } from '../context/AppContext';
+import { 
+  Monitor, 
+  CornerDownLeft, 
+  ShoppingCart, 
+  Banknote, 
+  Trash2, 
+  Printer, 
+  CheckCircle2, 
+  AlertCircle, 
+  ScanBarcode, 
+  Barcode, 
+  UserCheck, 
+  RefreshCw
+} from 'lucide-react';
 
 export const Sales: React.FC = () => {
-  const { products, setProducts, members, setMembers, sales, setSales, promos, pointsSettings } = useAppContext();
-  const orderStatuses: NonNullable<Sale['orderStatus']>[] = ['ORDER PLACED', 'PREPARING', 'READY FOR PICKUP', 'OUT FOR DELIVERY', 'COMPLETED'];
-  
+  const { 
+    products, 
+    members, 
+    promos, 
+    pointsSettings, 
+    currentUser, 
+    recordSale,
+    syncWithSupabase 
+  } = useAppContext();
+
+  // Scanner state
+  const [barcodeInput, setBarcodeInput] = useState('');
+  const [scannerNotification, setScannerNotification] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
+  const barcodeInputRef = useRef<HTMLInputElement>(null);
+
   // Cart & Transaction states
   const [cart, setCart] = useState<SaleItem[]>([]);
   const [orderType, setOrderType] = useState<'WALK-IN' | 'ONLINE/FACEBOOK'>('WALK-IN');
   const [selectedMemberId, setSelectedMemberId] = useState('');
+  const [memberInput, setMemberInput] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<'CASH' | 'E-WALLET' | 'ONLINE BANK'>('CASH');
   const [paymentRef, setPaymentRef] = useState('');
-  
-  // Scanners simulator states
-  const [manualBarcode, setManualBarcode] = useState('');
-  const [scannerStatus, setScannerStatus] = useState<string | null>(null);
-  
-  // Post-purchase states
+
+  // Cash Tendered & Change calculations
+  const [cashTendered, setCashTendered] = useState<string>('');
+
+  // Post-purchase receipt state
   const [showReceipt, setShowReceipt] = useState<any | null>(null);
+  const [processing, setProcessing] = useState(false);
 
-  // Simulated Barcode Scanning
-  const triggerSimulatedBarcodeScan = (barcode: string) => {
-    setScannerStatus(`SCANNING PRODUCT BARCODE: ${barcode}...`);
-    setTimeout(() => {
-      const product = products.find(p => p.barcode === barcode);
-      if (product) {
-        if (product.stock <= 0) {
-          alert(`PRODUCT OUT OF STOCK: ${product.name}`);
-        } else {
-          addToCart(product);
-          setScannerStatus(`ADDED: ${product.name}`);
-        }
-      } else {
-        alert(`BARCODE NOT RECOGNIZED: ${barcode}`);
-      }
-      setTimeout(() => setScannerStatus(null), 1500);
-    }, 600);
+  // Product quick-search filter
+  const [catalogSearch, setCatalogSearch] = useState('');
+  const [catalogCategory, setCatalogCategory] = useState('ALL');
+
+  // Focus scanner on load
+  useEffect(() => {
+    barcodeInputRef.current?.focus();
+  }, []);
+
+  // Web Audio API POS Beep Synthesizer
+  const playBeepSound = () => {
+    try {
+      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+      if (!AudioCtx) return;
+      const ctx = new AudioCtx();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(1050, ctx.currentTime); // 1050Hz retail barcode frequency
+      gain.gain.setValueAtTime(0.2, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.08);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.08);
+    } catch (e) {}
   };
 
-  // Simulated Member QR Scanning
-  const triggerSimulatedQRScan = (memberId: string) => {
-    setScannerStatus(`SCANNING MEMBER QR CARD: ${memberId}...`);
-    setTimeout(() => {
-      const member = members.find(m => m.id === memberId);
-      if (member) {
-        setSelectedMemberId(member.id);
-        setScannerStatus(`LINKED MEMBER: ${member.name}`);
-      } else {
-        alert(`MEMBER QR INVALID: ${memberId}`);
-      }
-      setTimeout(() => setScannerStatus(null), 1500);
-    }, 600);
+  const playCashRegisterChime = () => {
+    try {
+      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+      if (!AudioCtx) return;
+      const ctx = new AudioCtx();
+      const now = ctx.currentTime;
+      [523.25, 659.25, 783.99, 1046.50].forEach((freq, i) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(freq, now + i * 0.07);
+        gain.gain.setValueAtTime(0.18, now + i * 0.07);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.07 + 0.18);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(now + i * 0.07);
+        osc.stop(now + i * 0.07 + 0.18);
+      });
+    } catch (e) {}
   };
 
-  const addToCart = (product: Product) => {
+  // Add product to register cart
+  const addProductToRegister = (product: Product, quantityToAdd: number = 1) => {
     const existing = cart.find(item => item.productId === product.id);
     const cartQty = existing ? existing.quantity : 0;
-    
+
     if (product.stock <= cartQty) {
-      alert(`INSUFFICIENT STOCK: Only ${product.stock} units available.`);
+      setScannerNotification({
+        text: `OUT OF STOCK: "${product.name}" only has ${product.stock} in inventory.`,
+        type: 'error'
+      });
+      setTimeout(() => setScannerNotification(null), 2500);
       return;
     }
 
+    const availableToAdd = Math.min(quantityToAdd, product.stock - cartQty);
+    if (availableToAdd <= 0) return;
+
     if (existing) {
-      setCart(cart.map(item => 
-        item.productId === product.id ? { ...item, quantity: item.quantity + 1 } : item
+      setCart(cart.map(item =>
+        item.productId === product.id
+          ? { ...item, quantity: item.quantity + availableToAdd }
+          : item
       ));
     } else {
-      setCart([...cart, { productId: product.id, name: product.name, price: product.price, quantity: 1 }]);
+      setCart([...cart, {
+        productId: product.id,
+        name: product.name,
+        quantity: availableToAdd,
+        price: product.price
+      }]);
+    }
+
+    playBeepSound();
+    setScannerNotification({
+      text: `ADDED: ${availableToAdd}× "${product.name}" (₱${product.price.toLocaleString()})`,
+      type: 'success'
+    });
+    setTimeout(() => setScannerNotification(null), 1800);
+  };
+
+  // Barcode / Hardware Scanner Submission
+  const handleBarcodeSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const raw = barcodeInput.trim();
+    if (!raw) return;
+
+    let targetBarcode = raw;
+    let qty = 1;
+
+    // Check quantity multiplier (e.g., 3*501234567890)
+    if (raw.includes('*')) {
+      const parts = raw.split('*');
+      const parsedQty = parseInt(parts[0], 10);
+      if (!isNaN(parsedQty) && parsedQty > 0) {
+        qty = parsedQty;
+        targetBarcode = parts[1].trim();
+      }
+    }
+
+    const matchedProduct = products.find(p =>
+      p.barcode === targetBarcode ||
+      p.id.toLowerCase() === targetBarcode.toLowerCase() ||
+      p.name.toLowerCase() === targetBarcode.toLowerCase()
+    );
+
+    if (matchedProduct) {
+      addProductToRegister(matchedProduct, qty);
+      setBarcodeInput('');
+    } else {
+      setScannerNotification({
+        text: `BARCODE NOT FOUND: "${targetBarcode}". Check inventory or register item.`,
+        type: 'error'
+      });
+      setTimeout(() => setScannerNotification(null), 2500);
     }
   };
 
-  const updateQuantity = (productId: string, qty: number) => {
+  const updateCartQty = (productId: string, newQty: number) => {
     const product = products.find(p => p.id === productId);
     if (!product) return;
 
-    if (qty <= 0) {
+    if (newQty <= 0) {
       setCart(cart.filter(item => item.productId !== productId));
       return;
     }
 
-    if (product.stock < qty) {
-      alert(`INSUFFICIENT STOCK: Only ${product.stock} units available.`);
+    if (newQty > product.stock) {
+      alert(`STOCK LIMIT: Only ${product.stock} available.`);
       return;
     }
 
-    setCart(cart.map(item => 
-      item.productId === productId ? { ...item, quantity: qty } : item
+    setCart(cart.map(item =>
+      item.productId === productId ? { ...item, quantity: newQty } : item
     ));
   };
 
-  // Calculate Totals and Apply Promo Discounts
+  const clearRegister = () => {
+    if (cart.length === 0) return;
+    if (window.confirm('Clear all items from the register?')) {
+      setCart([]);
+      setCashTendered('');
+      barcodeInputRef.current?.focus();
+    }
+  };
+
+  // Member Search / QR scan
+  const handleMemberScan = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!memberInput.trim()) return;
+
+    const query = memberInput.trim().toUpperCase();
+    const matchedMember = members.find(m => 
+      m.id.toUpperCase() === query || 
+      m.name.toUpperCase().includes(query) ||
+      m.contact.includes(query)
+    );
+
+    if (matchedMember) {
+      setSelectedMemberId(matchedMember.id);
+      playBeepSound();
+      setScannerNotification({
+        text: `MEMBER LINKED: ${matchedMember.name} (${matchedMember.id}) - ${matchedMember.points} PTS`,
+        type: 'success'
+      });
+      setTimeout(() => setScannerNotification(null), 2000);
+      setMemberInput('');
+    } else {
+      alert(`MEMBER NOT FOUND FOR: "${memberInput}"`);
+    }
+  };
+
+  // Totals & Promos
+  const totalItemCount = cart.reduce((sum, item) => sum + item.quantity, 0);
   const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
-  
-  // Find highest valid discount active today
-  let discountApplied = 0;
-  let activePromoName = '';
   
   const todayStr = new Date().toISOString().split('T')[0];
   const activePromos = promos.filter(p => p.active && todayStr >= p.startDate && todayStr <= p.endDate);
   
+  let discountApplied = 0;
+  let activePromoName = '';
   activePromos.forEach(p => {
     if (subtotal >= p.minSpend) {
       const discountVal = (subtotal * p.discountPercent) / 100;
@@ -111,23 +246,47 @@ export const Sales: React.FC = () => {
     }
   });
 
-  const total = subtotal - discountApplied;
+  const total = Math.max(0, subtotal - discountApplied);
+  const linkedMember = members.find(m => m.id === selectedMemberId);
 
-  // Process Transaction
-  const handleCheckout = (e: React.FormEvent) => {
+  // Cash change calculation
+  const numericTendered = parseFloat(cashTendered) || 0;
+  const changeDue = paymentMethod === 'CASH' && numericTendered >= total ? numericTendered - total : 0;
+  const amountShort = paymentMethod === 'CASH' && numericTendered > 0 && numericTendered < total ? total - numericTendered : 0;
+
+  // Keypad append
+  const handleKeypadPress = (val: string) => {
+    if (val === 'C') {
+      setCashTendered('');
+    } else if (val === '00') {
+      setCashTendered(prev => (prev ? prev + '00' : '0'));
+    } else {
+      setCashTendered(prev => prev + val);
+    }
+  };
+
+  // Checkout submission
+  const handleCheckout = async (e: React.FormEvent) => {
     e.preventDefault();
     if (cart.length === 0) {
-      alert('CART IS EMPTY!');
+      alert('REGISTER CART IS EMPTY! Scan items first.');
+      return;
+    }
+
+    if (paymentMethod === 'CASH' && numericTendered < total) {
+      alert(`INSUFFICIENT CASH TENDERED! Short by ₱${amountShort.toLocaleString()}`);
       return;
     }
 
     if (paymentMethod !== 'CASH' && !paymentRef) {
-      alert('PLEASE ENTER THE E-PAYMENT REFERENCE NUMBER FOR RECONCILIATION.');
+      alert('PLEASE ENTER THE TRANSACTION REFERENCE NUMBER.');
       return;
     }
 
+    setProcessing(true);
+
     const saleId = `S${Date.now().toString().slice(-8)}`;
-    const newSale = {
+    const newSaleData = {
       id: saleId,
       items: [...cart],
       subtotal,
@@ -139,479 +298,631 @@ export const Sales: React.FC = () => {
       fulfillmentType: orderType === 'ONLINE/FACEBOOK' ? 'STORE PICKUP' as const : 'COUNTER' as const,
       orderStatus: orderType === 'ONLINE/FACEBOOK' ? 'ORDER PLACED' as const : 'COMPLETED' as const,
       trackingCode: `${orderType === 'ONLINE/FACEBOOK' ? 'PICKUP' : 'COUNTER'}-${saleId}`,
-      notes: orderType === 'ONLINE/FACEBOOK' ? 'FACEBOOK / ONLINE ORDER RECORDED BY STAFF' : 'WALK-IN COUNTER SALE',
+      notes: orderType === 'ONLINE/FACEBOOK' 
+        ? `ONLINE ORDER RECORDED BY ${currentUser?.name || 'STAFF'}` 
+        : `WALK-IN COUNTER SALE BY ${currentUser?.name || 'STAFF'}${linkedMember ? ` (MEMBER: ${linkedMember.name})` : ''}`,
       paymentMethod,
       paymentRef: paymentMethod !== 'CASH' ? paymentRef : undefined
     };
 
-    // 1. Deduct Stock in inventory
-    const updatedProducts = products.map(p => {
-      const cartItem = cart.find(item => item.productId === p.id);
-      return cartItem ? { ...p, stock: Math.max(0, p.stock - cartItem.quantity) } : p;
-    });
-    setProducts(updatedProducts);
+    // Save to Supabase and update state
+    const savedSale = await recordSale(newSaleData);
+    setProcessing(false);
 
-    // 2. Add loyalty points if member linked
-    if (selectedMemberId) {
-      const pointsEarned = Math.floor(total / pointsSettings.currencyPerPoint);
-      const updatedMembers = members.map(m => 
-        m.id === selectedMemberId ? { ...m, points: m.points + pointsEarned } : m
-      );
-      setMembers(updatedMembers);
+    if (savedSale) {
+      playCashRegisterChime();
+
+      // Show receipt modal
+      setShowReceipt({
+        ...savedSale,
+        cashTendered: paymentMethod === 'CASH' ? numericTendered : total,
+        changeDue: paymentMethod === 'CASH' ? changeDue : 0,
+        cashierName: currentUser?.name || 'Staff'
+      });
+      
+      // Reset POS states
+      setCart([]);
+      setSelectedMemberId('');
+      setPaymentRef('');
+      setCashTendered('');
+      setPaymentMethod('CASH');
+      barcodeInputRef.current?.focus();
     }
-
-    // 3. Add to sales history
-    setSales([...sales, newSale]);
-
-    // 4. Save and trigger receipt modal
-    setShowReceipt(newSale);
-    
-    // 5. Reset states
-    setCart([]);
-    setSelectedMemberId('');
-    setPaymentRef('');
-    setPaymentMethod('CASH');
   };
 
-  const printReceipt = () => {
-    window.print();
-  };
-
-  const updateOrderStatus = (saleId: string, status: NonNullable<Sale['orderStatus']>) => {
-    setSales(sales.map(sale => 
-      sale.id === saleId ? { ...sale, orderStatus: status } : sale
-    ));
-  };
+  // Quick Catalog filtered
+  const categories = ['ALL', ...Array.from(new Set(products.map(p => p.category)))];
+  const filteredCatalog = products.filter(p => {
+    const matchSearch = p.name.toLowerCase().includes(catalogSearch.toLowerCase()) || p.barcode.includes(catalogSearch);
+    const matchCat = catalogCategory === 'ALL' || p.category === catalogCategory;
+    return matchSearch && matchCat;
+  });
 
   return (
-    <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '10px' }}>
-      <h2 style={{ marginBottom: '24px' }}>POS CASHIER SYSTEM</h2>
+    <div style={{ width: '100%', margin: '0', padding: '0 4px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+      {/* Top Status Bar */}
+      <div className="card" style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        backgroundColor: '#ffffff',
+        border: '1px solid #e2e8f0',
+        padding: '14px 20px',
+        borderRadius: '8px',
+        flexWrap: 'wrap',
+        gap: '12px'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div style={{ padding: '8px', backgroundColor: '#eff6ff', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Monitor size={20} color="#2563eb" />
+          </div>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <strong style={{ fontSize: '1.15rem', color: '#0f172a', fontWeight: 800 }}>BOSS RAP POS TERMINAL</strong>
+              <span className="badge badge-green" style={{ fontSize: '0.65rem' }}>STATION 01 • ACTIVE</span>
+            </div>
+            <span style={{ fontSize: '0.75rem', color: '#64748b' }}>
+              Hardware Barcode Scanner Emulation • Web Audio Chimes • Live Cloud Sync
+            </span>
+          </div>
+        </div>
 
-      {scannerStatus && (
-        <div style={{ 
-          background: '#000', 
-          color: '#fff', 
-          padding: '12px 24px', 
-          border: '2px solid #000',
-          position: 'fixed',
-          top: '20px',
-          right: '20px',
-          zIndex: 9999,
-          fontWeight: 'bold',
-          letterSpacing: '1px',
-          boxShadow: '4px 4px 0px #aaa'
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <button 
+            type="button" 
+            onClick={() => syncWithSupabase()} 
+            className="btn" 
+            style={{ fontSize: '0.75rem' }}
+            title="Refresh database records"
+          >
+            <RefreshCw size={13} />
+            <span>Sync Cloud</span>
+          </button>
+
+          <span style={{ fontSize: '0.78rem', color: '#64748b' }}>
+            Cashier: <strong style={{ color: '#0f172a' }}>{currentUser?.name || 'Staff'}</strong>
+          </span>
+        </div>
+      </div>
+
+      {/* Floating Scanner Notification Banner */}
+      {scannerNotification && (
+        <div style={{
+          padding: '12px 18px',
+          borderRadius: '8px',
+          backgroundColor: scannerNotification.type === 'success' ? '#f0fdf4' : '#fef2f2',
+          border: `1px solid ${scannerNotification.type === 'success' ? '#86efac' : '#fecaca'}`,
+          color: scannerNotification.type === 'success' ? '#15803d' : '#b91c1c',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '10px',
+          fontSize: '0.88rem',
+          fontWeight: 700,
+          animation: 'fadeIn 0.2s ease-in'
         }}>
-          ⚡ {scannerStatus}
+          {scannerNotification.type === 'success' ? <CheckCircle2 size={18} /> : <AlertCircle size={18} />}
+          <span>{scannerNotification.text}</span>
         </div>
       )}
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 400px', gap: '30px' }} className="pos-grid">
-        {/* Left Side: Product browsing & Scanners simulator */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '30px' }}>
+      {/* Main 2-Column POS Layout */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.35fr) minmax(360px, 1fr)', gap: '16px' }}>
+        
+        {/* Left Column: Barcode Scanner + Quick Catalog */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           
-          {/* HARDWARE SIMULATOR */}
-          <div className="card" style={{ backgroundColor: '#f9f9f9', border: '3px solid #000' }}>
-            <h3 style={{ fontSize: '0.9rem', marginBottom: '15px', color: '#000', borderBottom: '2px solid #000', paddingBottom: '5px' }}>🚨 INTEGRATED HARDWARE SCANNER SIMULATOR</h3>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }} className="simulator-columns">
-              <div>
-                <h4 style={{ fontSize: '0.7rem', marginBottom: '10px' }}>PRODUCT BARCODE SCAN</h4>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                  {products.map(p => (
-                    <button 
-                      key={p.id} 
-                      onClick={() => triggerSimulatedBarcodeScan(p.barcode)}
-                      style={{ fontSize: '0.65rem', padding: '6px 10px', background: '#fff' }}
-                    >
-                      Scan: {p.name}
-                    </button>
-                  ))}
-                </div>
-                <div style={{ marginTop: '12px', display: 'flex', gap: '8px' }}>
-                  <input 
-                    type="text" 
-                    placeholder="Enter manual barcode..." 
-                    value={manualBarcode} 
-                    onChange={e => setManualBarcode(e.target.value)}
-                    style={{ fontSize: '0.7rem', padding: '6px' }}
-                  />
-                  <button 
-                    onClick={() => {
-                      triggerSimulatedBarcodeScan(manualBarcode);
-                      setManualBarcode('');
-                    }}
-                    style={{ fontSize: '0.65rem' }}
-                  >
-                    SCAN
-                  </button>
-                </div>
+          {/* Scanner Input Card */}
+          <div className="card" style={{ padding: '18px', backgroundColor: '#ffffff' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <ScanBarcode size={18} color="#2563eb" />
+                <h3 style={{ fontSize: '0.95rem', margin: 0, color: '#0f172a', fontWeight: 800 }}>
+                  BARCODE SCANNER EMULATION
+                </h3>
               </div>
-              <div style={{ borderLeft: '2px solid #000', paddingLeft: '20px' }} className="simulator-divider">
-                <h4 style={{ fontSize: '0.7rem', marginBottom: '10px' }}>MEMBER QR CARD SCAN</h4>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                  {members.map(m => (
-                    <button 
-                      key={m.id} 
-                      onClick={() => triggerSimulatedQRScan(m.id)}
-                      style={{ fontSize: '0.65rem', padding: '6px 10px', background: '#fff' }}
-                    >
-                      Scan QR: {m.name}
-                    </button>
-                  ))}
-                </div>
-              </div>
+              <span style={{ fontSize: '0.72rem', color: '#64748b' }}>
+                Format: <code>[BARCODE]</code> or <code>[QTY]*[BARCODE]</code>
+              </span>
             </div>
+
+            <form onSubmit={handleBarcodeSubmit} style={{ display: 'flex', gap: '10px' }}>
+              <div style={{ position: 'relative', flex: 1 }}>
+                <Barcode size={18} style={{ position: 'absolute', left: '12px', top: '11px', color: '#94a3b8' }} />
+                <input
+                  ref={barcodeInputRef}
+                  type="text"
+                  placeholder="Scan barcode or type ID (e.g. 501234567890 or 3*1)..."
+                  value={barcodeInput}
+                  onChange={e => setBarcodeInput(e.target.value)}
+                  style={{ paddingLeft: '38px', fontSize: '0.95rem', fontWeight: 600, height: '42px' }}
+                />
+              </div>
+              <button type="submit" className="btn-primary" style={{ height: '42px', padding: '0 20px', fontSize: '0.85rem' }}>
+                <CornerDownLeft size={16} />
+                <span>Enter</span>
+              </button>
+            </form>
           </div>
 
-          {/* PRODUCT LIST */}
-          <div className="card">
-            <h3>PRODUCT DIRECTORY</h3>
-            <div style={{ 
-              display: 'grid', 
-              gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', 
-              gap: '15px',
-              marginTop: '20px'
-            }}>
-              {products.map(p => (
-                <div 
-                  key={p.id} 
-                  className="card" 
-                  style={{ 
-                    padding: '15px', 
-                    fontSize: '0.8rem', 
-                    display: 'flex', 
-                    flexDirection: 'column', 
-                    justifyContent: 'space-between',
-                    cursor: 'pointer',
-                    opacity: p.stock <= 0 ? 0.5 : 1,
-                    backgroundColor: p.stock <= p.lowStockLevel ? '#fffcf0' : '#fff'
-                  }}
-                  onClick={() => p.stock > 0 && addToCart(p)}
+          {/* Member Search / Club Link Card */}
+          <div className="card" style={{ padding: '16px', backgroundColor: '#ffffff' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <UserCheck size={16} color="#16a34a" />
+                <strong style={{ fontSize: '0.85rem', color: '#0f172a' }}>LINK CLUB MEMBER (POINTS REWARD)</strong>
+              </div>
+              {linkedMember && (
+                <button
+                  type="button"
+                  onClick={() => setSelectedMemberId('')}
+                  style={{ background: 'none', border: 'none', color: '#dc2626', fontSize: '0.72rem', fontWeight: 600, cursor: 'pointer' }}
                 >
-                  <div>
-                    <span className="badge" style={{ fontSize: '0.55rem', marginBottom: '5px' }}>{p.category}</span>
-                    <h4 style={{ fontSize: '0.85rem', margin: '5px 0' }}>{p.name}</h4>
-                    <p style={{ fontSize: '0.6rem', color: '#666' }}>BC: {p.barcode}</p>
+                  Unlink Member
+                </button>
+              )}
+            </div>
+
+            {linkedMember ? (
+              <div style={{ padding: '10px 14px', backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '6px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                  <div style={{ fontWeight: 800, color: '#166534', fontSize: '0.9rem' }}>
+                    {linkedMember.name} ({linkedMember.id})
                   </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '15px', borderTop: '1px solid #eee', paddingTop: '10px' }}>
-                    <span style={{ fontWeight: '900' }}>₱{p.price.toLocaleString()}</span>
-                    <span style={{ fontSize: '0.65rem', color: p.stock <= p.lowStockLevel ? 'red' : 'inherit', fontWeight: 'bold' }}>
-                      {p.stock > 0 ? `${p.stock} units` : 'OUT'}
-                    </span>
+                  <span style={{ fontSize: '0.72rem', color: '#475569' }}>
+                    Contact: {linkedMember.contact} • Address: {linkedMember.address}
+                  </span>
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <span className="badge badge-green" style={{ fontSize: '0.75rem' }}>
+                    {linkedMember.points} POINTS
+                  </span>
+                  <div style={{ fontSize: '0.68rem', color: '#166534', marginTop: '2px' }}>
+                    +Earns {Math.floor(total / pointsSettings.currencyPerPoint)} pts on this sale
                   </div>
                 </div>
-              ))}
+              </div>
+            ) : (
+              <form onSubmit={handleMemberScan} style={{ display: 'flex', gap: '8px' }}>
+                <input
+                  type="text"
+                  placeholder="Scan Member QR or type ID/Name (e.g. M001 or Juan)..."
+                  value={memberInput}
+                  onChange={e => setMemberInput(e.target.value)}
+                  style={{ fontSize: '0.82rem', height: '36px' }}
+                />
+                <button type="submit" className="btn" style={{ height: '36px', fontSize: '0.78rem' }}>
+                  Link
+                </button>
+              </form>
+            )}
+          </div>
+
+          {/* Quick Product Grid */}
+          <div className="card" style={{ padding: '18px', backgroundColor: '#ffffff', flex: 1 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
+              <strong style={{ fontSize: '0.9rem', color: '#0f172a' }}>QUICK INVENTORY CATALOG</strong>
+              
+              <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                <input
+                  type="text"
+                  placeholder="Search item..."
+                  value={catalogSearch}
+                  onChange={e => setCatalogSearch(e.target.value)}
+                  style={{ height: '30px', fontSize: '0.75rem', width: '130px', padding: '4px 8px' }}
+                />
+                <select
+                  value={catalogCategory}
+                  onChange={e => setCatalogCategory(e.target.value)}
+                  style={{ height: '30px', fontSize: '0.75rem', width: '110px', padding: '4px 8px' }}
+                >
+                  {categories.map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
+              </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '10px', maxHeight: '340px', overflowY: 'auto' }}>
+              {filteredCatalog.map(product => {
+                const isOutOfStock = product.stock <= 0;
+                return (
+                  <div
+                    key={product.id}
+                    onClick={() => !isOutOfStock && addProductToRegister(product, 1)}
+                    style={{
+                      padding: '12px',
+                      borderRadius: '8px',
+                      border: '1px solid #e2e8f0',
+                      backgroundColor: isOutOfStock ? '#f8fafc' : '#ffffff',
+                      cursor: isOutOfStock ? 'not-allowed' : 'pointer',
+                      opacity: isOutOfStock ? 0.6 : 1,
+                      transition: 'all 0.15s ease',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      justifyContent: 'space-between'
+                    }}
+                    onMouseEnter={e => !isOutOfStock && (e.currentTarget.style.borderColor = '#2563eb')}
+                    onMouseLeave={e => !isOutOfStock && (e.currentTarget.style.borderColor = '#e2e8f0')}
+                  >
+                    <div>
+                      <span style={{ fontSize: '0.65rem', color: '#64748b', textTransform: 'uppercase' }}>
+                        {product.category}
+                      </span>
+                      <strong style={{ fontSize: '0.82rem', color: '#0f172a', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', lineHeight: '1.25' }}>
+                        {product.name}
+                      </strong>
+                    </div>
+
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '10px' }}>
+                      <strong style={{ fontSize: '0.9rem', color: '#16a34a' }}>
+                        ₱{product.price.toLocaleString()}
+                      </strong>
+                      <span className={`badge ${isOutOfStock ? 'badge-red' : product.stock <= product.lowStockLevel ? 'badge-yellow' : 'badge-green'}`} style={{ fontSize: '0.65rem' }}>
+                        {isOutOfStock ? 'OUT' : `${product.stock} in stock`}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
         </div>
 
-        {/* Right Side: Cart, Member, Payment Details, and Checkout */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '30px' }}>
-          <div className="card" style={{ border: '3px solid #000' }}>
-            <h3>CURRENT ORDER</h3>
-            
-            <div style={{ margin: '15px 0' }}>
-              <label style={{ fontSize: '0.65rem', fontWeight: 'bold', display: 'block', marginBottom: '5px' }}>ORDER CHANNEL</label>
-              <div style={{ display: 'flex', gap: '10px' }}>
-                <button 
-                  onClick={() => setOrderType('WALK-IN')} 
-                  className={orderType === 'WALK-IN' ? 'primary' : ''} 
-                  style={{ flex: 1, fontSize: '0.65rem' }}
+        {/* Right Column: Register Cart & Payment Keypad */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          
+          {/* Active Cart Card */}
+          <div className="card" style={{ padding: '18px', backgroundColor: '#ffffff', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px', borderBottom: '1px solid #f1f5f9', paddingBottom: '10px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <ShoppingCart size={18} color="#2563eb" />
+                <h3 style={{ fontSize: '0.95rem', margin: 0, color: '#0f172a', fontWeight: 800 }}>
+                  CURRENT TRANSACTION CART ({totalItemCount})
+                </h3>
+              </div>
+              {cart.length > 0 && (
+                <button
+                  type="button"
+                  onClick={clearRegister}
+                  className="btn-danger"
+                  style={{ padding: '4px 8px', fontSize: '0.72rem' }}
+                >
+                  <Trash2 size={13} />
+                  <span>Clear</span>
+                </button>
+              )}
+            </div>
+
+            {/* Cart Items List */}
+            <div style={{ minHeight: '160px', maxHeight: '220px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '14px' }}>
+              {cart.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '36px 12px', color: '#94a3b8' }}>
+                  <ScanBarcode size={36} style={{ opacity: 0.3, marginBottom: '8px' }} />
+                  <p style={{ margin: 0, fontSize: '0.85rem' }}>Register cart is empty.</p>
+                  <span style={{ fontSize: '0.75rem' }}>Scan barcode or select an item from catalog.</span>
+                </div>
+              ) : (
+                cart.map(item => (
+                  <div key={item.productId} style={{
+                    padding: '8px 12px',
+                    borderRadius: '6px',
+                    border: '1px solid #f1f5f9',
+                    backgroundColor: '#f8fafc',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center'
+                  }}>
+                    <div style={{ flex: 1, marginRight: '10px' }}>
+                      <strong style={{ fontSize: '0.82rem', color: '#0f172a', display: 'block' }}>{item.name}</strong>
+                      <span style={{ fontSize: '0.72rem', color: '#64748b' }}>₱{item.price.toLocaleString()} each</span>
+                    </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <button
+                        type="button"
+                        onClick={() => updateCartQty(item.productId, item.quantity - 1)}
+                        style={{ width: '22px', height: '22px', borderRadius: '4px', border: '1px solid #cbd5e1', backgroundColor: '#fff', cursor: 'pointer', fontWeight: 700 }}
+                      >-</button>
+                      <span style={{ fontSize: '0.85rem', fontWeight: 800, minWidth: '22px', textAlign: 'center' }}>
+                        {item.quantity}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => updateCartQty(item.productId, item.quantity + 1)}
+                        style={{ width: '22px', height: '22px', borderRadius: '4px', border: '1px solid #cbd5e1', backgroundColor: '#fff', cursor: 'pointer', fontWeight: 700 }}
+                      >+</button>
+                    </div>
+
+                    <strong style={{ fontSize: '0.88rem', color: '#0f172a', marginLeft: '12px', minWidth: '60px', textAlign: 'right' }}>
+                      ₱{(item.price * item.quantity).toLocaleString()}
+                    </strong>
+                  </div>
+                ))
+              )}
+            </div>
+
+            {/* Calculations Breakdown */}
+            <div style={{ borderTop: '1px dashed #cbd5e1', paddingTop: '10px', display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '0.82rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', color: '#64748b' }}>
+                <span>Subtotal ({totalItemCount} items):</span>
+                <strong style={{ color: '#0f172a' }}>₱{subtotal.toLocaleString()}</strong>
+              </div>
+
+              {discountApplied > 0 && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', color: '#16a34a' }}>
+                  <span>Promo Discount ({activePromoName}):</span>
+                  <strong>-₱{discountApplied.toLocaleString()}</strong>
+                </div>
+              )}
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1.25rem', fontWeight: 900, color: '#0f172a', marginTop: '6px', paddingTop: '6px', borderTop: '1px solid #e2e8f0' }}>
+                <span>TOTAL DUE:</span>
+                <span style={{ color: '#2563eb' }}>₱{total.toLocaleString()}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Payment & Checkout Card */}
+          <div className="card" style={{ padding: '18px', backgroundColor: '#ffffff' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+              <h4 style={{ fontSize: '0.85rem', color: '#0f172a', fontWeight: 800, margin: 0 }}>
+                PAYMENT METHOD & TENDER
+              </h4>
+              <div style={{ display: 'flex', gap: '4px' }}>
+                <button
+                  type="button"
+                  onClick={() => setOrderType('WALK-IN')}
+                  style={{
+                    padding: '3px 8px',
+                    borderRadius: '4px',
+                    fontSize: '0.68rem',
+                    fontWeight: 700,
+                    border: '1px solid',
+                    borderColor: orderType === 'WALK-IN' ? '#2563eb' : '#cbd5e1',
+                    backgroundColor: orderType === 'WALK-IN' ? '#eff6ff' : '#ffffff',
+                    color: orderType === 'WALK-IN' ? '#1d4ed8' : '#64748b',
+                    cursor: 'pointer'
+                  }}
                 >
                   WALK-IN
                 </button>
-                <button 
-                  onClick={() => setOrderType('ONLINE/FACEBOOK')} 
-                  className={orderType === 'ONLINE/FACEBOOK' ? 'primary' : ''} 
-                  style={{ flex: 1, fontSize: '0.65rem' }}
+                <button
+                  type="button"
+                  onClick={() => setOrderType('ONLINE/FACEBOOK')}
+                  style={{
+                    padding: '3px 8px',
+                    borderRadius: '4px',
+                    fontSize: '0.68rem',
+                    fontWeight: 700,
+                    border: '1px solid',
+                    borderColor: orderType === 'ONLINE/FACEBOOK' ? '#2563eb' : '#cbd5e1',
+                    backgroundColor: orderType === 'ONLINE/FACEBOOK' ? '#eff6ff' : '#ffffff',
+                    color: orderType === 'ONLINE/FACEBOOK' ? '#1d4ed8' : '#64748b',
+                    cursor: 'pointer'
+                  }}
                 >
-                  FACEBOOK / ONLINE
+                  FB/PICKUP
                 </button>
               </div>
             </div>
 
-            {/* CART ITEMS */}
-            <div style={{ margin: '20px 0', maxHeight: '200px', overflowY: 'auto', borderBottom: '1px solid #eee', paddingBottom: '10px' }}>
-              <h4 style={{ fontSize: '0.7rem', borderBottom: '1px solid #000', paddingBottom: '5px', marginBottom: '10px' }}>ITEMS</h4>
-              {cart.length === 0 ? (
-                <p style={{ textAlign: 'center', fontSize: '0.75rem', color: '#666', padding: '15px 0' }}>CART IS EMPTY</p>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                  {cart.map(item => (
-                    <div key={item.productId} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.75rem' }}>
-                      <div style={{ width: '45%' }}>
-                        <span style={{ fontWeight: 'bold' }}>{item.name}</span>
-                        <br/>
-                        <span style={{ fontSize: '0.6rem', color: '#666' }}>₱{item.price.toLocaleString()}</span>
-                      </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                        <button onClick={() => updateQuantity(item.productId, item.quantity - 1)} style={{ padding: '2px 6px', fontSize: '0.6rem' }}>-</button>
-                        <span style={{ width: '20px', textAlign: 'center', fontWeight: 'bold' }}>{item.quantity}</span>
-                        <button onClick={() => updateQuantity(item.productId, item.quantity + 1)} style={{ padding: '2px 6px', fontSize: '0.6rem' }}>+</button>
-                      </div>
-                      <div style={{ width: '25%', textAlign: 'right', fontWeight: 'bold' }}>
-                        ₱{(item.price * item.quantity).toLocaleString()}
-                      </div>
-                    </div>
+            {/* Method selection */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px', marginBottom: '14px' }}>
+              {(['CASH', 'E-WALLET', 'ONLINE BANK'] as const).map(method => (
+                <button
+                  key={method}
+                  type="button"
+                  onClick={() => setPaymentMethod(method)}
+                  style={{
+                    padding: '8px 4px',
+                    borderRadius: '6px',
+                    fontSize: '0.72rem',
+                    fontWeight: 700,
+                    border: '1px solid',
+                    borderColor: paymentMethod === method ? '#2563eb' : '#cbd5e1',
+                    backgroundColor: paymentMethod === method ? '#eff6ff' : '#ffffff',
+                    color: paymentMethod === method ? '#1d4ed8' : '#334155',
+                    cursor: 'pointer'
+                  }}
+                >
+                  {method}
+                </button>
+              ))}
+            </div>
+
+            {/* Cash Tender Keypad */}
+            {paymentMethod === 'CASH' ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '14px' }}>
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                  <input
+                    type="number"
+                    placeholder="Cash Tendered (₱)..."
+                    value={cashTendered}
+                    onChange={e => setCashTendered(e.target.value)}
+                    style={{ fontSize: '1rem', fontWeight: 700, height: '42px', flex: 1 }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setCashTendered(total.toString())}
+                    className="btn"
+                    style={{ height: '42px', fontSize: '0.78rem', whiteSpace: 'nowrap' }}
+                  >
+                    Exact
+                  </button>
+                </div>
+
+                {/* Quick denomination chips */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '6px' }}>
+                  {['100', '200', '500', '1000'].map(denom => (
+                    <button
+                      key={denom}
+                      type="button"
+                      onClick={() => setCashTendered(denom)}
+                      style={{ padding: '6px', fontSize: '0.75rem', fontWeight: 700, border: '1px solid #cbd5e1', borderRadius: '4px', backgroundColor: '#f8fafc', cursor: 'pointer' }}
+                    >
+                      ₱{denom}
+                    </button>
                   ))}
                 </div>
-              )}
-            </div>
 
-            {/* LINKED MEMBER */}
-            <div style={{ marginBottom: '20px' }}>
-              <label style={{ fontSize: '0.65rem', fontWeight: 'bold', display: 'block', marginBottom: '5px' }}>ASSOCIATED MEMBER</label>
-              <select 
-                value={selectedMemberId} 
-                onChange={e => setSelectedMemberId(e.target.value)} 
-                style={{ fontSize: '0.75rem' }}
-              >
-                <option value="">WALK-IN (NO MEMBERSHIP)</option>
-                {members.map(m => (
-                  <option key={m.id} value={m.id}>{m.id} - {m.name} ({m.points} pts)</option>
-                ))}
-              </select>
-              {selectedMemberId && (
-                <div style={{ display: 'flex', justifyContent: 'space-between', backgroundColor: '#f9f9f9', padding: '6px', fontSize: '0.65rem', marginTop: '5px', border: '1px solid #000' }}>
-                  <span>Points Earned This Sale:</span>
-                  <span style={{ fontWeight: 'bold' }}>+{Math.floor(total / pointsSettings.currencyPerPoint)} pts</span>
+                {/* Touch POS Keypad */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '4px', marginTop: '4px' }}>
+                  {['7', '8', '9', 'C', '4', '5', '6', '00', '1', '2', '3', '0'].map(key => (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => handleKeypadPress(key)}
+                      style={{
+                        padding: '6px',
+                        fontSize: '0.78rem',
+                        fontWeight: key === 'C' ? 800 : 600,
+                        backgroundColor: key === 'C' ? '#fee2e2' : '#f8fafc',
+                        color: key === 'C' ? '#b91c1c' : '#1e293b',
+                        border: '1px solid #cbd5e1',
+                        borderRadius: '4px',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      {key}
+                    </button>
+                  ))}
                 </div>
-              )}
-            </div>
 
-            {/* PAYMENT INFORMATION */}
-            <div style={{ borderTop: '2px solid #000', paddingTop: '15px', marginBottom: '20px' }}>
-              <label style={{ fontSize: '0.65rem', fontWeight: 'bold', display: 'block', marginBottom: '5px' }}>PAYMENT METHOD</label>
-              <div style={{ display: 'flex', gap: '8px', marginBottom: '10px' }}>
-                {['CASH', 'E-WALLET', 'ONLINE BANK'].map((method) => (
-                  <button 
-                    key={method} 
-                    type="button"
-                    onClick={() => setPaymentMethod(method as any)} 
-                    className={paymentMethod === method ? 'primary' : ''} 
-                    style={{ flex: 1, fontSize: '0.6rem', padding: '6px 2px' }}
-                  >
-                    {method}
-                  </button>
-                ))}
+                {/* Change display */}
+                {numericTendered > 0 && (
+                  <div style={{
+                    padding: '8px 12px',
+                    borderRadius: '6px',
+                    backgroundColor: numericTendered >= total ? '#f0fdf4' : '#fef2f2',
+                    border: `1px solid ${numericTendered >= total ? '#bbf7d0' : '#fecaca'}`,
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    fontSize: '0.85rem',
+                    fontWeight: 800,
+                    color: numericTendered >= total ? '#15803d' : '#b91c1c'
+                  }}>
+                    <span>{numericTendered >= total ? 'CHANGE DUE:' : 'AMOUNT SHORT:'}</span>
+                    <span>₱{numericTendered >= total ? changeDue.toLocaleString() : amountShort.toLocaleString()}</span>
+                  </div>
+                )}
               </div>
-              {paymentMethod !== 'CASH' && (
-                <div>
-                  <label style={{ fontSize: '0.65rem', fontWeight: 'bold', display: 'block', marginBottom: '5px' }}>E-PAYMENT REF #</label>
-                  <input 
-                    type="text" 
-                    required 
-                    placeholder="ENTER REFERENCE NUMBER..." 
-                    value={paymentRef}
-                    onChange={e => setPaymentRef(e.target.value)}
-                    style={{ fontSize: '0.75rem', padding: '8px' }}
-                  />
-                </div>
-              )}
-            </div>
+            ) : (
+              <div style={{ marginBottom: '14px' }}>
+                <label>Transaction Reference # *</label>
+                <input
+                  type="text"
+                  placeholder="e.g. GCASH-192837 or BDO-8821..."
+                  value={paymentRef}
+                  onChange={e => setPaymentRef(e.target.value)}
+                  required
+                />
+              </div>
+            )}
 
-            {/* TOTALS SUMMARY */}
-            <div style={{ borderTop: '2px solid #000', paddingTop: '15px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem' }}>
-                <span>SUBTOTAL:</span>
-                <span>₱{subtotal.toLocaleString()}</span>
-              </div>
-              {discountApplied > 0 && (
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: 'red', fontWeight: 'bold' }}>
-                  <span>PROMO ({activePromoName}):</span>
-                  <span>-₱{discountApplied.toLocaleString()}</span>
-                </div>
-              )}
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1.2rem', fontWeight: '900', borderTop: '1px solid #000', paddingTop: '8px' }}>
-                <span>GRAND TOTAL:</span>
-                <span>₱{total.toLocaleString()}</span>
-              </div>
-            </div>
-
-            <button 
-              className="primary" 
-              style={{ width: '100%', marginTop: '20px', padding: '12px' }} 
+            {/* Complete Sale Button */}
+            <button
+              type="button"
               onClick={handleCheckout}
-              disabled={cart.length === 0}
+              disabled={processing || cart.length === 0}
+              className="btn-primary"
+              style={{ width: '100%', padding: '14px', fontSize: '0.95rem', fontWeight: 800 }}
             >
-              COMPLETE TRANSACTION
+              {processing ? (
+                <span>Writing to Supabase Cloud...</span>
+              ) : (
+                <>
+                  <Banknote size={18} />
+                  <span>COMPLETE SALE (₱{total.toLocaleString()})</span>
+                </>
+              )}
             </button>
           </div>
         </div>
       </div>
 
-      {/* RECEIPT MODAL */}
+      {/* Printable Receipt Modal */}
       {showReceipt && (
-        <div className="modal-overlay" style={{ zIndex: 9999 }}>
-          <div className="modal" style={{ maxWidth: '400px', padding: '24px' }}>
-            {/* Printable Area */}
-            <div id="receipt-print-area" style={{ fontFamily: 'Courier New, monospace', fontSize: '0.75rem' }}>
-              <div style={{ textAlign: 'center', marginBottom: '15px' }}>
-                <h3 style={{ margin: '0 0 5px 0' }}>BOSS RAP MOTOR SHOP</h3>
-                <p style={{ margin: '0 0 2px 0' }}>BRGY. SULIVAN, BALIUAG, BULACAN</p>
-                <p style={{ margin: '0 0 10px 0' }}>TEL: +63 912 345 6789</p>
-                <p style={{ margin: 0 }}>--------------------------------</p>
-                <p style={{ margin: 0, fontWeight: 'bold' }}>SALES RECEIPT</p>
-                <p style={{ margin: 0 }}>--------------------------------</p>
-              </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginBottom: '15px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span>Receipt ID:</span>
-                  <span>{showReceipt.id}</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span>Date:</span>
-                  <span>{new Date(showReceipt.date).toLocaleString()}</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span>Channel:</span>
-                  <span>{showReceipt.channel || 'WALK-IN'}</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span>Payment:</span>
-                  <span>{showReceipt.paymentMethod}</span>
-                </div>
-                {showReceipt.paymentRef && (
-                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span>Ref #:</span>
-                    <span>{showReceipt.paymentRef}</span>
-                  </div>
-                )}
+        <div className="modal-overlay" onClick={() => setShowReceipt(null)}>
+          <div className="modal" style={{ maxWidth: '420px', width: '100%' }} onClick={e => e.stopPropagation()}>
+            <div id="receipt-print-area" style={{ fontFamily: 'monospace', fontSize: '0.82rem', color: '#0f172a' }}>
+              <div style={{ textAlign: 'center', marginBottom: '12px' }}>
+                <h2 style={{ fontSize: '1.15rem', margin: 0, fontWeight: 900 }}>BOSS RAP MOTOR SHOP</h2>
+                <div style={{ fontSize: '0.72rem', color: '#475569' }}>JP Rizal St., Baliuag, Bulacan</div>
+                <div style={{ fontSize: '0.72rem', color: '#475569' }}>Hotline: (0905) 123-4567 • Cashier POS 01</div>
+                <div style={{ borderBottom: '1px dashed #cbd5e1', margin: '8px 0' }} />
+                <div style={{ fontSize: '0.82rem', fontWeight: 700 }}>COUNTER SALES INVOICE</div>
+                <div style={{ fontSize: '0.72rem', color: '#64748b' }}>Invoice #: {showReceipt.id}</div>
+                <div style={{ fontSize: '0.72rem', color: '#64748b' }}>Date: {new Date(showReceipt.date).toLocaleString()}</div>
+                <div style={{ fontSize: '0.72rem', color: '#64748b' }}>Cashier: {showReceipt.cashierName}</div>
                 {showReceipt.memberId && (
-                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span>Member ID:</span>
-                    <span>{showReceipt.memberId}</span>
+                  <div style={{ fontSize: '0.72rem', color: '#2563eb', fontWeight: 700 }}>
+                    Member ID: {showReceipt.memberId}
                   </div>
                 )}
               </div>
 
-              <p style={{ margin: 0 }}>--------------------------------</p>
-              <div style={{ margin: '8px 0', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                {showReceipt.items.map((item: any, index: number) => (
-                  <div key={index}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <span>{item.name}</span>
-                      <span>₱{(item.price * item.quantity).toLocaleString()}</span>
-                    </div>
-                    <div style={{ fontSize: '0.65rem', paddingLeft: '10px' }}>
-                      {item.quantity} x ₱{item.price.toLocaleString()}
-                    </div>
+              <div style={{ borderBottom: '1px dashed #cbd5e1', marginBottom: '8px' }} />
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '8px' }}>
+                {showReceipt.items.map((it: any, idx: number) => (
+                  <div key={idx} style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span>{it.name} × {it.quantity}</span>
+                    <strong>₱{(it.price * it.quantity).toLocaleString()}</strong>
                   </div>
                 ))}
               </div>
-              <p style={{ margin: 0 }}>--------------------------------</p>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '10px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span>Subtotal:</span>
-                  <span>₱{showReceipt.subtotal.toLocaleString()}</span>
+              <div style={{ borderBottom: '1px dashed #cbd5e1', margin: '8px 0' }} />
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                <span>Subtotal:</span>
+                <span>₱{showReceipt.subtotal.toLocaleString()}</span>
+              </div>
+              {showReceipt.discountApplied > 0 && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px', color: '#16a34a' }}>
+                  <span>Discount:</span>
+                  <span>-₱{showReceipt.discountApplied.toLocaleString()}</span>
                 </div>
-                {showReceipt.discountApplied > 0 && (
-                  <div style={{ display: 'flex', justifyContent: 'space-between', color: 'red' }}>
-                    <span>Discount:</span>
-                    <span>-₱{showReceipt.discountApplied.toLocaleString()}</span>
-                  </div>
-                )}
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', fontSize: '0.85rem' }}>
-                  <span>GRAND TOTAL:</span>
-                  <span>₱{showReceipt.total.toLocaleString()}</span>
-                </div>
+              )}
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1rem', fontWeight: 900, margin: '6px 0' }}>
+                <span>TOTAL:</span>
+                <span>₱{showReceipt.total.toLocaleString()}</span>
               </div>
 
-              <div style={{ textAlign: 'center', marginTop: '20px' }}>
-                <p style={{ margin: '0 0 5px 0' }}>THANK YOU FOR YOUR PATRONAGE!</p>
-                <p style={{ margin: 0 }}>Please keep this receipt for return or replacement requests.</p>
-                <p style={{ margin: '10px 0 0 0' }}>--------------------------------</p>
+              {showReceipt.paymentMethod === 'CASH' && (
+                <>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem' }}>
+                    <span>Cash Tendered:</span>
+                    <span>₱{showReceipt.cashTendered?.toLocaleString()}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', fontWeight: 700 }}>
+                    <span>Change Due:</span>
+                    <span>₱{showReceipt.changeDue?.toLocaleString()}</span>
+                  </div>
+                </>
+              )}
+
+              <div style={{ borderBottom: '1px dashed #cbd5e1', margin: '8px 0' }} />
+
+              <div style={{ fontSize: '0.72rem', color: '#64748b', textAlign: 'center', marginTop: '10px' }}>
+                <div>Payment Method: {showReceipt.paymentMethod}</div>
+                {showReceipt.paymentRef && <div>Ref: {showReceipt.paymentRef}</div>}
+                <div style={{ marginTop: '8px', fontWeight: 700, color: '#0f172a' }}>
+                  THANK YOU FOR YOUR PATRONAGE!
+                </div>
               </div>
             </div>
 
-            {/* Actions */}
-            <div style={{ display: 'flex', gap: '10px', marginTop: '24px' }} className="no-print">
-              <button className="primary" style={{ flex: 1 }} onClick={printReceipt}>PRINT RECEIPT</button>
-              <button style={{ flex: 1 }} onClick={() => setShowReceipt(null)}>CLOSE</button>
+            <div style={{ display: 'flex', gap: '10px', marginTop: '16px' }}>
+              <button type="button" onClick={() => window.print()} className="btn-primary" style={{ flex: 1 }}>
+                <Printer size={15} />
+                <span>Print Invoice</span>
+              </button>
+              <button type="button" onClick={() => setShowReceipt(null)} className="btn" style={{ flex: 1 }}>
+                New Sale
+              </button>
             </div>
           </div>
         </div>
       )}
-
-      <div className="card" style={{ marginTop: '30px' }}>
-        <h3>SALES TRANSACTION RECORDS</h3>
-        <p style={{ fontSize: '0.75rem', opacity: 0.7, margin: '5px 0 20px 0' }}>
-          Monitor walk-in and Facebook / online transactions, payment references, and customer order status.
-        </p>
-
-        <div className="table-container">
-          <table>
-            <thead>
-              <tr>
-                <th>RECEIPT ID</th>
-                <th>DATE</th>
-                <th>MEMBER</th>
-                <th>CHANNEL</th>
-                <th>PAYMENT</th>
-                <th>REF #</th>
-                <th>TOTAL</th>
-                <th>ORDER STATUS</th>
-              </tr>
-            </thead>
-            <tbody>
-              {sales.length === 0 ? (
-                <tr><td colSpan={8} style={{ textAlign: 'center' }}>NO SALES RECORDED</td></tr>
-              ) : (
-                sales.slice().reverse().map(sale => (
-                  <tr key={sale.id}>
-                    <td style={{ fontWeight: 'bold' }}>{sale.id}</td>
-                    <td style={{ fontSize: '0.7rem' }}>{new Date(sale.date).toLocaleDateString()}</td>
-                    <td>{sale.memberId || 'WALK-IN'}</td>
-                    <td><span className="badge" style={{ fontSize: '0.55rem' }}>{sale.channel || 'WALK-IN'}</span></td>
-                    <td>{sale.paymentMethod}</td>
-                    <td style={{ fontSize: '0.7rem' }}>{sale.paymentRef || '-'}</td>
-                    <td style={{ fontWeight: 'bold' }}>₱{sale.total.toLocaleString()}</td>
-                    <td>
-                      <select 
-                        value={sale.orderStatus || 'COMPLETED'}
-                        onChange={e => updateOrderStatus(sale.id, e.target.value as NonNullable<Sale['orderStatus']>)}
-                        style={{ fontSize: '0.65rem', padding: '5px', minWidth: '150px' }}
-                      >
-                        {orderStatuses.map(status => (
-                          <option key={status} value={status}>{status}</option>
-                        ))}
-                      </select>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <style>{`
-        @media print {
-          body * {
-            visibility: hidden;
-          }
-          #receipt-print-area, #receipt-print-area * {
-            visibility: visible;
-          }
-          #receipt-print-area {
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 100%;
-          }
-          .no-print {
-            display: none !important;
-          }
-        }
-        @media (max-width: 900px) {
-          .pos-grid { grid-template-columns: 1fr !important; }
-        }
-        @media (max-width: 600px) {
-          .simulator-columns { grid-template-columns: 1fr !important; }
-          .simulator-divider { border-left: none !important; border-top: 2px solid #000; padding-left: 0 !important; padding-top: 15px; }
-        }
-      `}</style>
     </div>
   );
 };

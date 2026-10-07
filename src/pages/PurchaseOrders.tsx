@@ -3,7 +3,7 @@ import { useAppContext } from '../context/AppContext';
 import type { PurchaseOrder, PurchaseOrderItem } from '../context/AppContext';
 
 export const PurchaseOrders: React.FC = () => {
-  const { products, setProducts, purchaseOrders, setPurchaseOrders } = useAppContext();
+  const { products, saveProduct, purchaseOrders, savePurchaseOrder, setPurchaseOrders } = useAppContext();
 
   // Filters state
   const [filter, setFilter] = useState<'ALL' | 'PENDING' | 'RECEIVED'>('ALL');
@@ -71,12 +71,13 @@ export const PurchaseOrders: React.FC = () => {
   };
 
   // Remove Item from building list
-  const handleRemoveItem = (productId: string) => {
+  const handleRemoveItem = (productId?: string) => {
+    if (!productId) return;
     setOrderItems(orderItems.filter(item => item.productId !== productId));
   };
 
   // Save the complete Purchase Order
-  const handleCreatePO = (e: React.FormEvent) => {
+  const handleCreatePO = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!supplierName.trim()) {
       alert('SUPPLIER NAME IS REQUIRED.');
@@ -98,7 +99,7 @@ export const PurchaseOrders: React.FC = () => {
       dateOrdered: new Date().toISOString()
     };
 
-    setPurchaseOrders([newPO, ...purchaseOrders]);
+    await savePurchaseOrder(newPO);
     
     // Reset Modal Form
     setSupplierName('');
@@ -107,38 +108,31 @@ export const PurchaseOrders: React.FC = () => {
   };
 
   // Transition PO to RECEIVED and increment stock levels
-  const handleMarkAsReceived = (po: PurchaseOrder) => {
+  const handleMarkAsReceived = async (po: PurchaseOrder) => {
     if (po.status === 'RECEIVED') return;
 
     const confirmReceive = confirm(`MARK ${po.id} AS RECEIVED?\nThis will automatically ADD all ordered item quantities to your product inventory stocks.`);
     if (!confirmReceive) return;
 
-    // 1. Update Product Inventory stocks
-    const updatedProducts = products.map(p => {
-      const poItem = po.items.find(item => item.productId === p.id);
-      if (poItem) {
-        return {
-          ...p,
-          stock: p.stock + poItem.quantity
-        };
+    // 1. Update Product Inventory stocks in Supabase
+    for (const poItem of po.items) {
+      const prod = products.find(p => p.id === poItem.productId);
+      if (prod) {
+        await saveProduct({
+          ...prod,
+          stock: prod.stock + poItem.quantity
+        });
       }
-      return p;
-    });
+    }
 
-    // 2. Update Purchase Order Status
-    const updatedPOs = purchaseOrders.map(o => {
-      if (o.id === po.id) {
-        return {
-          ...o,
-          status: 'RECEIVED' as const,
-          dateReceived: new Date().toISOString()
-        };
-      }
-      return o;
-    });
+    // 2. Update Purchase Order Status in Supabase
+    const updatedPO: PurchaseOrder = {
+      ...po,
+      status: 'RECEIVED',
+      dateReceived: new Date().toISOString()
+    };
 
-    setProducts(updatedProducts);
-    setPurchaseOrders(updatedPOs);
+    await savePurchaseOrder(updatedPO);
     alert(`Success! Stocks replenished successfully for ${po.id}.\nStock values updated in Inventory.`);
   };
 

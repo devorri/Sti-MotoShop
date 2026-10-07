@@ -1,8 +1,8 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AppProvider, useAppContext } from './context/AppContext';
-import { PublicLayout, AdminLayout } from './components/Layout';
-import { PublicLanding } from './pages/PublicPages';
+import { PublicLayout, AdminLayout, StaffLayout } from './components/Layout';
+import { PublicLanding, Shop } from './pages/PublicPages';
 import { Login } from './pages/Login';
 import { Register } from './pages/Register';
 import { Dashboard, UserManagement, Inventory } from './pages/AdminPages';
@@ -16,12 +16,20 @@ import { Inquiries } from './pages/Inquiries';
 import { PurchaseOrders } from './pages/PurchaseOrders';
 import './App.css';
 
-// Guard for checking if user is enabled
-const RouteGuard: React.FC<{ children: React.ReactNode, adminOnly?: boolean }> = ({ children, adminOnly = false }) => {
+// Guard for checking if user is authenticated and permitted
+const RouteGuard: React.FC<{ 
+  children: React.ReactNode; 
+  adminOnly?: boolean;
+  staffOnly?: boolean;
+}> = ({ children, adminOnly = false, staffOnly = false }) => {
   const { initialized, currentUser } = useAppContext();
 
   if (!initialized) {
-    return <div style={{ padding: '40px', textAlign: 'center', fontWeight: 'bold' }}>LOADING SYSTEM ACCESS...</div>;
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', fontWeight: 800, color: '#2563eb' }}>
+        LOADING SYSTEM ACCESS...
+      </div>
+    );
   }
   
   if (!currentUser) {
@@ -33,12 +41,47 @@ const RouteGuard: React.FC<{ children: React.ReactNode, adminOnly?: boolean }> =
     return <Navigate to="/login" replace />;
   }
 
+  // Strict Admin check
   if (adminOnly && currentUser.role !== 'ADMIN') {
-    alert('UNAUTHORIZED ACCESS.');
-    return <Navigate to="/admin/dashboard" replace />;
+    alert('UNAUTHORIZED ACCESS: Administrator privileges required.');
+    if (currentUser.role === 'EMPLOYEE') {
+      return <Navigate to="/staff/pos" replace />;
+    }
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  // Staff or Admin POS Terminal check
+  if (staffOnly && currentUser.role !== 'EMPLOYEE' && currentUser.role !== 'ADMIN') {
+    alert('UNAUTHORIZED ACCESS: Staff cashier or administrator privileges required.');
+    return <Navigate to="/dashboard" replace />;
   }
 
   return <>{children}</>;
+};
+
+// Root index routing handler
+const RootRoute = () => {
+  const { currentUser, initialized } = useAppContext();
+
+  if (!initialized) {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', fontWeight: 800, color: '#2563eb' }}>
+        STARTING BOSS RAP MOTOR SHOP PORTAL...
+      </div>
+    );
+  }
+
+  if (currentUser) {
+    if (currentUser.role === 'ADMIN') {
+      return <Navigate to="/admin/dashboard" replace />;
+    }
+    if (currentUser.role === 'EMPLOYEE') {
+      return <Navigate to="/staff/pos" replace />;
+    }
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  return <PublicLayout><PublicLanding /></PublicLayout>;
 };
 
 function App() {
@@ -46,15 +89,11 @@ function App() {
     <AppProvider>
       <Router>
         <Routes>
-          {/* Single scrollable public landing page */}
-          <Route path="/" element={<PublicLayout><PublicLanding /></PublicLayout>} />
+          {/* Main index / landing */}
+          <Route path="/" element={<RootRoute />} />
           
-          {/* Redirect old individual routes to hash sections on the landing page */}
-          <Route path="/shop" element={<Navigate to="/#shop" replace />} />
-          <Route path="/services" element={<Navigate to="/#services" replace />} />
-          <Route path="/about" element={<Navigate to="/#about" replace />} />
-          <Route path="/contact" element={<Navigate to="/#contact" replace />} />
-          
+          {/* Catalog & Public Pages */}
+          <Route path="/shop" element={<PublicLayout><Shop /></PublicLayout>} />
           <Route path="/login" element={<PublicLayout><Login /></PublicLayout>} />
           <Route path="/register" element={<PublicLayout><Register /></PublicLayout>} />
           
@@ -67,9 +106,18 @@ function App() {
             </RouteGuard>
           } />
 
-          {/* Admin Dashboard Routes (Guarded) */}
+          {/* Staff POS Station (Staff & Admin) */}
+          <Route path="/staff/pos" element={
+            <RouteGuard staffOnly>
+              <StaffLayout>
+                <Sales />
+              </StaffLayout>
+            </RouteGuard>
+          } />
+
+          {/* Admin Dashboard Routes (Strictly Guarded) */}
           <Route path="/admin/dashboard" element={
-            <RouteGuard>
+            <RouteGuard adminOnly>
               <AdminLayout>
                 <Dashboard />
               </AdminLayout>
@@ -77,7 +125,7 @@ function App() {
           } />
           
           <Route path="/admin/inventory" element={
-            <RouteGuard>
+            <RouteGuard adminOnly>
               <AdminLayout>
                 <Inventory />
               </AdminLayout>
@@ -85,7 +133,7 @@ function App() {
           } />
 
           <Route path="/admin/purchase-orders" element={
-            <RouteGuard>
+            <RouteGuard adminOnly>
               <AdminLayout>
                 <PurchaseOrders />
               </AdminLayout>
@@ -93,15 +141,15 @@ function App() {
           } />
           
           <Route path="/admin/sales" element={
-            <RouteGuard>
+            <RouteGuard adminOnly>
               <AdminLayout>
-                <Sales />
+                <Dashboard />
               </AdminLayout>
             </RouteGuard>
           } />
           
           <Route path="/admin/members" element={
-            <RouteGuard>
+            <RouteGuard adminOnly>
               <AdminLayout>
                 <Members />
               </AdminLayout>
@@ -109,7 +157,7 @@ function App() {
           } />
 
           <Route path="/admin/promos" element={
-            <RouteGuard>
+            <RouteGuard adminOnly>
               <AdminLayout>
                 <Promos />
               </AdminLayout>
@@ -117,7 +165,7 @@ function App() {
           } />
 
           <Route path="/admin/returns" element={
-            <RouteGuard>
+            <RouteGuard adminOnly>
               <AdminLayout>
                 <Returns />
               </AdminLayout>
@@ -125,7 +173,7 @@ function App() {
           } />
 
           <Route path="/admin/inquiries" element={
-            <RouteGuard>
+            <RouteGuard adminOnly>
               <AdminLayout>
                 <Inquiries />
               </AdminLayout>
@@ -133,7 +181,7 @@ function App() {
           } />
 
           <Route path="/admin/reports" element={
-            <RouteGuard>
+            <RouteGuard adminOnly>
               <AdminLayout>
                 <Reports />
               </AdminLayout>
@@ -141,7 +189,7 @@ function App() {
           } />
 
           <Route path="/admin/users" element={
-            <RouteGuard adminOnly={true}>
+            <RouteGuard adminOnly>
               <AdminLayout>
                 <UserManagement />
               </AdminLayout>
@@ -149,6 +197,8 @@ function App() {
           } />
 
           {/* Fallbacks */}
+          <Route path="/pos" element={<Navigate to="/staff/pos" replace />} />
+          <Route path="/staff" element={<Navigate to="/staff/pos" replace />} />
           <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

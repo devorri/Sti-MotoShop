@@ -1,94 +1,90 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAppContext } from '../context/AppContext';
-import type { Product } from '../context/AppContext';
+import type { Product, SaleItem } from '../context/AppContext';
 import { Services } from './Services';
 import { About } from './About';
 import { Contact } from './Contact';
+import { 
+  ShoppingBag, 
+  ShoppingCart, 
+  Package, 
+  Search, 
+  X, 
+  Sparkles, 
+  Clock, 
+  Printer 
+} from 'lucide-react';
 
 export const Home: React.FC = () => {
   return (
-    <div style={{ backgroundColor: '#07090e', color: '#f8fafc', minHeight: '100vh' }}>
+    <div style={{ backgroundColor: '#f8fafc', color: '#0f172a', minHeight: '100vh' }}>
       {/* Hero Section */}
       <section style={{ 
-        padding: '100px 24px 120px', 
+        padding: '70px 24px 90px', 
         textAlign: 'center', 
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
-        background: 'radial-gradient(circle at 50% 30%, rgba(0, 210, 255, 0.12) 0%, rgba(255, 30, 39, 0.08) 50%, #07090e 90%)',
-        color: '#fff',
+        background: 'linear-gradient(180deg, #eff6ff 0%, #f8fafc 100%)',
+        color: '#0f172a',
         position: 'relative',
         overflow: 'hidden',
-        borderBottom: '1px solid rgba(0, 210, 255, 0.2)'
+        borderBottom: '1px solid #e2e8f0'
       }}>
-        {/* Carbon Background Pattern */}
-        <div style={{ 
-          position: 'absolute', 
-          top: 0, 
-          left: 0, 
-          right: 0, 
-          bottom: 0, 
-          opacity: 0.08, 
-          backgroundImage: 'radial-gradient(#ffffff 1px, transparent 1px)', 
-          backgroundSize: '24px 24px' 
-        }}></div>
-        
         <div style={{ zIndex: 2, maxWidth: '900px', width: '100%' }}>
-          <span className="badge" style={{ marginBottom: '24px', padding: '6px 16px', fontSize: '0.75rem', letterSpacing: '0.2em' }}>
-            ⚡ EST. 2008 • BALIWAG, BULACAN
+          <span className="badge badge-blue" style={{ marginBottom: '20px', padding: '6px 16px', fontSize: '0.75rem', letterSpacing: '0.12em' }}>
+            EST. 2008 • BALIWAG, BULACAN
           </span>
 
           {/* Hero Logo Emblem */}
-          <div style={{ marginBottom: '28px' }}>
+          <div style={{ marginBottom: '24px' }}>
             <img 
               src="/boss-rap-logo.png" 
               alt="BOSS RAP MOTOR SHOP LOGO" 
               style={{ 
-                maxWidth: '380px', 
-                width: '85%', 
+                maxWidth: '340px', 
+                width: '80%', 
                 height: 'auto',
-                filter: 'drop-shadow(0 0 25px rgba(0, 210, 255, 0.45)) drop-shadow(0 0 10px rgba(255, 30, 39, 0.3))' 
-              }}
-              className="hero-logo-img"
+                filter: 'drop-shadow(0 4px 15px rgba(37, 99, 235, 0.15))'
+              }} 
             />
           </div>
 
           <h1 style={{ 
-            fontSize: 'clamp(2.5rem, 6vw, 4.8rem)', 
-            fontWeight: '900', 
-            letterSpacing: '0.04em', 
+            fontSize: 'clamp(2.2rem, 5vw, 4rem)', 
+            fontWeight: 900, 
+            letterSpacing: '0.02em', 
             margin: '0 0 16px 0', 
-            lineHeight: 1.05,
-            background: 'linear-gradient(135deg, #ffffff 30%, #00d2ff 70%, #ff1e27 100%)',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-            textShadow: '0 10px 30px rgba(0,0,0,0.8)'
+            lineHeight: 1.15,
+            color: '#0f172a'
           }}>
             HIGH-PERFORMANCE TUNING & SPARES
           </h1>
           
           <p style={{ 
-            fontSize: 'clamp(0.95rem, 2vw, 1.25rem)', 
-            color: '#cbd5e1', 
+            fontSize: 'clamp(0.95rem, 2vw, 1.15rem)', 
+            color: '#475569', 
             fontWeight: '500', 
             lineHeight: '1.7', 
             maxWidth: '720px', 
-            margin: '0 auto 40px' 
+            margin: '0 auto 32px' 
           }}>
-            Bulacan's trusted racing sanctuary for professional CVT tuning, engine overhauls, high-grade synthetic lubricants, and genuine OEM spare parts.
+            Bulacan's trusted motorcycle shop for professional CVT tuning, engine overhauls, high-grade synthetic lubricants, genuine OEM spare parts, and Rider Club rewards.
           </p>
 
-          <div style={{ display: 'flex', gap: '18px', justifyContent: 'center', flexWrap: 'wrap' }}>
-            <Link to="/shop">
-              <button className="primary" style={{ padding: '16px 36px', fontSize: '0.85rem' }}>
-                🛒 EXPLORE INVENTORY
+          <div style={{ display: 'flex', gap: '14px', justifyContent: 'center', flexWrap: 'wrap' }}>
+            <Link to="/shop" style={{ textDecoration: 'none' }}>
+              <button className="btn-primary" style={{ padding: '12px 28px', fontSize: '0.9rem' }}>
+                <ShoppingBag size={18} />
+                <span>EXPLORE INVENTORY</span>
               </button>
             </Link>
-            <Link to="/services">
-              <button className="btn" style={{ padding: '16px 36px', fontSize: '0.85rem' }}>
-                🔧 OUR SERVICES & TUNING
+            <Link to="/register" style={{ textDecoration: 'none' }}>
+              <button className="btn" style={{ padding: '12px 28px', fontSize: '0.9rem', color: '#16a34a', borderColor: '#86efac' }}>
+                <Sparkles size={18} color="#16a34a" />
+                <span>JOIN RIDER CLUB (+50 PTS)</span>
               </button>
             </Link>
           </div>
@@ -97,93 +93,33 @@ export const Home: React.FC = () => {
 
       {/* Quick Stats Grid */}
       <section style={{ 
-        maxWidth: '1400px', 
-        margin: '-30px auto 60px',
+        maxWidth: '1280px', 
+        margin: '-24px auto 40px',
         padding: '0 24px',
         position: 'relative',
         zIndex: 10
       }}>
-        <div style={{
-          display: 'grid', 
-          gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', 
-          gap: '20px'
-        }}>
-          <div className="card" style={{ textAlign: 'center', padding: '30px 20px' }}>
-            <span style={{ fontSize: '2rem', display: 'block', marginBottom: '8px' }}>📦</span>
-            <h3 style={{ fontSize: '2.5rem', fontWeight: '900', color: 'var(--accent-cyan)' }}>500+</h3>
-            <p style={{ fontSize: '0.75rem', marginTop: '6px', fontWeight: '700', color: '#94a3b8', letterSpacing: '0.1em' }}>GENUINE OEM PARTS</p>
-          </div>
-          <div className="card" style={{ textAlign: 'center', padding: '30px 20px' }}>
-            <span style={{ fontSize: '2rem', display: 'block', marginBottom: '8px' }}>🏁</span>
-            <h3 style={{ fontSize: '2.5rem', fontWeight: '900', color: 'var(--accent-red)' }}>1,500+</h3>
-            <p style={{ fontSize: '0.75rem', marginTop: '6px', fontWeight: '700', color: '#94a3b8', letterSpacing: '0.1em' }}>CLUB MEMBERS</p>
-          </div>
-          <div className="card" style={{ textAlign: 'center', padding: '30px 20px' }}>
-            <span style={{ fontSize: '2rem', display: 'block', marginBottom: '8px' }}>🏆</span>
-            <h3 style={{ fontSize: '2.5rem', fontWeight: '900', color: 'var(--accent-gold)' }}>15+ YEARS</h3>
-            <p style={{ fontSize: '0.75rem', marginTop: '6px', fontWeight: '700', color: '#94a3b8', letterSpacing: '0.1em' }}>ON-ROAD EXPERTISE</p>
-          </div>
-        </div>
-      </section>
-
-      {/* Featured Services Preview */}
-      <section style={{ padding: '60px 24px 80px', maxWidth: '1400px', margin: '0 auto' }}>
-        <div style={{ textAlign: 'center', marginBottom: '50px' }}>
-          <span className="badge" style={{ marginBottom: '10px' }}>EXPERT MAINTENANCE</span>
-          <h2 style={{ fontSize: '2.2rem', fontWeight: '900', color: '#fff' }}>POPULAR TUNING SERVICES</h2>
-          <p style={{ fontSize: '0.9rem', color: '#94a3b8', marginTop: '8px' }}>PRECISION CARE FOR MAXIMUM ACCELERATION AND SAFETY</p>
-        </div>
-        
         <div style={{ 
           display: 'grid', 
-          gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', 
-          gap: '24px' 
+          gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', 
+          gap: '16px'
         }}>
-          {[
-            { name: 'ENGINE TUNE-UP', desc: 'Full throttle body cleaning, FI diagnostic scan, valve clearance adjustment, and electronics calibration.', label: '₱500+' },
-            { name: 'SYNTHETIC OIL CHANGE', desc: 'Premium 4T racing engine lubricant drain & replace, filter inspection, and chain tensioning.', label: '₱350+' },
-            { name: 'CVT CLEANING & UPGRADE', desc: 'Professional performance CVT cleaning, pulley resurfacing, clutch bell deglazing, and belt fitting.', label: '₱450+' },
-            { name: 'ENGINE OVERHAUL', desc: 'Cylinder re-boring, carbon scrubbing, gasket replacement, and full racing piston tuning.', label: '₱5,000+' }
-          ].map(service => (
-            <div key={service.name} className="card" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', height: '100%' }}>
-              <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '12px', marginBottom: '16px' }}>
-                  <h4 style={{ fontSize: '1.05rem', margin: 0, color: '#fff' }}>{service.name}</h4>
-                  <span className="badge">{service.label}</span>
-                </div>
-                <p style={{ fontSize: '0.85rem', lineHeight: '1.6', color: '#94a3b8' }}>{service.desc}</p>
-              </div>
-              <Link to="/services" style={{ marginTop: '24px' }}>
-                <button className="btn" style={{ width: '100%', fontSize: '0.7rem' }}>BOOK SERVICE</button>
-              </Link>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* CTA Join Club Banner */}
-      <section style={{ 
-        padding: '80px 24px', 
-        textAlign: 'center', 
-        background: 'linear-gradient(135deg, rgba(0, 82, 255, 0.2) 0%, rgba(255, 30, 39, 0.2) 100%)', 
-        color: '#fff', 
-        borderTop: '1px solid rgba(0, 210, 255, 0.2)',
-        borderBottom: '1px solid rgba(0, 210, 255, 0.2)',
-        position: 'relative'
-      }}>
-        <div style={{ maxWidth: '800px', margin: '0 auto' }}>
-          <span className="badge badge-red" style={{ marginBottom: '16px' }}>EXCLUSIVE MEMBER REWARDS</span>
-          <h2 style={{ color: '#fff', fontSize: '2.4rem', marginBottom: '16px', fontWeight: 900 }}>
-            JOIN THE BOSS RAP RIDER CLUB
-          </h2>
-          <p style={{ fontSize: '0.95rem', color: '#cbd5e1', lineHeight: '1.7', marginBottom: '32px' }}>
-            Earn 1 membership point for every ₱100 spent. Collect points to redeem free oil changes and parts discounts. Show your digital membership QR code at the shop counter!
-          </p>
-          <Link to="/register">
-            <button className="primary" style={{ padding: '16px 40px', fontSize: '0.85rem' }}>
-              ⚡ REGISTER FOR FREE MEMBERSHIP
-            </button>
-          </Link>
+          <div className="card" style={{ padding: '20px', textAlign: 'center', backgroundColor: '#ffffff' }}>
+            <span style={{ fontSize: '2rem', fontWeight: 900, color: '#2563eb', display: 'block' }}>15+</span>
+            <span style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 700, textTransform: 'uppercase' }}>Years of Experience</span>
+          </div>
+          <div className="card" style={{ padding: '20px', textAlign: 'center', backgroundColor: '#ffffff' }}>
+            <span style={{ fontSize: '2rem', fontWeight: 900, color: '#16a34a', display: 'block' }}>100%</span>
+            <span style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 700, textTransform: 'uppercase' }}>Genuine Spare Parts</span>
+          </div>
+          <div className="card" style={{ padding: '20px', textAlign: 'center', backgroundColor: '#ffffff' }}>
+            <span style={{ fontSize: '2rem', fontWeight: 900, color: '#d97706', display: 'block' }}>5,000+</span>
+            <span style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 700, textTransform: 'uppercase' }}>Bikes Tuned & Serviced</span>
+          </div>
+          <div className="card" style={{ padding: '20px', textAlign: 'center', backgroundColor: '#ffffff' }}>
+            <span style={{ fontSize: '2rem', fontWeight: 900, color: '#7c3aed', display: 'block' }}>1:100</span>
+            <span style={{ fontSize: '0.78rem', color: '#64748b', fontWeight: 700, textTransform: 'uppercase' }}>Points Reward Ratio</span>
+          </div>
         </div>
       </section>
     </div>
@@ -193,14 +129,11 @@ export const Home: React.FC = () => {
 export const Shop: React.FC = () => {
   const { 
     products, 
-    setProducts, 
     promos, 
-    sales, 
-    setSales, 
     currentUser, 
-    members, 
-    setMembers,
-    pointsSettings 
+    pointsSettings,
+    recordSale,
+    addBackOrder 
   } = useAppContext();
 
   const [searchTerm, setSearchTerm] = useState('');
@@ -226,6 +159,7 @@ export const Shop: React.FC = () => {
   const [promoCode, setPromoCode] = useState('');
   const [appliedPromo, setAppliedPromo] = useState<any | null>(null);
   const [promoError, setPromoError] = useState('');
+  const [checkingOut, setCheckingOut] = useState(false);
 
   // Post-purchase Receipt State
   const [showReceipt, setShowReceipt] = useState<any | null>(null);
@@ -239,42 +173,35 @@ export const Shop: React.FC = () => {
     return matchesSearch && matchesCategory;
   });
 
-  // Category Icon SVG Generator
   const getCategoryIcon = (category: string) => {
     const c = category.toLowerCase();
     if (c.includes('lubri')) return (
-      <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: '#ff5e36' }}>
-        <path d="M12 22a7 7 0 0 0 7-7c0-4.3-7-11-7-11S5 10.7 5 15a7 7 0 0 0 7 7z" fill="#ff5e36" fillOpacity="0.15"/>
+      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: '#ea580c' }}>
+        <path d="M12 22a7 7 0 0 0 7-7c0-4.3-7-11-7-11S5 10.7 5 15a7 7 0 0 0 7 7z" fill="#ea580c" fillOpacity="0.15"/>
       </svg>
     );
     if (c.includes('brake')) return (
-      <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: '#3b82f6' }}>
-        <circle cx="12" cy="12" r="10" fill="#3b82f6" fillOpacity="0.1"/>
+      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: '#2563eb' }}>
+        <circle cx="12" cy="12" r="10" fill="#2563eb" fillOpacity="0.1"/>
         <circle cx="12" cy="12" r="6"/>
         <path d="M12 2v4M12 18v4M2 12h4M18 12h4"/>
       </svg>
     );
     if (c.includes('tire')) return (
-      <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: '#10b981' }}>
-        <circle cx="12" cy="12" r="9" fill="#10b981" fillOpacity="0.1"/>
+      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: '#16a34a' }}>
+        <circle cx="12" cy="12" r="9" fill="#16a34a" fillOpacity="0.1"/>
         <circle cx="12" cy="12" r="5"/>
         <path d="M12 3v4M12 17v4M3 12h4M17 12h4"/>
       </svg>
     );
-    if (c.includes('elect')) return (
-      <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: '#eab308' }}>
-        <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" fill="#eab308" fillOpacity="0.15"/>
-      </svg>
-    );
     return (
-      <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="gear-icon" style={{ color: '#000' }}>
-        <circle cx="12" cy="12" r="3" fill="#000" fillOpacity="0.1"/>
+      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: '#475569' }}>
+        <circle cx="12" cy="12" r="3" fill="#475569" fillOpacity="0.1"/>
         <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
       </svg>
     );
   };
 
-  // Cart operations
   const addToCart = (product: Product) => {
     const existing = cart.find(item => item.product.id === product.id);
     const cartQty = existing ? existing.quantity : 0;
@@ -312,10 +239,29 @@ export const Shop: React.FC = () => {
     ));
   };
 
+  // Back order reservation request
+  const handleRequestBackOrder = async (product: Product) => {
+    const customerName = currentUser?.name || prompt('Please enter your name for the back order reservation:');
+    if (!customerName) return;
+    const contact = prompt('Please enter your phone number to notify when restocked:');
+    if (!contact) return;
+
+    await addBackOrder({
+      productId: product.id,
+      productName: product.name,
+      quantity: 1,
+      customerName,
+      customerContact: contact,
+      status: 'PENDING',
+      notes: `Back order reserved via web catalog by ${customerName}`
+    });
+
+    alert(`Back order reservation recorded for "${product.name}". Our staff will contact you once restocked!`);
+  };
+
   // Totals calculations
   const subtotal = cart.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
 
-  // Promo code validation
   const applyPromo = () => {
     setPromoError('');
     if (!promoCode) return;
@@ -335,14 +281,16 @@ export const Shop: React.FC = () => {
   };
 
   const discountApplied = appliedPromo ? (subtotal * appliedPromo.discountPercent) / 100 : 0;
-  const total = subtotal - discountApplied;
+  const total = Math.max(0, subtotal - discountApplied);
+
+  // Total points that this cart will yield
+  const cartPointsYield = Math.floor(total / pointsSettings.currencyPerPoint);
 
   // Checkout submission
-  const handleCheckout = (e: React.FormEvent) => {
+  const handleCheckout = async (e: React.FormEvent) => {
     e.preventDefault();
     if (cart.length === 0) return;
 
-    // Validate stock levels once more
     for (const item of cart) {
       const fresh = products.find(p => p.id === item.product.id);
       if (!fresh || fresh.stock < item.quantity) {
@@ -351,34 +299,36 @@ export const Shop: React.FC = () => {
       }
     }
 
-    // Validate guest checkouts
     if (!currentUser && (!checkoutForm.guestName || !checkoutForm.phone)) {
       alert('PLEASE PROVIDE YOUR NAME AND CONTACT PHONE.');
       return;
     }
 
-    // Validate deliveries
     if (checkoutForm.deliveryType === 'DELIVERY' && !checkoutForm.address) {
       alert('PLEASE PROVIDE A DELIVERY ADDRESS.');
       return;
     }
 
-    // Validate digital reference
     if (checkoutForm.paymentMethod !== 'CASH' && !checkoutForm.paymentRef) {
       alert('PLEASE PROVIDE THE TRANSACTION REFERENCE NUMBER.');
       return;
     }
 
+    setCheckingOut(true);
+
     const saleId = `S_ONL${Date.now().toString().slice(-6)}`;
     const isDelivery = checkoutForm.deliveryType === 'DELIVERY';
-    const saleItems = cart.map(item => ({
+    const saleItems: SaleItem[] = cart.map(item => ({
       productId: item.product.id,
       name: item.product.name,
       quantity: item.quantity,
       price: item.product.price
     }));
 
-    const newSale = {
+    const customerDisplayName = currentUser ? currentUser.name : checkoutForm.guestName.trim().toUpperCase();
+    const customerPhone = checkoutForm.phone || 'N/A';
+
+    const newSalePayload = {
       id: saleId,
       items: saleItems,
       subtotal,
@@ -392,259 +342,71 @@ export const Shop: React.FC = () => {
       trackingCode: `${isDelivery ? 'LALA' : 'PICKUP'}-${saleId}`,
       paymentMethod: checkoutForm.paymentMethod,
       paymentRef: checkoutForm.paymentMethod !== 'CASH' ? checkoutForm.paymentRef : undefined,
-      // Pass shipping details in metadata format if necessary
       notes: isDelivery 
-        ? `SHIPPING: LALAMOVE. ADDR: ${checkoutForm.address.toUpperCase()}. PHONE: ${checkoutForm.phone}`
-        : 'STORE PICKUP'
+        ? `CUSTOMER: ${customerDisplayName}. PHONE: ${customerPhone}. SHIPPING: LALAMOVE. ADDR: ${checkoutForm.address.toUpperCase()}`
+        : `CUSTOMER: ${customerDisplayName}. PHONE: ${customerPhone}. STORE PICKUP AT BALIUAG`
     };
 
-    // 1. Deduct Inventory stock
-    const updatedProducts = products.map(p => {
-      const cartItem = cart.find(item => item.product.id === p.id);
-      return cartItem ? { ...p, stock: Math.max(0, p.stock - cartItem.quantity) } : p;
-    });
-    setProducts(updatedProducts);
+    // Save to Supabase and update state
+    const savedSale = await recordSale(newSalePayload);
+    setCheckingOut(false);
 
-    // 2. Award Points
-    if (currentUser?.memberId) {
-      const pointsEarned = Math.floor(total / pointsSettings.currencyPerPoint);
-      const updatedMembers = members.map(m => 
-        m.id === currentUser.memberId ? { ...m, points: m.points + pointsEarned } : m
-      );
-      setMembers(updatedMembers);
+    if (savedSale) {
+      setShowReceipt({
+        ...savedSale,
+        guestName: customerDisplayName,
+        deliveryDetails: isDelivery ? checkoutForm.address : 'Store Pickup'
+      });
+
+      setCart([]);
+      setAppliedPromo(null);
+      setPromoCode('');
+      setIsCartOpen(false);
+      setCheckoutStep('CART');
+      setCheckoutForm({
+        deliveryType: 'PICKUP',
+        address: '',
+        phone: '',
+        guestName: '',
+        paymentMethod: 'CASH',
+        paymentRef: ''
+      });
     }
-
-    // 3. Add to sales database
-    setSales([...sales, newSale]);
-
-    // 4. Trigger Receipt and Reset cart
-    setShowReceipt({
-      ...newSale,
-      guestName: currentUser ? undefined : checkoutForm.guestName.toUpperCase(),
-      deliveryDetails: checkoutForm.deliveryType === 'DELIVERY' ? checkoutForm.address : undefined
-    });
-    setCart([]);
-    setAppliedPromo(null);
-    setPromoCode('');
-    setIsCartOpen(false);
-    setCheckoutStep('CART');
-    setCheckoutForm({
-      deliveryType: 'PICKUP',
-      address: '',
-      phone: '',
-      guestName: '',
-      paymentMethod: 'CASH',
-      paymentRef: ''
-    });
-  };
-
-  const getCompatibilityList = (pName: string) => {
-    const name = pName.toLowerCase();
-    if (name.includes('oil')) return 'HONDA CLICK, YAMAHA MIO, SUZUKI RAIDER, VESPA, UNIVERSAL 4T SCOOTERS & MOTORCYCLES';
-    if (name.includes('brake')) return 'HONDA CLICK 125i/150i, BEAT, PCX, MIO I 125, AEROX FRONT DISC';
-    if (name.includes('tire')) return '17-INCH RIMS, YAMAHA SNIPER, HONDA WAVE, SUZUKI RAIDER 150';
-    if (name.includes('spark')) return 'ALL FI & CARBURETOR 100CC TO 150CC SINGLE CYLINDER MOTORCYCLES';
-    return 'UNIVERSAL FITMENT - PLEASE CONFIRM WITH MECHANICAL STAFF AT COUNTER';
   };
 
   return (
-    <div style={{ padding: '60px 20px', maxWidth: '1400px', margin: '0 auto', position: 'relative' }}>
-      <style>{`
-        .product-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-          gap: 24px;
-        }
-        .product-card {
-          border: 1px solid rgba(255, 255, 255, 0.1);
-          background: rgba(14, 20, 33, 0.85);
-          backdrop-filter: blur(12px);
-          box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
-          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-          display: flex;
-          flex-direction: column;
-          height: 100%;
-          cursor: pointer;
-          border-radius: 14px;
-          overflow: hidden;
-          position: relative;
-        }
-        .product-card::before {
-          content: '';
-          position: absolute;
-          top: 0; left: 0; right: 0;
-          height: 2px;
-          background: linear-gradient(90deg, transparent, #00d2ff, #ff1e27, transparent);
-          opacity: 0.5;
-          transition: opacity 0.3s;
-        }
-        .product-card:hover {
-          transform: translateY(-4px);
-          border-color: rgba(0, 210, 255, 0.3);
-          box-shadow: 0 12px 30px rgba(0, 0, 0, 0.5), 0 0 15px rgba(0, 210, 255, 0.1);
-        }
-        .product-card:hover::before {
-          opacity: 1;
-        }
-        .product-image {
-          aspect-ratio: 16 / 10;
-          background: radial-gradient(circle, rgba(15, 23, 42, 0.9) 0%, rgba(7, 9, 14, 0.95) 100%);
-          border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          position: relative;
-          overflow: hidden;
-        }
-        .product-image::after {
-          content: '';
-          position: absolute;
-          top: 0; left: 0; right: 0; bottom: 0;
-          background: radial-gradient(#00d2ff 0.5px, transparent 0.5px);
-          background-size: 16px 16px;
-          opacity: 0.06;
-          pointer-events: none;
-        }
-        .product-card:hover .gear-icon {
-          animation: spin 3s linear infinite;
-        }
-        @keyframes spin {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
-        }
-        @keyframes slideLeft {
-          from { transform: translateX(100%); }
-          to { transform: translateX(0); }
-        }
-        .filter-btn {
-          font-size: 0.72rem;
-          padding: 8px 16px;
-          border: 1px solid rgba(0, 210, 255, 0.3);
-          background: rgba(15, 23, 42, 0.8);
-          color: #94a3b8;
-          font-weight: 700;
-          font-family: var(--font-header);
-          border-radius: 6px;
-          transition: all 0.2s ease;
-          letter-spacing: 0.05em;
-        }
-        .filter-btn:hover, .filter-btn.active {
-          background: linear-gradient(135deg, #0052ff, #00d2ff);
-          color: #fff;
-          border-color: #00d2ff;
-          box-shadow: 0 0 15px rgba(0, 210, 255, 0.3);
-          transform: translateY(-1px);
-        }
-        .checkout-input {
-          width: 100%;
-          padding: 12px 16px;
-          border: 1px solid rgba(255, 255, 255, 0.1);
-          border-radius: 8px;
-          font-family: inherit;
-          margin-top: 6px;
-          outline: none;
-          background: rgba(10, 15, 26, 0.9);
-          color: #f8fafc;
-          font-size: 0.85rem;
-          transition: all 0.2s ease;
-        }
-        .checkout-input:focus {
-          background: rgba(15, 23, 42, 0.95);
-          border-color: #00d2ff;
-          box-shadow: 0 0 0 3px rgba(0, 210, 255, 0.15);
-        }
-        .action-button-neo {
-          cursor: pointer;
-          font-family: var(--font-header);
-          font-weight: 700;
-          text-transform: uppercase;
-          letter-spacing: 0.06em;
-          padding: 12px 20px;
-          background: rgba(15, 23, 42, 0.8);
-          color: #f8fafc;
-          border: 1px solid rgba(0, 210, 255, 0.3);
-          border-radius: 6px;
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-          transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-          font-size: 0.8rem;
-        }
-        .action-button-neo:hover {
-          background: rgba(0, 210, 255, 0.15);
-          border-color: #00d2ff;
-          color: #ffffff;
-          transform: translateY(-2px);
-          box-shadow: 0 0 20px rgba(0, 210, 255, 0.25);
-        }
-        .action-button-neo.primary {
-          background: linear-gradient(135deg, #0052ff 0%, #0036ab 100%);
-          color: #fff;
-          border: 1px solid #00d2ff;
-          box-shadow: 0 4px 15px rgba(0, 82, 255, 0.4);
-        }
-        .action-button-neo.primary:hover {
-          background: linear-gradient(135deg, #00d2ff 0%, #0052ff 100%);
-          box-shadow: 0 0 20px rgba(0, 210, 255, 0.25);
-        }
-        .action-button-neo:disabled {
-          opacity: 0.4;
-          cursor: not-allowed;
-          box-shadow: none;
-          transform: none;
-        }
-        .quantity-counter {
-          display: flex;
-          align-items: center;
-          border: 1px solid rgba(0, 210, 255, 0.3);
-          background: rgba(15, 23, 42, 0.8);
-          border-radius: 6px;
-          overflow: hidden;
-        }
-        .quantity-counter button {
-          border: none;
-          background: transparent;
-          font-weight: bold;
-          padding: 4px 10px;
-          font-size: 0.85rem;
-          color: #f8fafc;
-          border-radius: 0;
-        }
-        .quantity-counter button:hover {
-          background: rgba(0, 210, 255, 0.2);
-          color: #fff;
-        }
-      `}</style>
-
+    <div style={{ padding: '36px 20px', maxWidth: '1280px', margin: '0 auto', position: 'relative' }}>
+      
       {/* Floating Shopping Cart Button */}
       <button 
+        type="button"
         onClick={() => setIsCartOpen(true)}
         style={{
           position: 'fixed',
-          bottom: '30px',
-          right: '30px',
+          bottom: '28px',
+          right: '28px',
           zIndex: 999,
-          background: 'linear-gradient(135deg, #0052ff, #00d2ff)',
+          backgroundColor: '#2563eb',
           color: '#fff',
-          border: '2px solid #00d2ff',
-          boxShadow: '0 4px 20px rgba(0, 210, 255, 0.5)',
+          border: 'none',
+          boxShadow: '0 4px 16px rgba(37, 99, 235, 0.4)',
           borderRadius: '50%',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          width: '64px',
-          height: '64px',
-          fontSize: '1.6rem',
+          width: '58px',
+          height: '58px',
           cursor: 'pointer'
         }}
-        title="View Shopping Cart"
+        title="View Cart"
       >
-        🛒
+        <ShoppingCart size={24} />
         {cart.length > 0 && (
           <span style={{
             position: 'absolute',
-            top: '-5px',
-            right: '-5px',
-            background: 'linear-gradient(135deg, #ff1e27, #a80006)',
+            top: '-4px',
+            right: '-4px',
+            backgroundColor: '#dc2626',
             color: '#fff',
             borderRadius: '50%',
             width: '24px',
@@ -654,7 +416,7 @@ export const Shop: React.FC = () => {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            border: '2px solid #07090e'
+            border: '2px solid #ffffff'
           }}>
             {cart.reduce((sum, item) => sum + item.quantity, 0)}
           </span>
@@ -662,10 +424,14 @@ export const Shop: React.FC = () => {
       </button>
 
       {/* Header section */}
-      <section style={{ marginBottom: '50px' }}>
-        <span className="badge" style={{ marginBottom: '12px' }}>GENUINE OEM PARTS</span>
-        <h1 style={{ fontSize: '2.5rem', fontWeight: 900, color: '#ffffff' }}>SHOP SPARE PARTS & ACCESSORIES</h1>
-        <p style={{ fontSize: '0.95rem', color: '#94a3b8', marginTop: '8px' }}>EXPLORE HIGH-QUALITY OEM MOTORCYCLE PARTS AND RACING ACCESSORIES.</p>
+      <section style={{ marginBottom: '28px' }}>
+        <span className="badge badge-blue" style={{ marginBottom: '8px' }}>PARTS & ACCESSORIES</span>
+        <h1 style={{ fontSize: '2.2rem', fontWeight: 900, color: '#0f172a' }}>
+          Motorcycle Parts Catalog
+        </h1>
+        <p style={{ fontSize: '0.88rem', color: '#64748b', marginTop: '4px' }}>
+          Explore genuine OEM motorcycle components. Earn <strong>1 Club Point</strong> per <strong>₱{pointsSettings.currencyPerPoint}</strong> on every part!
+        </p>
       </section>
 
       {/* Filter and Search Navbar */}
@@ -673,18 +439,20 @@ export const Shop: React.FC = () => {
         display: 'flex', 
         justifyContent: 'space-between', 
         alignItems: 'center', 
-        marginBottom: '40px',
+        marginBottom: '28px',
         flexWrap: 'wrap',
-        gap: '20px',
-        borderBottom: '1px solid rgba(255,255,255,0.08)',
-        paddingBottom: '24px'
+        gap: '14px',
+        borderBottom: '1px solid #e2e8f0',
+        paddingBottom: '18px'
       }}>
         {/* Category Filters */}
-        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
           {categories.map(cat => (
             <button 
               key={cat} 
-              className={`filter-btn ${selectedCategory === cat ? 'active' : ''}`} 
+              type="button"
+              className={`btn ${selectedCategory === cat ? 'btn-primary' : ''}`}
+              style={{ fontSize: '0.78rem', borderRadius: '20px', padding: '6px 14px' }}
               onClick={() => setSelectedCategory(cat)}
             >
               {cat.toUpperCase()}
@@ -693,451 +461,404 @@ export const Shop: React.FC = () => {
         </div>
 
         {/* Search Input */}
-        <div style={{ maxWidth: '350px', width: '100%', position: 'relative' }}>
+        <div style={{ maxWidth: '320px', width: '100%', position: 'relative' }}>
+          <Search size={16} style={{ position: 'absolute', left: '12px', top: '12px', color: '#94a3b8' }} />
           <input 
             type="text" 
-            placeholder="Search parts by name, code, barcode..." 
-            style={{ 
-              width: '100%', 
-              padding: '12px 16px', 
-              paddingRight: '36px',
-              border: '1px solid rgba(0, 210, 255, 0.3)', 
-              borderRadius: '8px',
-              background: 'rgba(15, 23, 42, 0.8)',
-              color: '#f8fafc',
-              fontSize: '0.85rem',
-              fontFamily: 'inherit'
-            }}
+            placeholder="Search parts by name or barcode..." 
+            style={{ paddingLeft: '36px', height: '38px', fontSize: '0.85rem' }}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
-          <span style={{ position: 'absolute', right: '14px', top: '13px', opacity: 0.5 }}>🔍</span>
         </div>
       </div>
 
       {/* Products Grid */}
       {filteredProducts.length === 0 ? (
-        <div className="card" style={{ padding: '80px 20px', textAlign: 'center' }}>
-          <span style={{ fontSize: '3rem' }}>🔩</span>
-          <h3 style={{ marginTop: '20px', color: '#fff' }}>NO PRODUCTS MATCH YOUR FILTERS</h3>
-          <p style={{ color: '#94a3b8', marginTop: '10px', fontSize: '0.9rem' }}>Try adjusting your search terms or selecting a different category filter.</p>
+        <div className="card" style={{ padding: '60px 20px', textAlign: 'center', backgroundColor: '#ffffff' }}>
+          <Package size={44} color="#94a3b8" style={{ margin: '0 auto 12px' }} />
+          <h3 style={{ margin: '6px 0', color: '#0f172a' }}>NO PRODUCTS FOUND</h3>
+          <p style={{ color: '#64748b', fontSize: '0.85rem' }}>Try searching with a different term or select another category.</p>
         </div>
       ) : (
-        <div className="product-grid">
-          {filteredProducts.map(product => (
-            <div 
-              key={product.id} 
-              className="product-card" 
-              onClick={() => setSelectedProduct(product)}
-            >
-              {/* Product Card Image Wrapper */}
-              <div className="product-image">
-                {getCategoryIcon(product.category)}
-                <span style={{ fontSize: '0.55rem', color: '#64748b', fontWeight: 'bold', marginTop: '8px', letterSpacing: '2px' }}>BOSS RAP SPARES</span>
-                <code style={{ position: 'absolute', bottom: '8px', right: '8px', fontSize: '0.55rem', opacity: 0.6, background: 'rgba(15,23,42,0.8)', border: '1px solid rgba(255,255,255,0.1)', padding: '2px 6px', borderRadius: '4px', color: '#94a3b8' }}>BC: {product.barcode}</code>
-              </div>
-              
-              {/* Product Card Details */}
-              <div style={{ padding: '20px', flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: '15px' }}>
-                <div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span className="badge" style={{ fontSize: '0.6rem' }}>{product.category.toUpperCase()}</span>
-                    {product.stock <= product.lowStockLevel && product.stock > 0 && (
-                      <span className="badge warning" style={{ fontSize: '0.55rem' }}>LOW STOCK</span>
-                    )}
-                  </div>
-                  <h4 style={{ margin: '10px 0 5px 0', fontSize: '1.1rem', lineHeight: '1.3', color: '#fff' }}>{product.name}</h4>
-                  <p style={{ fontSize: '0.78rem', color: '#94a3b8', lineHeight: '1.5', margin: 0 }}>{product.description}</p>
-                </div>
-                
-                <div style={{ borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: '15px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'auto' }}>
-                  <span style={{ fontWeight: 900, fontSize: '1.4rem', color: 'var(--accent-cyan)', fontFamily: 'var(--font-header)' }}>₱{product.price.toLocaleString()}</span>
-                  <span className={`badge ${product.stock <= product.lowStockLevel ? 'danger' : 'success'}`} style={{ fontSize: '0.6rem' }}>
-                    {product.stock > 0 ? `${product.stock} IN STOCK` : 'OUT OF STOCK'}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))',
+          gap: '20px'
+        }}>
+          {filteredProducts.map(product => {
+            const isOutOfStock = product.stock <= 0;
+            const pointsYield = Math.floor(product.price / pointsSettings.currencyPerPoint);
+
+            return (
+              <div 
+                key={product.id} 
+                className="card"
+                onClick={() => setSelectedProduct(product)}
+                style={{ 
+                  cursor: 'pointer',
+                  display: 'flex', 
+                  flexDirection: 'column', 
+                  height: '100%', 
+                  transition: 'all 0.15s ease',
+                  overflow: 'hidden'
+                }}
+              >
+                {/* Product Card Image Wrapper */}
+                <div style={{
+                  aspectRatio: '16 / 10',
+                  background: '#f8fafc',
+                  borderBottom: '1px solid #f1f5f9',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  position: 'relative'
+                }}>
+                  {getCategoryIcon(product.category)}
+                  <span style={{ fontSize: '0.62rem', color: '#94a3b8', fontWeight: 700, marginTop: '6px', letterSpacing: '1px' }}>
+                    BOSS RAP GENUINE
                   </span>
+                  <code style={{ position: 'absolute', bottom: '6px', right: '8px', fontSize: '0.65rem', background: '#ffffff', border: '1px solid #e2e8f0', padding: '2px 6px', borderRadius: '4px', color: '#64748b' }}>
+                    {product.barcode}
+                  </code>
                 </div>
                 
-                <button 
-                  className="action-button-neo primary" 
-                  disabled={product.stock <= 0}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    addToCart(product);
-                  }}
-                  style={{ fontSize: '0.7rem', padding: '8px 15px' }}
-                >
-                  {product.stock > 0 ? '🛒 Add to Cart' : '❌ OUT OF STOCK'}
-                </button>
+                {/* Product Card Details */}
+                <div style={{ padding: '16px', flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: '12px' }}>
+                  <div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span className="badge badge-blue" style={{ fontSize: '0.65rem' }}>{product.category}</span>
+                      {product.stock <= product.lowStockLevel && product.stock > 0 && (
+                        <span className="badge badge-yellow" style={{ fontSize: '0.65rem' }}>LOW STOCK</span>
+                      )}
+                    </div>
+                    <h4 style={{ margin: '8px 0 4px 0', fontSize: '1rem', lineHeight: '1.3', color: '#0f172a' }}>{product.name}</h4>
+                    <p style={{ fontSize: '0.78rem', color: '#64748b', lineHeight: '1.4', margin: 0, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                      {product.description}
+                    </p>
+                  </div>
+
+                  {/* Product Loyalty Points Yield */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 8px', backgroundColor: '#f0fdf4', borderRadius: '6px', border: '1px solid #bbf7d0', fontSize: '0.72rem', color: '#166534', fontWeight: 700 }}>
+                    <Sparkles size={13} color="#16a34a" />
+                    <span>Earns +{pointsYield} Club Points</span>
+                  </div>
+                  
+                  <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'auto' }}>
+                    <span style={{ fontWeight: 900, fontSize: '1.3rem', color: '#2563eb' }}>
+                      ₱{product.price.toLocaleString()}
+                    </span>
+                    <span className={`badge ${isOutOfStock ? 'badge-red' : product.stock <= product.lowStockLevel ? 'badge-yellow' : 'badge-green'}`} style={{ fontSize: '0.65rem' }}>
+                      {isOutOfStock ? 'OUT OF STOCK' : `${product.stock} IN STOCK`}
+                    </span>
+                  </div>
+                  
+                  {isOutOfStock ? (
+                    <button 
+                      type="button"
+                      className="btn" 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleRequestBackOrder(product);
+                      }}
+                      style={{ fontSize: '0.75rem', padding: '8px 12px', width: '100%', color: '#ea580c', borderColor: '#fdba74' }}
+                    >
+                      <Clock size={13} />
+                      <span>Reserve Back Order</span>
+                    </button>
+                  ) : (
+                    <button 
+                      type="button"
+                      className="btn-primary" 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        addToCart(product);
+                      }}
+                      style={{ fontSize: '0.78rem', padding: '9px 14px', width: '100%' }}
+                    >
+                      <ShoppingCart size={14} />
+                      <span>Add to Cart</span>
+                    </button>
+                  )}
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
       {/* PRODUCT DETAILS MODAL */}
       {selectedProduct && (
-        <div className="modal-overlay" style={{ zIndex: 9999 }} onClick={() => setSelectedProduct(null)}>
-          <div className="modal" style={{ maxWidth: '600px', width: '90%', display: 'flex', flexDirection: 'column', gap: '20px' }} onClick={e => e.stopPropagation()}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '3px solid #000', paddingBottom: '15px' }}>
+        <div className="modal-overlay" onClick={() => setSelectedProduct(null)}>
+          <div className="modal" style={{ maxWidth: '580px', width: '92%' }} onClick={e => e.stopPropagation()}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '1px solid #e2e8f0', paddingBottom: '14px', marginBottom: '16px' }}>
               <div>
-                <span className="badge" style={{ backgroundColor: '#ffe600', color: '#000', marginBottom: '8px' }}>{selectedProduct.category.toUpperCase()}</span>
-                <h3 style={{ margin: 0, fontSize: '1.4rem' }}>{selectedProduct.name}</h3>
+                <span className="badge badge-blue" style={{ marginBottom: '6px' }}>{selectedProduct.category}</span>
+                <h3 style={{ margin: 0, fontSize: '1.3rem', color: '#0f172a' }}>{selectedProduct.name}</h3>
               </div>
-              <button onClick={() => setSelectedProduct(null)} style={{ border: 'none', background: 'none', fontSize: '1.5rem', fontWeight: 'bold' }}>✕</button>
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: '150px 1fr', gap: '20px' }} className="modal-detail-grid">
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', alignItems: 'center' }}>
-                <div style={{ width: '100%', aspectRatio: '1', background: '#f5f5f5', border: '2px solid #000', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  {getCategoryIcon(selectedProduct.category)}
-                </div>
-                
-                {/* Simulated Barcode card */}
-                <div style={{ border: '2.5px solid #000', padding: '10px 5px', width: '100%', background: '#fff', textAlign: 'center', boxShadow: '2px 2px 0px #000' }}>
-                  <div style={{ display: 'flex', height: '35px', justifyContent: 'center', gap: '1.5px', marginBottom: '5px' }}>
-                    {selectedProduct.barcode.split('').map((char: string, index: number) => {
-                      const val = Number(char) || index;
-                      const barWidth = (val % 3) + 1;
-                      const barColor = (val % 2 === 0) ? '#000' : 'transparent';
-                      return <div key={index} style={{ width: `${barWidth}px`, backgroundColor: barColor }}></div>;
-                    })}
-                  </div>
-                  <code style={{ fontSize: '0.65rem', fontWeight: 'bold', letterSpacing: '1px' }}>{selectedProduct.barcode}</code>
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-                <div>
-                  <h5 style={{ fontSize: '0.65rem', color: '#666' }}>DESCRIPTION</h5>
-                  <p style={{ fontSize: '0.85rem', lineHeight: '1.5', marginTop: '4px' }}>{selectedProduct.description}</p>
-                </div>
-                
-                <div>
-                  <h5 style={{ fontSize: '0.65rem', color: '#666' }}>FITMENT & COMPATIBILITY</h5>
-                  <p style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#ff5e36', lineHeight: '1.4', marginTop: '4px' }}>
-                    {getCompatibilityList(selectedProduct.name)}
-                  </p>
-                </div>
-
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', borderTop: '2px solid #eee', paddingTop: '15px' }}>
-                  <div>
-                    <h5 style={{ fontSize: '0.65rem', color: '#666' }}>UNIT PRICE</h5>
-                    <span style={{ fontSize: '1.6rem', fontWeight: '950', color: '#000' }}>₱{selectedProduct.price.toLocaleString()}</span>
-                  </div>
-                  <div>
-                    <h5 style={{ fontSize: '0.65rem', color: '#666' }}>AVAILABILITY</h5>
-                    <span className={`badge ${selectedProduct.stock <= selectedProduct.lowStockLevel ? 'danger' : ''}`} style={{ fontSize: '0.7rem', marginTop: '5px', border: '2.5px solid #000' }}>
-                      {selectedProduct.stock > 0 ? `${selectedProduct.stock} UNITS IN STOCK` : 'OUT OF STOCK'}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div style={{ display: 'flex', gap: '15px', borderTop: '3px solid #000', paddingTop: '15px', marginTop: '10px' }} className="modal-actions">
-              <Link 
-                to={`/contact?message=Hi Boss Rap! I would like to inquire about the availability and purchasing options for the following product: ${selectedProduct.name} (Barcode: ${selectedProduct.barcode}).`}
-                style={{ flex: 1 }}
-                onClick={() => setSelectedProduct(null)}
-              >
-                <button className="action-button-neo" style={{ width: '100%', fontSize: '0.75rem' }}>💬 Inquire via Message</button>
-              </Link>
-              <button 
-                className="action-button-neo primary" 
-                style={{ flex: 1, fontSize: '0.75rem' }}
-                disabled={selectedProduct.stock <= 0}
-                onClick={() => {
-                  addToCart(selectedProduct);
-                  setSelectedProduct(null);
-                  setIsCartOpen(true);
-                }}
-              >
-                🛒 Add to Cart
+              <button type="button" onClick={() => setSelectedProduct(null)} style={{ border: 'none', background: 'none', cursor: 'pointer', color: '#64748b' }}>
+                <X size={20} />
               </button>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '140px 1fr', gap: '18px', marginBottom: '18px' }}>
+              <div style={{ aspectRatio: '1', background: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                {getCategoryIcon(selectedProduct.category)}
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <div>
+                  <label style={{ margin: 0 }}>DESCRIPTION</label>
+                  <p style={{ fontSize: '0.85rem', color: '#334155', margin: '4px 0 0' }}>{selectedProduct.description}</p>
+                </div>
+                
+                <div style={{ display: 'flex', gap: '14px', alignItems: 'center' }}>
+                  <div>
+                    <label style={{ margin: 0 }}>PRICE</label>
+                    <strong style={{ fontSize: '1.25rem', color: '#2563eb' }}>₱{selectedProduct.price.toLocaleString()}</strong>
+                  </div>
+                  <div>
+                    <label style={{ margin: 0 }}>LOYALTY REWARD</label>
+                    <span className="badge badge-green">+{Math.floor(selectedProduct.price / pointsSettings.currencyPerPoint)} Points</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: '10px' }}>
+              {selectedProduct.stock > 0 ? (
+                <button
+                  type="button"
+                  className="btn-primary"
+                  style={{ flex: 1, padding: '12px' }}
+                  onClick={() => {
+                    addToCart(selectedProduct);
+                    setSelectedProduct(null);
+                  }}
+                >
+                  <ShoppingCart size={15} />
+                  <span>Add to Cart ({selectedProduct.stock} Available)</span>
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  className="btn"
+                  style={{ flex: 1, padding: '12px', color: '#ea580c' }}
+                  onClick={() => {
+                    handleRequestBackOrder(selectedProduct);
+                    setSelectedProduct(null);
+                  }}
+                >
+                  <Clock size={15} />
+                  <span>Reserve Back Order</span>
+                </button>
+              )}
             </div>
           </div>
         </div>
       )}
 
-      {/* SHOPPING CART DRAWER */}
+      {/* SHOPPING CART & CHECKOUT MODAL */}
       {isCartOpen && (
-        <div className="modal-overlay" style={{ justifyContent: 'flex-end', zIndex: 9999 }} onClick={() => setIsCartOpen(false)}>
-          <div 
-            style={{ 
-              width: '100%', 
-              maxWidth: '460px', 
-              height: '100vh', 
-              background: '#fff', 
-              borderLeft: '4px solid #000', 
-              padding: '30px', 
-              display: 'flex', 
-              flexDirection: 'column', 
-              justifyContent: 'space-between',
-              boxShadow: '-10px 0px 0px rgba(0,0,0,0.15)',
-              animation: 'slideLeft 0.18s ease-out'
-            }} 
-            onClick={e => e.stopPropagation()}
-          >
-            {/* Drawer Header */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '3px solid #000', paddingBottom: '15px', marginBottom: '20px' }}>
-              <h3 style={{ margin: 0, fontSize: '1.2rem', letterSpacing: '1px' }}>🛒 SHOPPING CART</h3>
-              <button onClick={() => setIsCartOpen(false)} style={{ border: 'none', background: 'none', fontSize: '1.5rem', fontWeight: 'bold' }}>✕</button>
+        <div className="modal-overlay" onClick={() => setIsCartOpen(false)}>
+          <div className="modal" style={{ maxWidth: '520px', width: '92%' }} onClick={e => e.stopPropagation()}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #e2e8f0', paddingBottom: '14px', marginBottom: '16px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <ShoppingCart size={20} color="#2563eb" />
+                <h3 style={{ margin: 0, fontSize: '1.2rem', color: '#0f172a' }}>
+                  {checkoutStep === 'CART' ? `Shopping Cart (${cart.length})` : 'Delivery & Payment'}
+                </h3>
+              </div>
+              <button type="button" onClick={() => setIsCartOpen(false)} style={{ border: 'none', background: 'none', cursor: 'pointer' }}>
+                <X size={20} />
+              </button>
             </div>
 
-            {checkoutStep === 'CART' ? (
-              /* CART STEP */
-              <>
-                <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '15px', marginBottom: '20px' }}>
-                  {cart.length === 0 ? (
-                    <div style={{ textAlign: 'center', padding: '60px 0', opacity: 0.6 }}>
-                      <span style={{ fontSize: '2.5rem' }}>⚙️</span>
-                      <p style={{ marginTop: '15px', fontWeight: 'bold' }}>YOUR CART IS EMPTY</p>
-                      <button onClick={() => setIsCartOpen(false)} style={{ marginTop: '15px', fontSize: '0.65rem' }}>KEEP SHOPPING</button>
-                    </div>
-                  ) : (
-                    cart.map(item => (
-                      <div key={item.product.id} style={{ display: 'flex', gap: '15px', border: '2px solid #000', padding: '15px', background: '#fcfcfc', boxShadow: '2px 2px 0px #000' }}>
-                        <div style={{ width: '50px', height: '50px', background: '#eee', border: '1.5px solid #000', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                          {getCategoryIcon(item.product.category)}
-                        </div>
-                        
-                        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-                          <div>
-                            <h4 style={{ fontSize: '0.85rem', margin: 0 }}>{item.product.name}</h4>
-                            <span style={{ fontSize: '0.7rem', color: '#666', fontWeight: 'bold' }}>₱{item.product.price.toLocaleString()}</span>
-                          </div>
-                          
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '10px' }}>
-                            <div className="quantity-counter">
-                              <button onClick={() => updateQuantity(item.product.id, item.quantity - 1)}>-</button>
-                              <span style={{ padding: '0 8px', fontWeight: 'bold', fontSize: '0.8rem' }}>{item.quantity}</span>
-                              <button onClick={() => updateQuantity(item.product.id, item.quantity + 1)}>+</button>
-                            </div>
-                            
-                            <button 
-                              onClick={() => updateQuantity(item.product.id, 0)}
-                              style={{ border: 'none', background: 'transparent', color: 'red', fontSize: '0.65rem', padding: '5px' }}
-                            >
-                              REMOVE
-                            </button>
-                          </div>
-                        </div>
+            {cart.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '40px 10px', color: '#64748b' }}>
+                <Package size={40} style={{ opacity: 0.3, marginBottom: '10px' }} />
+                <p style={{ fontWeight: 700, margin: '0 0 6px 0', color: '#0f172a' }}>Your cart is empty.</p>
+                <span style={{ fontSize: '0.82rem' }}>Add products from the catalog to order online or reserve for pickup.</span>
+              </div>
+            ) : checkoutStep === 'CART' ? (
+              <div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '240px', overflowY: 'auto', marginBottom: '16px' }}>
+                  {cart.map(item => (
+                    <div key={item.product.id} style={{
+                      padding: '10px 14px',
+                      backgroundColor: '#f8fafc',
+                      borderRadius: '8px',
+                      border: '1px solid #e2e8f0',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center'
+                    }}>
+                      <div style={{ flex: 1, marginRight: '10px' }}>
+                        <strong style={{ fontSize: '0.88rem', color: '#0f172a', display: 'block' }}>{item.product.name}</strong>
+                        <span style={{ fontSize: '0.75rem', color: '#64748b' }}>₱{item.product.price.toLocaleString()} each</span>
                       </div>
-                    ))
-                  )}
+
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <button
+                          type="button"
+                          onClick={() => updateQuantity(item.product.id, item.quantity - 1)}
+                          style={{ width: '24px', height: '24px', border: '1px solid #cbd5e1', borderRadius: '4px', backgroundColor: '#fff', cursor: 'pointer' }}
+                        >-</button>
+                        <span style={{ fontSize: '0.85rem', fontWeight: 800, minWidth: '20px', textAlign: 'center' }}>
+                          {item.quantity}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => updateQuantity(item.product.id, item.quantity + 1)}
+                          style={{ width: '24px', height: '24px', border: '1px solid #cbd5e1', borderRadius: '4px', backgroundColor: '#fff', cursor: 'pointer' }}
+                        >+</button>
+                      </div>
+
+                      <strong style={{ fontSize: '0.92rem', color: '#0f172a', marginLeft: '14px', minWidth: '60px', textAlign: 'right' }}>
+                        ₱{(item.product.price * item.quantity).toLocaleString()}
+                      </strong>
+                    </div>
+                  ))}
                 </div>
 
-                {cart.length > 0 && (
-                  <div style={{ borderTop: '3px solid #000', paddingTop: '20px' }}>
-                    {/* Promo coupon input */}
-                    <div style={{ display: 'flex', gap: '8px', marginBottom: '15px' }}>
-                      <input 
-                        type="text" 
-                        placeholder="ENTER PROMO CODE (E.G. WELCOME10)" 
-                        value={promoCode} 
-                        onChange={e => setPromoCode(e.target.value.toUpperCase())}
-                        style={{ border: '2px solid #000', padding: '8px', flex: 1, fontSize: '0.75rem' }}
+                {/* Promo Code Input */}
+                <div style={{ display: 'flex', gap: '8px', marginBottom: '14px' }}>
+                  <input
+                    type="text"
+                    placeholder="Promo Code (e.g. WELCOME10)..."
+                    value={promoCode}
+                    onChange={e => setPromoCode(e.target.value)}
+                    style={{ fontSize: '0.82rem', height: '36px' }}
+                  />
+                  <button type="button" onClick={applyPromo} className="btn" style={{ height: '36px', fontSize: '0.78rem' }}>
+                    Apply
+                  </button>
+                </div>
+
+                {promoError && (
+                  <p style={{ color: '#dc2626', fontSize: '0.75rem', margin: '-8px 0 10px 0' }}>{promoError}</p>
+                )}
+
+                {/* Totals */}
+                <div style={{ borderTop: '1px dashed #cbd5e1', paddingTop: '10px', display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '0.85rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', color: '#64748b' }}>
+                    <span>Subtotal:</span>
+                    <span>₱{subtotal.toLocaleString()}</span>
+                  </div>
+                  {discountApplied > 0 && (
+                    <div style={{ display: 'flex', justifyContent: 'space-between', color: '#16a34a' }}>
+                      <span>Discount ({appliedPromo?.name}):</span>
+                      <span>-₱{discountApplied.toLocaleString()}</span>
+                    </div>
+                  )}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1.2rem', fontWeight: 900, color: '#0f172a', marginTop: '6px' }}>
+                    <span>Total:</span>
+                    <span style={{ color: '#2563eb' }}>₱{total.toLocaleString()}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', color: '#166534', fontSize: '0.75rem', fontWeight: 700 }}>
+                    <span>Estimated Rewards:</span>
+                    <span>+{cartPointsYield} Points</span>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setCheckoutStep('DETAILS')}
+                  className="btn-primary"
+                  style={{ width: '100%', padding: '12px', marginTop: '16px', fontSize: '0.9rem' }}
+                >
+                  <span>Proceed to Details & Payment</span>
+                </button>
+              </div>
+            ) : (
+              <form onSubmit={handleCheckout} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                <div>
+                  <label>Fulfillment Method</label>
+                  <select
+                    value={checkoutForm.deliveryType}
+                    onChange={e => setCheckoutForm({ ...checkoutForm, deliveryType: e.target.value as any })}
+                  >
+                    <option value="PICKUP">Store Counter Pickup (JP Rizal, Baliuag)</option>
+                    <option value="DELIVERY">Delivery via Lalamove / Courier</option>
+                  </select>
+                </div>
+
+                {!currentUser && (
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                    <div>
+                      <label>Your Name *</label>
+                      <input
+                        type="text"
+                        placeholder="Juan Dela Cruz"
+                        value={checkoutForm.guestName}
+                        onChange={e => setCheckoutForm({ ...checkoutForm, guestName: e.target.value })}
+                        required
                       />
-                      <button onClick={applyPromo} style={{ fontSize: '0.7rem' }}>APPLY</button>
                     </div>
-                    {promoError && <p style={{ color: 'red', fontSize: '0.65rem', fontWeight: 'bold', marginBottom: '10px' }}>⚠️ {promoError}</p>}
-                    {appliedPromo && (
-                      <div style={{ display: 'flex', justifyContent: 'space-between', background: '#f5fff5', border: '1.5px solid green', padding: '8px', fontSize: '0.7rem', color: 'green', marginBottom: '15px', fontWeight: 'bold' }}>
-                        <span>PROMO APPLIED: {appliedPromo.name}</span>
-                        <span>-{appliedPromo.discountPercent}% OFF</span>
-                      </div>
-                    )}
-
-                    {/* Pricing Summary */}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '20px' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem' }}>
-                        <span>SUBTOTAL:</span>
-                        <span>₱{subtotal.toLocaleString()}</span>
-                      </div>
-                      {discountApplied > 0 && (
-                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: 'red', fontWeight: 'bold' }}>
-                          <span>PROMO DISCOUNT:</span>
-                          <span>-₱{discountApplied.toLocaleString()}</span>
-                        </div>
-                      )}
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1.1rem', fontWeight: '950', borderTop: '2px solid #000', paddingTop: '8px' }}>
-                        <span>GRAND TOTAL:</span>
-                        <span>₱{total.toLocaleString()}</span>
-                      </div>
-                      
-                      {currentUser && (
-                        <div style={{ display: 'flex', justifyContent: 'space-between', background: '#fafaf0', padding: '8px', border: '1px solid #000', fontSize: '0.7rem', fontWeight: 'bold', marginTop: '5px' }}>
-                          <span>MEMBER LOYALTY POINTS EARNED:</span>
-                          <span style={{ color: 'green' }}>+{Math.floor(total / pointsSettings.currencyPerPoint)} PTS</span>
-                        </div>
-                      )}
+                    <div>
+                      <label>Contact Phone *</label>
+                      <input
+                        type="tel"
+                        placeholder="0912 345 6789"
+                        value={checkoutForm.phone}
+                        onChange={e => setCheckoutForm({ ...checkoutForm, phone: e.target.value })}
+                        required
+                      />
                     </div>
-
-                    <button 
-                      className="checkout-btn" 
-                      onClick={() => setCheckoutStep('DETAILS')}
-                    >
-                      PROCEED TO CHECKOUT
-                    </button>
                   </div>
                 )}
-              </>
-            ) : (
-              /* CHECKOUT DETAILS STEP */
-              <form onSubmit={handleCheckout} style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-                <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '15px', paddingBottom: '20px' }}>
-                  
-                  {/* Shipping option */}
+
+                {checkoutForm.deliveryType === 'DELIVERY' && (
                   <div>
-                    <label style={{ fontSize: '0.65rem', fontWeight: 'bold', display: 'block' }}>DELIVERY TYPE</label>
-                    <div style={{ display: 'flex', gap: '10px', marginTop: '5px' }}>
-                      <button 
-                        type="button" 
-                        className={checkoutForm.deliveryType === 'PICKUP' ? 'primary' : ''} 
-                        style={{ flex: 1, fontSize: '0.65rem' }} 
-                        onClick={() => setCheckoutForm({ ...checkoutForm, deliveryType: 'PICKUP' })}
-                      >
-                        STORE PICKUP
-                      </button>
-                      <button 
-                        type="button" 
-                        className={checkoutForm.deliveryType === 'DELIVERY' ? 'primary' : ''} 
-                        style={{ flex: 1, fontSize: '0.65rem' }} 
-                        onClick={() => setCheckoutForm({ ...checkoutForm, deliveryType: 'DELIVERY' })}
-                      >
-                        DELIVERY (LALAMOVE)
-                      </button>
-                    </div>
+                    <label>Delivery Address *</label>
+                    <textarea
+                      rows={2}
+                      placeholder="House/Street, Barangay, City (e.g. Sulivan, Baliuag, Bulacan)..."
+                      value={checkoutForm.address}
+                      onChange={e => setCheckoutForm({ ...checkoutForm, address: e.target.value })}
+                      required
+                    />
                   </div>
+                )}
 
-                  {/* Customer Information (Guest or Member info) */}
-                  <div style={{ borderTop: '2px solid #eee', paddingTop: '15px' }}>
-                    <h4 style={{ fontSize: '0.75rem', marginBottom: '10px' }}>CUSTOMER CONTACT</h4>
-                    
-                    {currentUser ? (
-                      <div style={{ background: '#f5f5f5', border: '1.5px solid #000', padding: '12px', fontSize: '0.75rem', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                        <p>Logged in Member: <span style={{ fontWeight: 'bold' }}>{currentUser.name}</span></p>
-                        <p>Member ID: <span style={{ fontWeight: 'bold' }}>{currentUser.memberId}</span></p>
-                        {checkoutForm.deliveryType === 'DELIVERY' && (
-                          <div style={{ marginTop: '10px' }}>
-                            <label style={{ fontSize: '0.6rem', fontWeight: 'bold' }}>CONTACT PHONE NUMBER</label>
-                            <input 
-                              type="text" 
-                              required
-                              className="checkout-input" 
-                              value={checkoutForm.phone} 
-                              onChange={e => setCheckoutForm({ ...checkoutForm, phone: e.target.value })}
-                              placeholder="09XXXXXXXXX"
-                            />
-                          </div>
-                        )}
-                      </div>
-                    ) : (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                        <div>
-                          <label style={{ fontSize: '0.6rem', fontWeight: 'bold' }}>YOUR FULL NAME</label>
-                          <input 
-                            type="text" 
-                            required
-                            className="checkout-input" 
-                            value={checkoutForm.guestName} 
-                            onChange={e => setCheckoutForm({ ...checkoutForm, guestName: e.target.value })}
-                            placeholder="E.G. JUAN DELA CRUZ"
-                          />
-                        </div>
-                        <div>
-                          <label style={{ fontSize: '0.6rem', fontWeight: 'bold' }}>CONTACT PHONE</label>
-                          <input 
-                            type="text" 
-                            required
-                            className="checkout-input" 
-                            value={checkoutForm.phone} 
-                            onChange={e => setCheckoutForm({ ...checkoutForm, phone: e.target.value })}
-                            placeholder="E.G. 09171234567"
-                          />
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Delivery Address */}
-                  {checkoutForm.deliveryType === 'DELIVERY' && (
-                    <div>
-                      <label style={{ fontSize: '0.6rem', fontWeight: 'bold' }}>DELIVERY ADDRESS (BULACAN AREA ONLY)</label>
-                      <textarea 
-                        required
-                        rows={3} 
-                        className="checkout-input" 
-                        value={checkoutForm.address} 
-                        onChange={e => setCheckoutForm({ ...checkoutForm, address: e.target.value })}
-                        placeholder="SPECIFY COMPLETE ADDRESS..."
-                        style={{ resize: 'vertical' }}
-                      />
-                      <p style={{ fontSize: '0.55rem', opacity: 0.6, marginTop: '2px' }}>* Lalamove delivery fee is shouldered by the customer upon delivery.</p>
-                    </div>
-                  )}
-
-                  {/* Payment selection */}
-                  <div style={{ borderTop: '2px solid #eee', paddingTop: '15px' }}>
-                    <label style={{ fontSize: '0.65rem', fontWeight: 'bold' }}>PAYMENT METHOD</label>
-                    <div style={{ display: 'flex', gap: '6px', marginTop: '5px' }}>
-                      {['CASH', 'E-WALLET', 'ONLINE BANK'].map(method => (
-                        <button 
-                          key={method} 
-                          type="button" 
-                          className={checkoutForm.paymentMethod === method ? 'primary' : ''} 
-                          style={{ flex: 1, fontSize: '0.55rem', padding: '6px' }}
-                          onClick={() => setCheckoutForm({ ...checkoutForm, paymentMethod: method as any })}
-                        >
-                          {method === 'CASH' ? (checkoutForm.deliveryType === 'DELIVERY' ? 'COD (CASH)' : 'COP (CASH)') : method}
-                        </button>
-                      ))}
-                    </div>
-
-                    {checkoutForm.paymentMethod !== 'CASH' && (
-                      <div style={{ marginTop: '10px' }}>
-                        <div style={{ background: '#fafaf3', border: '1px dashed #000', padding: '10px', fontSize: '0.65rem', marginBottom: '8px' }}>
-                          <p style={{ fontWeight: 'bold' }}>💳 DIGITAL PAYMENT DIRECTORY:</p>
-                          <p style={{ marginTop: '2px' }}>• GCASH: 0912-345-6789 (BOSS RAP MOTOR SHOP)</p>
-                          <p>• BDO BANK: 0012-3456-7890 (BOSS RAP INC)</p>
-                        </div>
-                        <label style={{ fontSize: '0.6rem', fontWeight: 'bold' }}>TRANSACTION REFERENCE NUMBER</label>
-                        <input 
-                          type="text" 
-                          required
-                          className="checkout-input" 
-                          value={checkoutForm.paymentRef} 
-                          onChange={e => setCheckoutForm({ ...checkoutForm, paymentRef: e.target.value })}
-                          placeholder="ENTER GCASH/BANK REF #"
-                        />
-                      </div>
-                    )}
-                  </div>
+                <div>
+                  <label>Payment Method</label>
+                  <select
+                    value={checkoutForm.paymentMethod}
+                    onChange={e => setCheckoutForm({ ...checkoutForm, paymentMethod: e.target.value as any })}
+                  >
+                    <option value="CASH">Cash on Counter / Cash on Delivery</option>
+                    <option value="E-WALLET">GCash / Maya E-Wallet</option>
+                    <option value="ONLINE BANK">Online Bank Transfer (BDO / BPI)</option>
+                  </select>
                 </div>
 
-                {/* Pricing summary & Checkout actions */}
-                <div style={{ borderTop: '3px solid #000', paddingTop: '20px' }}>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '15px', fontSize: '0.8rem' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <span>Subtotal:</span>
-                      <span>₱{subtotal.toLocaleString()}</span>
-                    </div>
-                    {discountApplied > 0 && (
-                      <div style={{ display: 'flex', justifyContent: 'space-between', color: 'red', fontWeight: 'bold' }}>
-                        <span>Discount:</span>
-                        <span>-₱{discountApplied.toLocaleString()}</span>
-                      </div>
-                    )}
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1.1rem', fontWeight: '950', borderTop: '1px solid #000', paddingTop: '5px' }}>
-                      <span>Grand Total:</span>
-                      <span>₱{total.toLocaleString()}</span>
-                    </div>
+                {checkoutForm.paymentMethod !== 'CASH' && (
+                  <div>
+                    <label>Transaction Reference # *</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. GCASH-881920"
+                      value={checkoutForm.paymentRef}
+                      onChange={e => setCheckoutForm({ ...checkoutForm, paymentRef: e.target.value })}
+                      required
+                    />
                   </div>
+                )}
 
-                  <div style={{ display: 'flex', gap: '10px' }}>
-                    <button type="button" onClick={() => setCheckoutStep('CART')} style={{ flex: 1, fontSize: '0.75rem' }}>BACK</button>
-                    <button type="submit" className="checkout-btn" style={{ flex: 1.5, fontSize: '0.75rem' }}>COMPLETE ORDER</button>
-                  </div>
+                <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: '10px', display: 'flex', justifyContent: 'space-between', fontWeight: 900, fontSize: '1.1rem' }}>
+                  <span>Grand Total:</span>
+                  <span style={{ color: '#2563eb' }}>₱{total.toLocaleString()}</span>
+                </div>
+
+                <div style={{ display: 'flex', gap: '10px' }}>
+                  <button type="button" onClick={() => setCheckoutStep('CART')} className="btn" style={{ flex: 1 }}>
+                    Back
+                  </button>
+                  <button type="submit" disabled={checkingOut} className="btn-primary" style={{ flex: 1 }}>
+                    {checkingOut ? 'Placing Order...' : 'Confirm Order'}
+                  </button>
                 </div>
               </form>
             )}
@@ -1145,100 +866,58 @@ export const Shop: React.FC = () => {
         </div>
       )}
 
-      {/* COMPLETED ONLINE ORDER RECEIPT MODAL */}
+      {/* Post-Checkout Receipt Modal */}
       {showReceipt && (
-        <div className="modal-overlay" style={{ zIndex: 99999 }}>
-          <div className="modal" style={{ maxWidth: '420px', padding: '24px' }}>
-            <div id="receipt-print-area" style={{ fontFamily: 'Courier New, monospace', fontSize: '0.75rem' }}>
-              <div style={{ textAlign: 'center', marginBottom: '15px' }}>
-                <h3 style={{ margin: '0 0 5px 0' }}>BOSS RAP MOTOR SHOP</h3>
-                <p style={{ margin: '0 0 2px 0' }}>BRGY. SULIVAN, BALIUAG, BULACAN</p>
-                <p style={{ margin: '0 0 10px 0' }}>TEL: +63 912 345 6789</p>
-                <p style={{ margin: 0 }}>--------------------------------</p>
-                <p style={{ margin: 0, fontWeight: 'bold' }}>ONLINE TRANSACTION RECEIPT</p>
-                <p style={{ margin: 0 }}>--------------------------------</p>
+        <div className="modal-overlay" onClick={() => setShowReceipt(null)}>
+          <div className="modal" style={{ maxWidth: '420px', width: '100%' }} onClick={e => e.stopPropagation()}>
+            <div id="receipt-print-area" style={{ fontFamily: 'monospace', fontSize: '0.82rem', color: '#0f172a' }}>
+              <div style={{ textAlign: 'center', marginBottom: '12px' }}>
+                <h2 style={{ fontSize: '1.15rem', margin: 0, fontWeight: 900 }}>BOSS RAP MOTOR SHOP</h2>
+                <div style={{ fontSize: '0.72rem', color: '#475569' }}>JP Rizal St., Baliuag, Bulacan</div>
+                <div style={{ borderBottom: '1px dashed #cbd5e1', margin: '8px 0' }} />
+                <div style={{ fontSize: '0.82rem', fontWeight: 700 }}>ONLINE ORDER CONFIRMATION</div>
+                <div style={{ fontSize: '0.72rem', color: '#64748b' }}>Order #: {showReceipt.id}</div>
+                <div style={{ fontSize: '0.72rem', color: '#64748b' }}>Tracking: {showReceipt.trackingCode}</div>
+                <div style={{ fontSize: '0.72rem', color: '#64748b' }}>Customer: {showReceipt.guestName || currentUser?.name}</div>
               </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginBottom: '15px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span>Order ID:</span>
-                  <span>{showReceipt.id}</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span>Date:</span>
-                  <span>{new Date(showReceipt.date).toLocaleString()}</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span>Customer:</span>
-                  <span>{showReceipt.guestName || currentUser?.name}</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span>Payment:</span>
-                  <span>{showReceipt.paymentMethod}</span>
-                </div>
-                {showReceipt.paymentRef && (
-                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span>Ref #:</span>
-                    <span>{showReceipt.paymentRef}</span>
-                  </div>
-                )}
-                {showReceipt.memberId && (
-                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span>Member ID:</span>
-                    <span>{showReceipt.memberId}</span>
-                  </div>
-                )}
-              </div>
+              <div style={{ borderBottom: '1px dashed #cbd5e1', marginBottom: '8px' }} />
 
-              <p style={{ margin: 0 }}>--------------------------------</p>
-              <div style={{ margin: '8px 0', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                {showReceipt.items.map((item: any, index: number) => (
-                  <div key={index}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <span>{item.name}</span>
-                      <span>₱{(item.price * item.quantity).toLocaleString()}</span>
-                    </div>
-                    <div style={{ fontSize: '0.65rem', paddingLeft: '10px' }}>
-                      {item.quantity} x ₱{item.price.toLocaleString()}
-                    </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '8px' }}>
+                {showReceipt.items.map((it: any, idx: number) => (
+                  <div key={idx} style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span>{it.name} × {it.quantity}</span>
+                    <strong>₱{(it.price * it.quantity).toLocaleString()}</strong>
                   </div>
                 ))}
               </div>
-              <p style={{ margin: 0 }}>--------------------------------</p>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '10px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span>Subtotal:</span>
-                  <span>₱{showReceipt.subtotal.toLocaleString()}</span>
-                </div>
-                {showReceipt.discountApplied > 0 && (
-                  <div style={{ display: 'flex', justifyContent: 'space-between', color: 'red' }}>
-                    <span>Promo Discount:</span>
-                    <span>-₱{showReceipt.discountApplied.toLocaleString()}</span>
-                  </div>
-                )}
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', fontSize: '0.85rem' }}>
-                  <span>GRAND TOTAL:</span>
-                  <span>₱{showReceipt.total.toLocaleString()}</span>
-                </div>
+              <div style={{ borderBottom: '1px dashed #cbd5e1', margin: '8px 0' }} />
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1rem', fontWeight: 900 }}>
+                <span>TOTAL:</span>
+                <span>₱{showReceipt.total.toLocaleString()}</span>
               </div>
 
-              <p style={{ margin: '15px 0 0 0' }}>--------------------------------</p>
-              <div style={{ margin: '5px 0', fontSize: '0.65rem' }}>
-                <span style={{ fontWeight: 'bold' }}>SHIPPING LOGISTICS:</span>
-                <p style={{ marginTop: '2px' }}>{showReceipt.notes}</p>
-              </div>
+              <div style={{ borderBottom: '1px dashed #cbd5e1', margin: '8px 0' }} />
 
-              <div style={{ textAlign: 'center', marginTop: '20px' }}>
-                <p style={{ margin: '0 0 5px 0' }}>ORDER PLACED SUCCESSFULLY!</p>
-                <p style={{ margin: 0 }}>In case of pickup, present this receipt code at the counter. For delivery, Lalamove tracking details will be sent via SMS.</p>
-                <p style={{ margin: '10px 0 0 0' }}>--------------------------------</p>
+              <div style={{ fontSize: '0.72rem', color: '#64748b', textAlign: 'center', marginTop: '10px' }}>
+                <div>Fulfillment: {showReceipt.fulfillmentType}</div>
+                <div>Status: {showReceipt.orderStatus}</div>
+                <div style={{ marginTop: '8px', fontWeight: 700, color: '#0f172a' }}>
+                  PRESENT THIS CODE AT THE COUNTER FOR PICKUP
+                </div>
               </div>
             </div>
 
-            <div style={{ display: 'flex', gap: '10px', marginTop: '24px' }}>
-              <button className="checkout-btn" style={{ flex: 1 }} onClick={() => window.print()}>PRINT RECEIPT</button>
-              <button style={{ flex: 1, fontWeight: 'bold' }} onClick={() => setShowReceipt(null)}>CLOSE</button>
+            <div style={{ display: 'flex', gap: '10px', marginTop: '16px' }}>
+              <button type="button" onClick={() => window.print()} className="btn-primary" style={{ flex: 1 }}>
+                <Printer size={15} />
+                <span>Print Receipt</span>
+              </button>
+              <button type="button" onClick={() => setShowReceipt(null)} className="btn" style={{ flex: 1 }}>
+                Close
+              </button>
             </div>
           </div>
         </div>
@@ -1251,10 +930,10 @@ export const PublicLanding: React.FC = () => {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
       <section id="home"><Home /></section>
-      <section id="shop" style={{ borderTop: '3px solid #000' }}><Shop /></section>
-      <section id="services" style={{ borderTop: '3px solid #000' }}><Services /></section>
-      <section id="about" style={{ borderTop: '3px solid #000' }}><About /></section>
-      <section id="contact" style={{ borderTop: '3px solid #000' }}><Contact /></section>
+      <section id="shop" style={{ borderTop: '1px solid #e2e8f0' }}><Shop /></section>
+      <section id="services" style={{ borderTop: '1px solid #e2e8f0' }}><Services /></section>
+      <section id="about" style={{ borderTop: '1px solid #e2e8f0' }}><About /></section>
+      <section id="contact" style={{ borderTop: '1px solid #e2e8f0' }}><Contact /></section>
     </div>
   );
 };

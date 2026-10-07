@@ -3,26 +3,23 @@ import { useAppContext } from '../context/AppContext';
 import type { ReturnRequest } from '../context/AppContext';
 
 export const Returns: React.FC = () => {
-  const { returnRequests, setReturnRequests, products, setProducts } = useAppContext();
+  const { returnRequests, saveReturnRequest, products, saveProduct } = useAppContext();
 
-  const handleAction = (request: ReturnRequest, action: 'APPROVED' | 'REJECTED') => {
-    // Update request status
-    const updatedRequests = returnRequests.map(r => 
-      r.id === request.id ? { ...r, status: action } : r
-    );
-    setReturnRequests(updatedRequests);
+  const handleAction = async (request: ReturnRequest, action: 'APPROVED' | 'REJECTED') => {
+    // Update request status in Supabase
+    await saveReturnRequest({ ...request, status: action });
 
-    // If approved and is type 'RETURN', restock the inventory!
-    if (action === 'APPROVED') {
-      const updatedProducts = products.map(p => {
-        const itemReturned = request.items.find(item => item.productId === p.id);
-        if (itemReturned) {
-          return { ...p, stock: p.stock + itemReturned.quantity };
+    // If approved and is type 'RETURN', restock the inventory in Supabase!
+    if (action === 'APPROVED' && request.type === 'RETURN') {
+      for (const itemReturned of request.items) {
+        const prod = products.find(p => p.id === itemReturned.productId);
+        if (prod) {
+          await saveProduct({ ...prod, stock: prod.stock + itemReturned.quantity });
         }
-        return p;
-      });
-      setProducts(updatedProducts);
-      alert(`REQUEST APPROVED. ${request.type === 'RETURN' ? 'ITEMS RESTOCKED TO INVENTORY.' : 'REPLACEMENT INITIATED.'}`);
+      }
+      alert('REQUEST APPROVED. ITEMS RESTOCKED TO INVENTORY IN SUPABASE.');
+    } else if (action === 'APPROVED') {
+      alert('REQUEST APPROVED. REPLACEMENT INITIATED.');
     } else {
       alert('REQUEST REJECTED.');
     }

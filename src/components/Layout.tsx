@@ -1,14 +1,41 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAppContext } from '../context/AppContext';
+import { 
+  ShoppingBag, 
+  LayoutDashboard, 
+  Monitor,
+  Shield, 
+  LogOut, 
+  LogIn, 
+  UserPlus, 
+  RefreshCw, 
+  Menu, 
+  X,
+  PanelLeftClose,
+  PanelLeftOpen,
+  Users,
+  Package,
+  Truck,
+  History,
+  Clock,
+  RotateCcw,
+  Mail,
+  Tag,
+  BarChart2,
+  Download
+} from 'lucide-react';
 
+// ==========================================
+// 1. Public Layout (Storefront & Visitors)
+// ==========================================
 export const PublicLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { currentUser, logout } = useAppContext();
   const navigate = useNavigate();
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const location = useLocation();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (location.hash) {
       const id = location.hash.replace('#', '');
       const element = document.getElementById(id);
@@ -22,449 +49,764 @@ export const PublicLayout: React.FC<{ children: React.ReactNode }> = ({ children
   }, [location]);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', width: '100%' }}>
-      {/* Top Announcement Bar */}
+    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', width: '100%', backgroundColor: '#f8fafc', color: '#0f172a' }}>
+      {/* Top Banner Notice */}
       <div style={{
-        background: 'linear-gradient(90deg, #ff1e27 0%, #0052ff 50%, #00d2ff 100%)',
-        color: '#fff',
-        fontSize: '0.72rem',
-        fontFamily: 'var(--font-header)',
-        letterSpacing: '0.1em',
+        backgroundColor: '#2563eb',
+        color: '#ffffff',
+        fontSize: '0.75rem',
+        fontWeight: 700,
         textAlign: 'center',
         padding: '6px 12px',
-        fontWeight: 700,
-        textTransform: 'uppercase',
-        boxShadow: '0 2px 10px rgba(0,0,0,0.5)'
+        letterSpacing: '0.04em'
       }}>
-        🏁 FREE MOTORCYCLE DIAGNOSTICS FOR REGISTERED MEMBERS! EARN DISCOUNTS AFTER 100 POINTS ⚡
+        🏁 BOSS RAP MOTOR SHOP • BALIUAG, BULACAN • HIGH-PERFORMANCE TUNING & SPARES • EARN 1 PT PER ₱100 ⚡
       </div>
 
-      {/* Main Header / Navigation */}
+      {/* Main Header */}
       <header style={{ 
-        borderBottom: '1px solid rgba(0, 210, 255, 0.2)', 
+        backgroundColor: '#ffffff',
+        borderBottom: '1px solid #e2e8f0', 
         padding: '12px 24px', 
         display: 'flex', 
         justifyContent: 'space-between', 
         alignItems: 'center',
+        boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.05)',
         position: 'sticky',
         top: 0,
-        backgroundColor: 'rgba(7, 9, 14, 0.92)',
-        backdropFilter: 'blur(16px)',
-        zIndex: 1000,
-        boxShadow: '0 8px 30px rgba(0,0,0,0.7)'
+        zIndex: 1000
       }}>
-        <Link to="/" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '14px' }}>
+        <Link to="/" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '12px' }}>
           <img 
             src="/boss-rap-logo.png" 
             alt="BOSS RAP MOTOR SHOP" 
             style={{ 
-              height: '46px', 
-              objectFit: 'contain',
-              filter: 'drop-shadow(0 0 8px rgba(0, 210, 255, 0.4))',
-              transition: 'transform 0.3s ease'
+              height: '40px', 
+              objectFit: 'contain'
             }} 
-            className="header-logo-img"
           />
-          <div style={{ display: 'flex', flexDirection: 'column' }}>
+          <div>
             <span style={{ 
-              fontSize: '1.25rem', 
-              fontFamily: 'var(--font-header)', 
+              fontSize: '1.2rem', 
               fontWeight: 900, 
-              color: '#ffffff', 
-              letterSpacing: '0.05em',
-              lineHeight: 1,
-              background: 'linear-gradient(90deg, #ffffff 0%, #00d2ff 100%)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent'
+              color: '#0f172a', 
+              display: 'block',
+              lineHeight: 1.1,
+              letterSpacing: '0.02em'
             }}>
-              BOSS RAP
+              BOSS RAP MOTOR SHOP
             </span>
             <span style={{ 
-              fontSize: '0.6rem', 
-              letterSpacing: '0.25em', 
-              color: '#94a3b8', 
-              fontWeight: 700,
-              fontFamily: 'var(--font-header)',
-              marginTop: '2px'
+              fontSize: '0.7rem', 
+              color: '#64748b', 
+              fontWeight: 600
             }}>
-              MOTOR SHOP
+              Sales, Inventory & Membership Portal
             </span>
           </div>
         </Link>
 
-        {/* Mobile Menu Toggle */}
-        <button 
-          onClick={() => setIsMenuOpen(!isMenuOpen)}
-          style={{ 
-            display: 'none', 
-            background: 'rgba(15, 23, 42, 0.8)', 
-            color: '#fff', 
-            border: '1px solid var(--border-glow-blue)', 
-            fontSize: '1.4rem',
-            padding: '6px 12px',
-            borderRadius: '6px'
-          }}
-          className="mobile-toggle"
+        {/* Mobile menu button */}
+        <button
+          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+          className="btn"
+          style={{ display: 'none', padding: '6px 10px' }}
+          id="public-mobile-toggle"
         >
-          {isMenuOpen ? '✕' : '☰'}
+          {isMobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
         </button>
 
-        {/* Desktop & Mobile Navigation */}
-        <nav style={{ 
-          display: 'flex', 
-          gap: '28px', 
-          alignItems: 'center',
-        }} className={`main-nav ${isMenuOpen ? 'open' : ''}`}>
-          <Link 
-            to="/" 
-            className={`nav-link ${location.pathname === '/' ? 'active' : ''}`}
-            onClick={() => setIsMenuOpen(false)}
-          >
-            HOME
+        {/* Desktop Navigation */}
+        <nav style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }} className="public-nav-links">
+          <Link to="/shop" style={{ textDecoration: 'none' }}>
+            <button 
+              className={`btn ${location.pathname === '/shop' ? 'btn-primary' : ''}`}
+              style={{ fontSize: '0.82rem', fontWeight: 700 }}
+            >
+              <ShoppingBag size={15} />
+              <span>Catalog & Shop</span>
+            </button>
           </Link>
-          <Link 
-            to="/shop" 
-            className={`nav-link ${location.pathname === '/shop' ? 'active' : ''}`}
-            onClick={() => setIsMenuOpen(false)}
-          >
-            PARTS & SHOP
-          </Link>
-          <Link 
-            to="/services" 
-            className={`nav-link ${location.pathname === '/services' ? 'active' : ''}`}
-            onClick={() => setIsMenuOpen(false)}
-          >
-            SERVICES
-          </Link>
-          <Link 
-            to="/about" 
-            className={`nav-link ${location.pathname === '/about' ? 'active' : ''}`}
-            onClick={() => setIsMenuOpen(false)}
-          >
-            ABOUT US
-          </Link>
-          <Link 
-            to="/contact" 
-            className={`nav-link ${location.pathname === '/contact' ? 'active' : ''}`}
-            onClick={() => setIsMenuOpen(false)}
-          >
-            CONTACT
-          </Link>
-          
-          <div style={{ 
-            display: 'flex', 
-            gap: '14px', 
-            alignItems: 'center', 
-            borderLeft: '1px solid rgba(255, 255, 255, 0.12)', 
-            paddingLeft: '24px',
-          }} className="nav-auth">
-            {currentUser ? (
-              <>
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
-                  <span style={{ fontSize: '0.78rem', color: '#fff', fontWeight: 700 }}>{currentUser.name}</span>
-                  <span className={`badge ${currentUser.role === 'ADMIN' ? 'badge-red' : 'badge-blue'}`} style={{ fontSize: '0.6rem', padding: '1px 6px' }}>
-                    {currentUser.role}
-                  </span>
-                </div>
-                {currentUser.role === 'CUSTOMER' ? (
-                  <button 
-                    onClick={() => { navigate('/dashboard'); setIsMenuOpen(false); }} 
-                    className="btn"
-                    style={{ fontSize: '0.7rem', padding: '8px 14px' }}
-                  >
-                    MY ORDERS & TRACKING
-                  </button>
-                ) : (
-                  <button 
-                    onClick={() => { navigate('/admin/dashboard'); setIsMenuOpen(false); }} 
-                    className="btn-primary"
-                    style={{ fontSize: '0.7rem', padding: '8px 14px' }}
-                  >
-                    ADMIN PANEL
-                  </button>
-                )}
-                <button 
-                  onClick={() => { logout(); setIsMenuOpen(false); }} 
-                  className="btn-danger"
-                  style={{ fontSize: '0.7rem', padding: '8px 14px' }}
-                >
-                  LOGOUT
-                </button>
-              </>
-            ) : (
-              <div style={{ display: 'flex', gap: '10px' }}>
-                <Link to="/login" onClick={() => setIsMenuOpen(false)}>
-                  <button className="btn" style={{ fontSize: '0.75rem', padding: '8px 16px' }}>LOG IN</button>
-                </Link>
-                <Link to="/register" onClick={() => setIsMenuOpen(false)}>
-                  <button className="btn-primary" style={{ fontSize: '0.75rem', padding: '8px 16px' }}>JOIN CLUB</button>
-                </Link>
-              </div>
-            )}
-          </div>
-        </nav>
 
-        <style>{`
-          @media (max-width: 992px) {
-            .mobile-toggle { display: block !important; }
-            .main-nav {
-              display: none !important;
-              position: absolute;
-              top: 100%;
-              left: 0;
-              right: 0;
-              background: rgba(10, 14, 23, 0.98);
-              backdrop-filter: blur(20px);
-              border-bottom: 2px solid var(--accent-blue);
-              flex-direction: column;
-              padding: 24px;
-              gap: 18px !important;
-              align-items: flex-start !important;
-              box-shadow: 0 20px 40px rgba(0,0,0,0.9);
-            }
-            .main-nav.open { display: flex !important; }
-            .nav-auth { 
-              border-left: none !important; 
-              padding-left: 0 !important; 
-              border-top: 1px solid rgba(255,255,255,0.1); 
-              padding-top: 18px; 
-              width: 100%; 
-              flex-wrap: wrap;
-              justify-content: space-between;
-            }
-          }
-        `}</style>
+          {currentUser ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+              <div style={{ textAlign: 'right', marginRight: '4px' }}>
+                <span style={{ fontSize: '0.82rem', color: '#0f172a', fontWeight: 700, display: 'block' }}>{currentUser.name}</span>
+                <span className={`badge ${currentUser.role === 'ADMIN' ? 'badge-red' : currentUser.role === 'EMPLOYEE' ? 'badge-blue' : 'badge-green'}`} style={{ fontSize: '0.65rem' }}>
+                  {currentUser.role === 'EMPLOYEE' ? 'STAFF' : currentUser.role}
+                </span>
+              </div>
+
+              {currentUser.role === 'CUSTOMER' && (
+                <button 
+                  onClick={() => navigate('/dashboard')} 
+                  className={`btn ${location.pathname === '/dashboard' ? 'btn-primary' : ''}`}
+                  style={{ fontSize: '0.8rem' }}
+                >
+                  <LayoutDashboard size={14} />
+                  <span>My Dashboard</span>
+                </button>
+              )}
+
+              {currentUser.role === 'EMPLOYEE' && (
+                <button 
+                  onClick={() => navigate('/staff/pos')} 
+                  className="btn-primary"
+                  style={{ fontSize: '0.8rem' }}
+                >
+                  <Monitor size={14} />
+                  <span>POS Terminal</span>
+                </button>
+              )}
+
+              {currentUser.role === 'ADMIN' && (
+                <>
+                  <button 
+                    onClick={() => navigate('/admin/dashboard')} 
+                    className="btn-primary"
+                    style={{ fontSize: '0.8rem' }}
+                  >
+                    <Shield size={14} />
+                    <span>Admin Dashboard</span>
+                  </button>
+                  <button 
+                    onClick={() => navigate('/staff/pos')} 
+                    className="btn"
+                    style={{ fontSize: '0.8rem' }}
+                  >
+                    <Monitor size={14} />
+                    <span>POS Terminal</span>
+                  </button>
+                </>
+              )}
+
+              <button 
+                onClick={() => { logout(); navigate('/login'); }} 
+                className="btn-danger"
+                style={{ fontSize: '0.8rem' }}
+              >
+                <LogOut size={14} />
+                <span>Logout</span>
+              </button>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <Link to="/login" style={{ textDecoration: 'none' }}>
+                <button 
+                  className={`btn ${location.pathname === '/login' ? 'btn-primary' : ''}`} 
+                  style={{ fontSize: '0.8rem' }}
+                >
+                  <LogIn size={14} />
+                  <span>Login</span>
+                </button>
+              </Link>
+              <Link to="/register" style={{ textDecoration: 'none' }}>
+                <button 
+                  className={`btn ${location.pathname === '/register' ? 'btn-primary' : ''}`}
+                  style={{ fontSize: '0.8rem' }}
+                >
+                  <UserPlus size={14} />
+                  <span>Register</span>
+                </button>
+              </Link>
+            </div>
+          )}
+        </nav>
       </header>
 
-      <main style={{ flex: 1, width: '100%' }}>
+      {/* Main Page Area */}
+      <main style={{ flex: 1, width: '100%', padding: '0' }}>
         {children}
       </main>
 
-      {/* Modern Footer */}
+      {/* Footer */}
       <footer style={{ 
-        borderTop: '1px solid rgba(0, 210, 255, 0.15)', 
-        padding: '50px 24px 30px', 
-        backgroundColor: '#05070c',
-        color: '#94a3b8',
-        position: 'relative',
-        overflow: 'hidden'
+        backgroundColor: '#ffffff',
+        borderTop: '1px solid #e2e8f0', 
+        padding: '24px 28px', 
+        color: '#64748b',
+        fontSize: '0.78rem',
+        marginTop: 'auto'
       }}>
         <div style={{
-          maxWidth: '1400px',
+          maxWidth: '1280px',
           margin: '0 auto',
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
-          gap: '40px',
-          marginBottom: '40px'
-        }}>
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
-              <img src="/boss-rap-logo.png" alt="BOSS RAP" style={{ height: '40px', filter: 'drop-shadow(0 0 8px rgba(0, 210, 255, 0.3))' }} />
-              <h3 style={{ fontSize: '1.2rem', color: '#fff', margin: 0 }}>BOSS RAP MOTOR SHOP</h3>
-            </div>
-            <p style={{ fontSize: '0.85rem', lineHeight: '1.7', color: '#64748b' }}>
-              Bulacan's premier hub for genuine motorcycle spare parts, custom tune-ups, high-performance racing upgrades, and membership reward discounts.
-            </p>
-          </div>
-
-          <div>
-            <h4 style={{ fontSize: '0.9rem', color: '#00d2ff', marginBottom: '16px' }}>QUICK NAVIGATION</h4>
-            <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '0.85rem' }}>
-              <li><Link to="/shop" style={{ color: '#cbd5e1', textDecoration: 'none' }}>Parts Catalog & Inventory</Link></li>
-              <li><Link to="/services" style={{ color: '#cbd5e1', textDecoration: 'none' }}>Tuning & Repair Services</Link></li>
-              <li><Link to="/about" style={{ color: '#cbd5e1', textDecoration: 'none' }}>About Our Shop</Link></li>
-              <li><Link to="/contact" style={{ color: '#cbd5e1', textDecoration: 'none' }}>Customer Inquiry & Support</Link></li>
-            </ul>
-          </div>
-
-          <div>
-            <h4 style={{ fontSize: '0.9rem', color: '#00d2ff', marginBottom: '16px' }}>SHOP LOCATION & HOURS</h4>
-            <p style={{ fontSize: '0.85rem', lineHeight: '1.7', color: '#cbd5e1' }}>
-              📍 JP Rizal St., Baliwag, Bulacan, Philippines<br />
-              ⏰ Monday - Saturday: 8:00 AM - 6:00 PM<br />
-              📞 Hotline: (0905) 123-4567 / (044) 764-8899<br />
-              ✉️ Email: support@bossrap-motorshop.com
-            </p>
-          </div>
-        </div>
-
-        <div style={{ 
-          borderTop: '1px solid rgba(255,255,255,0.08)', 
-          paddingTop: '20px', 
-          textAlign: 'center', 
-          fontSize: '0.75rem',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
           flexWrap: 'wrap',
-          gap: '12px',
-          maxWidth: '1400px',
-          margin: '0 auto'
+          gap: '12px'
         }}>
-          <p style={{ margin: 0 }}>© {new Date().getFullYear()} BOSS RAP MOTOR SHOP. ALL RIGHTS RESERVED.</p>
-          <p style={{ margin: 0, color: '#00d2ff', fontFamily: 'var(--font-header)' }}>ENGINEERED FOR HIGH-PERFORMANCE RIDING ⚡</p>
+          <div>
+            <strong style={{ color: '#0f172a' }}>Boss Rap Motor Shop</strong> • JP Rizal St., Baliuag, Bulacan
+          </div>
+          <div style={{ color: '#64748b' }}>
+            Web-Based Sales & Inventory System with Membership Management • Boss Rap Motor Shop
+          </div>
         </div>
       </footer>
     </div>
   );
 };
 
-export const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { currentUser, logout } = useAppContext();
+// ==========================================
+// 2. Staff POS Layout (Cashier Station)
+// ==========================================
+export const StaffLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { currentUser, logout, syncWithSupabase } = useAppContext();
   const navigate = useNavigate();
-  const location = useLocation();
-  const [isSidebarVisible, setIsSidebarVisible] = useState(false);
 
-  if (!currentUser || (currentUser.role !== 'ADMIN' && currentUser.role !== 'EMPLOYEE')) {
+  if (!currentUser || (currentUser.role !== 'EMPLOYEE' && currentUser.role !== 'ADMIN')) {
     navigate('/login');
     return null;
   }
 
-  const TabButton = ({ id, label, icon }: { id: string, label: string, icon: string }) => {
-    const isActive = location.pathname.includes(id);
-    return (
-      <Link to={`/admin/${id}`} style={{ textDecoration: 'none' }} onClick={() => setIsSidebarVisible(false)}>
-        <div 
-          style={{ 
-            display: 'flex',
-            alignItems: 'center',
-            gap: '12px',
-            width: '100%',
-            padding: '12px 20px', 
-            borderLeft: isActive ? '4px solid var(--accent-cyan)' : '4px solid transparent',
-            background: isActive ? 'linear-gradient(90deg, rgba(0, 210, 255, 0.15) 0%, transparent 100%)' : 'transparent',
-            color: isActive ? '#ffffff' : '#94a3b8',
-            fontSize: '0.75rem',
-            fontFamily: 'var(--font-header)',
-            fontWeight: isActive ? 800 : 600,
-            letterSpacing: '0.05em',
-            transition: 'all 0.2s ease',
-            boxSizing: 'border-box'
-          }}
-        >
-          <span style={{ fontSize: '1.1rem' }}>{icon}</span>
-          <span>{label}</span>
-        </div>
-      </Link>
-    );
-  };
-
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', width: '100%', flexDirection: 'row', backgroundColor: '#07090e' }} className="admin-container">
-      {/* Mobile Sidebar Toggle Header */}
-      <div style={{ 
-        display: 'none', 
-        padding: '12px 20px', 
-        borderBottom: '1px solid rgba(0, 210, 255, 0.2)', 
-        justifyContent: 'space-between', 
+    <div style={{ display: 'flex', minHeight: '100vh', width: '100%', flexDirection: 'column', backgroundColor: '#f8fafc' }}>
+      {/* Staff Header */}
+      <header style={{
+        backgroundColor: '#ffffff',
+        borderBottom: '1px solid #e2e8f0',
+        padding: '12px 24px',
+        display: 'flex',
+        justifyContent: 'space-between',
         alignItems: 'center',
-        width: '100%',
-        backgroundColor: 'rgba(10, 14, 23, 0.95)',
-        zIndex: 1100
-      }} className="admin-mobile-header">
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <img src="/boss-rap-logo.png" alt="BOSS RAP" style={{ height: '32px' }} />
-          <h4 style={{ margin: 0, fontSize: '0.9rem', color: '#fff' }}>ADMIN PANEL</h4>
-        </div>
-        <button onClick={() => setIsSidebarVisible(!isSidebarVisible)} className="btn" style={{ fontSize: '0.7rem' }}>
-          {isSidebarVisible ? 'CLOSE' : 'MENU ☰'}
-        </button>
-      </div>
-
-      {/* Admin Sidebar */}
-      <aside style={{ 
-        width: '260px', 
-        borderRight: '1px solid rgba(255, 255, 255, 0.08)', 
-        display: 'flex', 
-        flexDirection: 'column', 
-        padding: '24px 0',
-        backgroundColor: 'rgba(10, 14, 23, 0.95)',
-        flexShrink: 0,
-        boxShadow: '4px 0 25px rgba(0,0,0,0.5)'
-      }} className={`admin-sidebar ${isSidebarVisible ? 'visible' : ''}`}>
-        <div style={{ padding: '0 20px', marginBottom: '28px' }}>
-          <Link to="/" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <img src="/boss-rap-logo.png" alt="BOSS RAP" style={{ height: '42px', filter: 'drop-shadow(0 0 10px rgba(0, 210, 255, 0.4))' }} />
-            <div>
-              <h1 style={{ fontSize: '1.1rem', margin: 0, lineHeight: '1', color: '#fff' }}>BOSS RAP</h1>
-              <p style={{ fontSize: '0.55rem', letterSpacing: '2px', margin: '4px 0 0', color: 'var(--accent-cyan)', fontFamily: 'var(--font-header)' }}>MANAGEMENT HUB</p>
+        boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.05)',
+        flexWrap: 'wrap',
+        gap: '12px'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <img src="/boss-rap-logo.png" alt="BOSS RAP" style={{ height: '36px' }} />
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <h2 style={{ fontSize: '1.1rem', margin: 0, color: '#0f172a', fontWeight: 800 }}>BOSS RAP STAFF POS</h2>
+              <span className="badge badge-blue" style={{ fontSize: '0.65rem' }}>CASHIER TERMINAL</span>
             </div>
-          </Link>
-        </div>
-        
-        <nav style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-          <TabButton id="dashboard" label="DASHBOARD" icon="📊" />
-          <TabButton id="inventory" label="INVENTORY & PO" icon="📦" />
-          <TabButton id="purchase-orders" label="PURCHASE ORDERS" icon="📑" />
-          <TabButton id="sales" label="SALES & ORDERS" icon="💰" />
-          <TabButton id="members" label="MEMBERS & DISCOUNTS" icon="👑" />
-          <TabButton id="promos" label="PROMOTIONS" icon="🏷️" />
-          <TabButton id="returns" label="RETURNS & CLAIMS" icon="🔄" />
-          <TabButton id="inquiries" label="MESSAGES" icon="💬" />
-          <TabButton id="reports" label="REPORTS & ANALYTICS" icon="📈" />
-          {currentUser.role === 'ADMIN' && <TabButton id="users" label="SYSTEM USERS" icon="⚙️" />}
-        </nav>
-
-        <div style={{ 
-          marginTop: 'auto', 
-          padding: '16px 20px', 
-          borderTop: '1px solid rgba(255,255,255,0.08)',
-          background: 'rgba(15, 23, 42, 0.6)',
-          margin: '20px 14px 0 14px',
-          borderRadius: '10px'
-        }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div>
-              <p style={{ fontSize: '0.65rem', color: '#94a3b8', margin: 0, fontFamily: 'var(--font-header)' }}>LOGGED IN AS:</p>
-              <p style={{ fontWeight: 'bold', fontSize: '0.8rem', color: '#fff', margin: '2px 0 0' }}>{currentUser.name}</p>
-            </div>
-            <span className={`badge ${currentUser.role === 'ADMIN' ? 'badge-red' : 'badge-blue'}`} style={{ fontSize: '0.55rem' }}>
-              {currentUser.role}
+            <span style={{ fontSize: '0.75rem', color: '#64748b' }}>
+              Register & Barcode Counter Fulfillment
             </span>
           </div>
-          <div style={{ display: 'flex', gap: '8px', marginTop: '14px' }}>
-            <Link to="/" style={{ flex: 1 }}>
-              <button className="btn" style={{ width: '100%', fontSize: '0.65rem', padding: '6px' }}>
-                SHOP HOME
-              </button>
-            </Link>
-            <button 
-              className="btn-danger"
-              style={{ fontSize: '0.65rem', padding: '6px 12px' }}
-              onClick={() => { logout(); navigate('/'); }}
-            >
-              EXIT
-            </button>
-          </div>
         </div>
-      </aside>
-      
-      <main style={{ flex: 1, backgroundColor: '#07090e', overflowY: 'auto', padding: '28px' }} className="admin-main">
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+          <button 
+            onClick={() => syncWithSupabase()}
+            className="btn"
+            style={{ fontSize: '0.78rem' }}
+            title="Refresh database records"
+          >
+            <RefreshCw size={13} />
+            <span>Sync Cloud</span>
+          </button>
+
+          <button 
+            onClick={() => navigate('/shop')} 
+            className="btn"
+            style={{ fontSize: '0.8rem' }}
+          >
+            <ShoppingBag size={14} />
+            <span>Store View</span>
+          </button>
+
+          {currentUser.role === 'ADMIN' && (
+            <button 
+              onClick={() => navigate('/admin/dashboard')} 
+              className="btn"
+              style={{ fontSize: '0.8rem', color: '#dc2626', borderColor: '#fca5a5', backgroundColor: '#fef2f2' }}
+            >
+              <Shield size={14} />
+              <span>Admin Dashboard</span>
+            </button>
+          )}
+
+          <div style={{ textAlign: 'right', borderLeft: '1px solid #e2e8f0', paddingLeft: '12px' }}>
+            <span style={{ fontSize: '0.82rem', color: '#0f172a', fontWeight: 700, display: 'block' }}>{currentUser.name}</span>
+            <span className="badge badge-blue" style={{ fontSize: '0.65rem' }}>
+              {currentUser.role === 'ADMIN' ? 'ADMINISTRATOR' : 'STAFF CASHIER'}
+            </span>
+          </div>
+
+          <button 
+            className="btn-danger"
+            style={{ fontSize: '0.8rem', padding: '6px 12px' }}
+            onClick={() => { logout(); navigate('/login'); }}
+          >
+            <LogOut size={14} />
+            <span>Logout</span>
+          </button>
+        </div>
+      </header>
+
+      {/* Staff Main Content */}
+      <main style={{ flex: 1, padding: '16px 20px', width: '100%' }}>
         {children}
       </main>
 
-      <style>{`
-        @media (max-width: 768px) {
-          .admin-container { flex-direction: column !important; }
-          .admin-mobile-header { display: flex !important; }
-          .admin-sidebar { 
-            display: none !important; 
-            width: 100% !important; 
-            border-right: none !important; 
-            border-bottom: 2px solid var(--accent-blue) !important;
-            position: fixed;
-            top: 56px;
-            left: 0;
-            right: 0;
-            background: #07090e;
-            z-index: 1050;
-            height: calc(100vh - 56px);
-            overflow-y: auto;
-          }
-          .admin-sidebar.visible { display: flex !important; }
-          .admin-main { padding: 16px !important; }
+      {/* Staff Footer */}
+      <footer style={{
+        backgroundColor: '#ffffff',
+        borderTop: '1px solid #e2e8f0',
+        padding: '10px 24px',
+        color: '#64748b',
+        fontSize: '0.75rem',
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center'
+      }}>
+        <span>Boss Rap Motor Shop • Terminal 01 (Baliuag Branch)</span>
+        <span>POS Terminal • Online</span>
+      </footer>
+    </div>
+  );
+};
+
+// ==========================================
+// 3. Admin Layout (Enterprise Collapsible Left Sidebar)
+// ==========================================
+export const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { 
+    currentUser, 
+    logout, 
+    syncWithSupabase,
+    users,
+    products,
+    sales,
+    auditLogs,
+    backOrders,
+    purchaseOrders,
+    returnRequests,
+    inquiries,
+    promos
+  } = useAppContext();
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  // Collapsible sidebar state (persisted to localStorage)
+  const [sidebarOpen, setSidebarOpen] = useState<boolean>(() => {
+    const saved = localStorage.getItem('motoshop_admin_sidebar_open');
+    return saved !== null ? saved === 'true' : true;
+  });
+
+  const toggleSidebar = () => {
+    setSidebarOpen(prev => {
+      const next = !prev;
+      localStorage.setItem('motoshop_admin_sidebar_open', String(next));
+      return next;
+    });
+  };
+
+  if (!currentUser || currentUser.role !== 'ADMIN') {
+    if (currentUser?.role === 'EMPLOYEE') {
+      navigate('/staff/pos');
+    } else {
+      navigate('/login');
+    }
+    return null;
+  }
+
+  const currentTab = new URLSearchParams(location.search).get('tab') || 'ACCOUNTS';
+
+  const isNavActive = (path: string, tab?: string) => {
+    if (location.pathname !== path) return false;
+    if (tab) return currentTab === tab;
+    return true;
+  };
+
+  interface NavItem {
+    label: string;
+    path: string;
+    tab?: string;
+    icon: React.ReactNode;
+    count?: number;
+  }
+
+  interface NavSection {
+    title: string;
+    items: NavItem[];
+  }
+
+  const navSections: NavSection[] = [
+    {
+      title: 'MANAGEMENT',
+      items: [
+        { label: 'Accounts & Staff', path: '/admin/dashboard', tab: 'ACCOUNTS', icon: <Users size={17} />, count: users.length },
+        { label: 'Catalog & Stock', path: '/admin/dashboard', tab: 'PRODUCTS', icon: <Package size={17} />, count: products.length },
+        { label: 'Orders Feed', path: '/admin/dashboard', tab: 'ORDERS', icon: <ShoppingBag size={17} />, count: sales.length },
+        { label: 'Purchase Orders', path: '/admin/purchase-orders', icon: <Truck size={17} />, count: purchaseOrders.length },
+      ]
+    },
+    {
+      title: 'OPERATIONS',
+      items: [
+        { label: 'Audit Trail', path: '/admin/dashboard', tab: 'AUDIT', icon: <History size={17} />, count: auditLogs.length },
+        { label: 'Back Orders', path: '/admin/dashboard', tab: 'BACKORDERS', icon: <Clock size={17} />, count: backOrders.length },
+        { label: 'Returns & RMA', path: '/admin/returns', icon: <RotateCcw size={17} />, count: returnRequests.length },
+        { label: 'Inquiries Inbox', path: '/admin/inquiries', icon: <Mail size={17} />, count: inquiries.length },
+        { label: 'Promos & Discounts', path: '/admin/promos', icon: <Tag size={17} />, count: promos.length },
+      ]
+    },
+    {
+      title: 'ANALYTICS & SYSTEM',
+      items: [
+        { label: 'Sales Analytics', path: '/admin/dashboard', tab: 'REPORTS', icon: <BarChart2 size={17} /> },
+        { label: 'Backup & Restore', path: '/admin/dashboard', tab: 'BACKUP', icon: <Download size={17} /> },
+      ]
+    }
+  ];
+
+  const getActiveTitle = () => {
+    for (const sec of navSections) {
+      for (const item of sec.items) {
+        if (isNavActive(item.path, item.tab)) {
+          return item.label;
         }
-      `}</style>
+      }
+    }
+    return 'Admin Dashboard';
+  };
+
+  return (
+    <div style={{ display: 'flex', minHeight: '100vh', width: '100%', backgroundColor: '#f8fafc' }}>
+      
+      {/* ======================================================== */}
+      {/* 1. Left Sidebar Navigation (Collapsible) */}
+      {/* ======================================================== */}
+      <aside style={{
+        width: sidebarOpen ? '255px' : '70px',
+        minWidth: sidebarOpen ? '255px' : '70px',
+        backgroundColor: '#ffffff',
+        borderRight: '1px solid #e2e8f0',
+        display: 'flex',
+        flexDirection: 'column',
+        position: 'sticky',
+        top: 0,
+        height: '100vh',
+        zIndex: 50,
+        transition: 'all 0.22s cubic-bezier(0.4, 0, 0.2, 1)',
+        boxShadow: '1px 0 3px 0 rgba(0, 0, 0, 0.02)'
+      }}>
+        
+        {/* Sidebar Header / Brand */}
+        <div style={{
+          padding: sidebarOpen ? '16px 18px' : '16px 12px',
+          borderBottom: '1px solid #e2e8f0',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: sidebarOpen ? 'space-between' : 'center',
+          gap: '10px'
+        }}>
+          {sidebarOpen ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', overflow: 'hidden' }}>
+              <img src="/boss-rap-logo.png" alt="BOSS RAP" style={{ height: '34px', width: 'auto', flexShrink: 0 }} />
+              <div style={{ overflow: 'hidden', whiteSpace: 'nowrap' }}>
+                <strong style={{ fontSize: '0.95rem', color: '#0f172a', display: 'block', lineHeight: 1.2 }}>BOSS RAP</strong>
+                <span style={{ fontSize: '0.68rem', color: '#dc2626', fontWeight: 700, letterSpacing: '0.05em' }}>ADMIN PORTAL</span>
+              </div>
+            </div>
+          ) : (
+            <img src="/boss-rap-logo.png" alt="BOSS RAP" style={{ height: '30px', width: 'auto' }} />
+          )}
+
+          <button
+            type="button"
+            onClick={toggleSidebar}
+            title={sidebarOpen ? "Hide sidebar" : "Show sidebar"}
+            style={{
+              background: 'none',
+              border: 'none',
+              padding: '6px',
+              borderRadius: '6px',
+              color: '#64748b',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: '#f1f5f9',
+              flexShrink: 0
+            }}
+          >
+            {sidebarOpen ? <PanelLeftClose size={17} /> : <PanelLeftOpen size={17} />}
+          </button>
+        </div>
+
+        {/* Sidebar Nav List (Scrollable) */}
+        <div style={{
+          flex: 1,
+          overflowY: 'auto',
+          padding: sidebarOpen ? '14px 10px' : '14px 6px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '16px'
+        }}>
+          {navSections.map(sec => (
+            <div key={sec.title}>
+              {sidebarOpen && (
+                <div style={{
+                  fontSize: '0.65rem',
+                  fontWeight: 800,
+                  color: '#94a3b8',
+                  letterSpacing: '0.06em',
+                  padding: '4px 10px 6px',
+                  textTransform: 'uppercase'
+                }}>
+                  {sec.title}
+                </div>
+              )}
+              
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                {sec.items.map(item => {
+                  const active = isNavActive(item.path, item.tab);
+                  return (
+                    <button
+                      key={item.label}
+                      type="button"
+                      title={!sidebarOpen ? item.label : undefined}
+                      onClick={() => navigate(item.tab ? `${item.path}?tab=${item.tab}` : item.path)}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: sidebarOpen ? 'flex-start' : 'center',
+                        gap: '10px',
+                        padding: sidebarOpen ? '9px 12px' : '10px 0',
+                        borderRadius: '6px',
+                        border: 'none',
+                        width: '100%',
+                        cursor: 'pointer',
+                        textAlign: 'left',
+                        transition: 'all 0.15s ease',
+                        backgroundColor: active ? '#eff6ff' : 'transparent',
+                        color: active ? '#2563eb' : '#475569',
+                        fontWeight: active ? 700 : 500,
+                        borderLeft: active ? '3px solid #2563eb' : '3px solid transparent'
+                      }}
+                      onMouseEnter={e => {
+                        if (!active) {
+                          e.currentTarget.style.backgroundColor = '#f8fafc';
+                          e.currentTarget.style.color = '#0f172a';
+                        }
+                      }}
+                      onMouseLeave={e => {
+                        if (!active) {
+                          e.currentTarget.style.backgroundColor = 'transparent';
+                          e.currentTarget.style.color = '#475569';
+                        }
+                      }}
+                    >
+                      <div style={{ color: active ? '#2563eb' : '#64748b', flexShrink: 0 }}>
+                        {item.icon}
+                      </div>
+
+                      {sidebarOpen && (
+                        <>
+                          <span style={{ fontSize: '0.82rem', flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            {item.label}
+                          </span>
+                          {item.count !== undefined && item.count > 0 && (
+                            <span style={{
+                              fontSize: '0.65rem',
+                              fontWeight: 700,
+                              padding: '2px 6px',
+                              borderRadius: '10px',
+                              backgroundColor: active ? '#dbeafe' : '#f1f5f9',
+                              color: active ? '#1d4ed8' : '#64748b'
+                            }}>
+                              {item.count}
+                            </span>
+                          )}
+                        </>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Sidebar Footer User Info */}
+        <div style={{
+          borderTop: '1px solid #e2e8f0',
+          padding: sidebarOpen ? '12px 14px' : '12px 8px',
+          backgroundColor: '#fafafa',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '8px'
+        }}>
+          {sidebarOpen ? (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', overflow: 'hidden' }}>
+                <div style={{
+                  width: '32px',
+                  height: '32px',
+                  borderRadius: '50%',
+                  backgroundColor: '#dc2626',
+                  color: '#ffffff',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontWeight: 800,
+                  fontSize: '0.82rem',
+                  flexShrink: 0
+                }}>
+                  {currentUser.name.charAt(0).toUpperCase()}
+                </div>
+                <div style={{ overflow: 'hidden', whiteSpace: 'nowrap' }}>
+                  <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#0f172a', textOverflow: 'ellipsis', overflow: 'hidden' }}>
+                    {currentUser.name}
+                  </div>
+                  <span className="badge badge-red" style={{ fontSize: '0.58rem', padding: '1px 5px' }}>
+                    ADMINISTRATOR
+                  </span>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => { logout(); navigate('/login'); }}
+                title="Logout"
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  padding: '6px',
+                  borderRadius: '4px',
+                  color: '#dc2626',
+                  cursor: 'pointer'
+                }}
+              >
+                <LogOut size={16} />
+              </button>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
+              <div style={{
+                width: '32px',
+                height: '32px',
+                borderRadius: '50%',
+                backgroundColor: '#dc2626',
+                color: '#ffffff',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontWeight: 800,
+                fontSize: '0.82rem'
+              }}>
+                {currentUser.name.charAt(0).toUpperCase()}
+              </div>
+              <button
+                type="button"
+                onClick={() => { logout(); navigate('/login'); }}
+                title="Logout"
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  padding: '4px',
+                  color: '#dc2626',
+                  cursor: 'pointer'
+                }}
+              >
+                <LogOut size={16} />
+              </button>
+            </div>
+          )}
+        </div>
+      </aside>
+
+      {/* ======================================================== */}
+      {/* 2. Main Right Canvas & Top Navigation Bar */}
+      {/* ======================================================== */}
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, minHeight: '100vh' }}>
+        
+        {/* Top Navbar */}
+        <header style={{
+          backgroundColor: '#ffffff',
+          borderBottom: '1px solid #e2e8f0',
+          padding: '12px 24px',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.03)',
+          flexWrap: 'wrap',
+          gap: '12px',
+          position: 'sticky',
+          top: 0,
+          zIndex: 40
+        }}>
+          {/* Left Title & Breadcrumbs */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            {!sidebarOpen && (
+              <button
+                type="button"
+                onClick={toggleSidebar}
+                title="Show navigation sidebar"
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  padding: '6px',
+                  borderRadius: '6px',
+                  color: '#0f172a',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  backgroundColor: '#f1f5f9'
+                }}
+              >
+                <Menu size={18} />
+              </button>
+            )}
+
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span style={{ fontSize: '0.75rem', color: '#64748b' }}>Admin Portal</span>
+                <span style={{ fontSize: '0.75rem', color: '#cbd5e1' }}>/</span>
+                <h2 style={{ fontSize: '1rem', margin: 0, color: '#0f172a', fontWeight: 800 }}>
+                  {getActiveTitle()}
+                </h2>
+                <span className="badge badge-green" style={{ fontSize: '0.65rem', marginLeft: '6px' }}>
+                  LIVE SYSTEM ONLINE
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Right Header Quick Controls */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <button 
+              type="button"
+              onClick={() => syncWithSupabase()}
+              className="btn"
+              style={{ fontSize: '0.76rem', padding: '6px 12px' }}
+              title="Refresh database records from cloud"
+            >
+              <RefreshCw size={13} />
+              <span>Sync Cloud</span>
+            </button>
+
+          </div>
+        </header>
+
+        {/* Admin Page Main Content */}
+        <main style={{ flex: 1, padding: '24px 28px', maxWidth: '1440px', width: '100%', margin: '0 auto' }}>
+          {children}
+        </main>
+
+        {/* Admin Footer */}
+        <footer style={{
+          backgroundColor: '#ffffff',
+          borderTop: '1px solid #e2e8f0',
+          padding: '12px 28px',
+          color: '#64748b',
+          fontSize: '0.75rem',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: '8px'
+        }}>
+          <span>Boss Rap Motor Shop • Enterprise Management & POS Portal</span>
+          <span>Baliuag Branch • All Rights Reserved</span>
+        </footer>
+      </div>
+
     </div>
   );
 };

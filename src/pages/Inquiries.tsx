@@ -1,11 +1,13 @@
 import React from 'react';
 import { useAppContext } from '../context/AppContext';
+import { supabase } from '../supabase';
 
 export const Inquiries: React.FC = () => {
   const { inquiries, setInquiries } = useAppContext();
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     if (confirm('ARE YOU SURE YOU WANT TO DELETE THIS MESSAGE?')) {
+      await supabase.from('inquiries').delete().eq('id', id);
       setInquiries(inquiries.filter(i => i.id !== id));
     }
   };
