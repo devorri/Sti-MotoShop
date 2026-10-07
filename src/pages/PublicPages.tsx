@@ -513,13 +513,25 @@ export const Shop: React.FC = () => {
                   flexDirection: 'column',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  position: 'relative'
+                  position: 'relative',
+                  overflow: 'hidden'
                 }}>
-                  {getCategoryIcon(product.category)}
-                  <span style={{ fontSize: '0.62rem', color: '#94a3b8', fontWeight: 700, marginTop: '6px', letterSpacing: '1px' }}>
-                    BOSS RAP GENUINE
-                  </span>
-                  <code style={{ position: 'absolute', bottom: '6px', right: '8px', fontSize: '0.65rem', background: '#ffffff', border: '1px solid #e2e8f0', padding: '2px 6px', borderRadius: '4px', color: '#64748b' }}>
+                  {product.imageUrl ? (
+                    <img 
+                      src={product.imageUrl} 
+                      alt={product.name} 
+                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                      onError={e => { (e.target as HTMLElement).style.display = 'none'; }}
+                    />
+                  ) : (
+                    <>
+                      {getCategoryIcon(product.category)}
+                      <span style={{ fontSize: '0.62rem', color: '#94a3b8', fontWeight: 700, marginTop: '6px', letterSpacing: '1px' }}>
+                        BOSS RAP GENUINE
+                      </span>
+                    </>
+                  )}
+                  <code style={{ position: 'absolute', bottom: '6px', right: '8px', fontSize: '0.65rem', background: 'rgba(255,255,255,0.92)', border: '1px solid #e2e8f0', padding: '2px 6px', borderRadius: '4px', color: '#64748b', backdropFilter: 'blur(4px)' }}>
                     {product.barcode}
                   </code>
                 </div>
@@ -603,8 +615,17 @@ export const Shop: React.FC = () => {
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '140px 1fr', gap: '18px', marginBottom: '18px' }}>
-              <div style={{ aspectRatio: '1', background: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                {getCategoryIcon(selectedProduct.category)}
+              <div style={{ aspectRatio: '1', background: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+                {selectedProduct.imageUrl ? (
+                  <img
+                    src={selectedProduct.imageUrl}
+                    alt={selectedProduct.name}
+                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                    onError={e => { (e.target as HTMLElement).style.display = 'none'; }}
+                  />
+                ) : (
+                  getCategoryIcon(selectedProduct.category)
+                )}
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>

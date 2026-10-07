@@ -542,13 +542,25 @@ export const Sales: React.FC = () => {
                     onMouseEnter={e => !isOutOfStock && (e.currentTarget.style.borderColor = '#2563eb')}
                     onMouseLeave={e => !isOutOfStock && (e.currentTarget.style.borderColor = '#e2e8f0')}
                   >
-                    <div>
-                      <span style={{ fontSize: '0.65rem', color: '#64748b', textTransform: 'uppercase' }}>
-                        {product.category}
-                      </span>
-                      <strong style={{ fontSize: '0.82rem', color: '#0f172a', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', lineHeight: '1.25' }}>
-                        {product.name}
-                      </strong>
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
+                      {product.imageUrl && (
+                        <div style={{ width: '38px', height: '38px', borderRadius: '4px', overflow: 'hidden', flexShrink: 0, border: '1px solid #e2e8f0', backgroundColor: '#f8fafc' }}>
+                          <img
+                            src={product.imageUrl}
+                            alt=""
+                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                            onError={e => { (e.target as HTMLElement).style.display = 'none'; }}
+                          />
+                        </div>
+                      )}
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <span style={{ fontSize: '0.65rem', color: '#64748b', textTransform: 'uppercase' }}>
+                          {product.category}
+                        </span>
+                        <strong style={{ fontSize: '0.82rem', color: '#0f172a', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', lineHeight: '1.25' }}>
+                          {product.name}
+                        </strong>
+                      </div>
                     </div>
 
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '10px' }}>

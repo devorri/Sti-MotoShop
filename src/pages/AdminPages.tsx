@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useAppContext } from '../context/AppContext';
 import type { Sale, Product, User } from '../context/AppContext';
-import { supabase } from '../supabase';
+import { supabase, uploadFileToBucket } from '../supabase';
 import {
   Users,
   Package,
@@ -20,7 +20,9 @@ import {
   Upload,
   AlertTriangle,
   Clock,
-  BarChart2
+  BarChart2,
+  Image as ImageIcon,
+  Loader2
 } from 'lucide-react';
 import { 
   ResponsiveContainer, 
@@ -102,8 +104,10 @@ export const Dashboard: React.FC = () => {
     price: '',
     stock: '',
     lowStockLevel: '5',
-    barcode: ''
+    barcode: '',
+    imageUrl: ''
   });
+  const [uploadingImage, setUploadingImage] = useState(false);
 
   // Orders tab states (Sorted NEWEST FIRST)
   const [orderStatusFilter, setOrderStatusFilter] = useState<'ALL' | 'ORDER PLACED' | 'PREPARING' | 'READY FOR PICKUP' | 'OUT FOR DELIVERY' | 'COMPLETED'>('ALL');
@@ -204,6 +208,32 @@ export const Dashboard: React.FC = () => {
     ));
   };
 
+  // Upload product image to Supabase 'Files' bucket
+  const handleUploadProductImage = async (file: File, isEdit: boolean) => {
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      alert('File size exceeds 5MB limit. Please choose a smaller photo.');
+      return;
+    }
+    setUploadingImage(true);
+    try {
+      const publicUrl = await uploadFileToBucket(file, 'products');
+      if (publicUrl) {
+        if (isEdit && editingProduct) {
+          setEditingProduct({ ...editingProduct, imageUrl: publicUrl });
+        } else {
+          setNewProductForm(prev => ({ ...prev, imageUrl: publicUrl }));
+        }
+      } else {
+        alert('Failed to upload image. Please check your Supabase storage bucket settings.');
+      }
+    } catch (err: any) {
+      alert('Upload error: ' + (err?.message || 'Unknown error'));
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
   // Add Product Handler
   const handleAddProduct = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -228,7 +258,8 @@ export const Dashboard: React.FC = () => {
       price: priceVal,
       stock: stockVal,
       lowStockLevel: lowStockVal,
-      barcode: barcodeVal
+      barcode: barcodeVal,
+      imageUrl: newProductForm.imageUrl.trim() || undefined
     };
 
     const ok = await saveProduct(newProd);
@@ -242,7 +273,8 @@ export const Dashboard: React.FC = () => {
         price: '',
         stock: '',
         lowStockLevel: '5',
-        barcode: ''
+        barcode: '',
+        imageUrl: ''
       });
     }
   };
@@ -691,6 +723,7 @@ export const Dashboard: React.FC = () => {
             <table>
               <thead>
                 <tr>
+                  <th style={{ width: '48px', textAlign: 'center' }}>PHOTO</th>
                   <th>BARCODE / ID</th>
                   <th>ITEM NAME & DETAILS</th>
                   <th>CATEGORY</th>
@@ -709,6 +742,31 @@ export const Dashboard: React.FC = () => {
 
                   return (
                     <tr key={product.id}>
+                      <td style={{ textAlign: 'center' }}>
+                        <div style={{
+                          width: '40px',
+                          height: '40px',
+                          borderRadius: '6px',
+                          border: '1px solid #e2e8f0',
+                          backgroundColor: '#f8fafc',
+                          overflow: 'hidden',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          verticalAlign: 'middle'
+                        }}>
+                          {product.imageUrl ? (
+                            <img
+                              src={product.imageUrl}
+                              alt={product.name}
+                              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                              onError={e => { (e.target as HTMLElement).style.display = 'none'; }}
+                            />
+                          ) : (
+                            <ImageIcon size={18} color="#94a3b8" />
+                          )}
+                        </div>
+                      </td>
                       <td>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                           <Barcode size={15} color="#64748b" />
@@ -1378,12 +1436,84 @@ export const Dashboard: React.FC = () => {
                 />
               </div>
 
+              {/* Product Photo Upload Section */}
+              <div style={{ padding: '12px', border: '1px solid #e2e8f0', borderRadius: '8px', backgroundColor: '#f8fafc' }}>
+                <label style={{ margin: '0 0 8px 0', fontSize: '0.78rem', fontWeight: 700, color: '#334155' }}>
+                  Product Photo (Supabase Storage: Files)
+                </label>
+                <div style={{ display: 'flex', gap: '14px', alignItems: 'center' }}>
+                  <div style={{
+                    width: '64px',
+                    height: '64px',
+                    borderRadius: '8px',
+                    border: '1px dashed #cbd5e1',
+                    backgroundColor: '#ffffff',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    overflow: 'hidden',
+                    flexShrink: 0
+                  }}>
+                    {newProductForm.imageUrl ? (
+                      <img src={newProductForm.imageUrl} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    ) : (
+                      <ImageIcon size={26} color="#94a3b8" />
+                    )}
+                  </div>
+
+                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+                      <label className="btn" style={{
+                        cursor: uploadingImage ? 'not-allowed' : 'pointer',
+                        padding: '6px 12px',
+                        fontSize: '0.75rem',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        backgroundColor: '#eff6ff',
+                        borderColor: '#bfdbfe',
+                        color: '#1d4ed8'
+                      }}>
+                        {uploadingImage ? <Loader2 size={13} className="spin" /> : <Upload size={13} />}
+                        <span>{uploadingImage ? 'Uploading...' : 'Upload Image'}</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          disabled={uploadingImage}
+                          onChange={e => {
+                            const file = e.target.files?.[0];
+                            if (file) handleUploadProductImage(file, false);
+                          }}
+                          style={{ display: 'none' }}
+                        />
+                      </label>
+                      {newProductForm.imageUrl && (
+                        <button
+                          type="button"
+                          onClick={() => setNewProductForm(prev => ({ ...prev, imageUrl: '' }))}
+                          style={{ padding: '6px 10px', fontSize: '0.72rem', background: 'none', border: '1px solid #fca5a5', color: '#dc2626', borderRadius: '4px', cursor: 'pointer' }}
+                        >
+                          Remove Photo
+                        </button>
+                      )}
+                    </div>
+                    <input
+                      type="text"
+                      placeholder="Or paste external image URL..."
+                      value={newProductForm.imageUrl}
+                      onChange={e => setNewProductForm({ ...newProductForm, imageUrl: e.target.value })}
+                      style={{ fontSize: '0.75rem', padding: '6px 8px', height: '30px' }}
+                    />
+                  </div>
+                </div>
+              </div>
+
               <div style={{ display: 'flex', gap: '10px', marginTop: '6px' }}>
                 <button type="button" onClick={() => setShowAddProductModal(false)} className="btn" style={{ flex: 1 }}>
                   Cancel
                 </button>
-                <button type="submit" className="btn-primary" style={{ flex: 1 }}>
-                  Save Product to Supabase
+                <button type="submit" disabled={uploadingImage} className="btn-primary" style={{ flex: 1 }}>
+                  {uploadingImage ? 'Uploading Image...' : 'Save Product to Supabase'}
                 </button>
               </div>
             </form>
@@ -1466,12 +1596,84 @@ export const Dashboard: React.FC = () => {
                 />
               </div>
 
+              {/* Product Photo Upload Section */}
+              <div style={{ padding: '12px', border: '1px solid #e2e8f0', borderRadius: '8px', backgroundColor: '#f8fafc' }}>
+                <label style={{ margin: '0 0 8px 0', fontSize: '0.78rem', fontWeight: 700, color: '#334155' }}>
+                  Product Photo (Supabase Storage: Files)
+                </label>
+                <div style={{ display: 'flex', gap: '14px', alignItems: 'center' }}>
+                  <div style={{
+                    width: '64px',
+                    height: '64px',
+                    borderRadius: '8px',
+                    border: '1px dashed #cbd5e1',
+                    backgroundColor: '#ffffff',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    overflow: 'hidden',
+                    flexShrink: 0
+                  }}>
+                    {editingProduct.imageUrl ? (
+                      <img src={editingProduct.imageUrl} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    ) : (
+                      <ImageIcon size={26} color="#94a3b8" />
+                    )}
+                  </div>
+
+                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+                      <label className="btn" style={{
+                        cursor: uploadingImage ? 'not-allowed' : 'pointer',
+                        padding: '6px 12px',
+                        fontSize: '0.75rem',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        backgroundColor: '#eff6ff',
+                        borderColor: '#bfdbfe',
+                        color: '#1d4ed8'
+                      }}>
+                        {uploadingImage ? <Loader2 size={13} className="spin" /> : <Upload size={13} />}
+                        <span>{uploadingImage ? 'Uploading...' : editingProduct.imageUrl ? 'Change Photo' : 'Upload Image'}</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          disabled={uploadingImage}
+                          onChange={e => {
+                            const file = e.target.files?.[0];
+                            if (file) handleUploadProductImage(file, true);
+                          }}
+                          style={{ display: 'none' }}
+                        />
+                      </label>
+                      {editingProduct.imageUrl && (
+                        <button
+                          type="button"
+                          onClick={() => setEditingProduct({ ...editingProduct, imageUrl: undefined })}
+                          style={{ padding: '6px 10px', fontSize: '0.72rem', background: 'none', border: '1px solid #fca5a5', color: '#dc2626', borderRadius: '4px', cursor: 'pointer' }}
+                        >
+                          Remove Photo
+                        </button>
+                      )}
+                    </div>
+                    <input
+                      type="text"
+                      placeholder="Or paste external image URL..."
+                      value={editingProduct.imageUrl || ''}
+                      onChange={e => setEditingProduct({ ...editingProduct, imageUrl: e.target.value })}
+                      style={{ fontSize: '0.75rem', padding: '6px 8px', height: '30px' }}
+                    />
+                  </div>
+                </div>
+              </div>
+
               <div style={{ display: 'flex', gap: '10px', marginTop: '6px' }}>
                 <button type="button" onClick={() => setEditingProduct(null)} className="btn" style={{ flex: 1 }}>
                   Cancel
                 </button>
-                <button type="submit" className="btn-primary" style={{ flex: 1 }}>
-                  Update Product
+                <button type="submit" disabled={uploadingImage} className="btn-primary" style={{ flex: 1 }}>
+                  {uploadingImage ? 'Uploading Image...' : 'Update Product'}
                 </button>
               </div>
             </form>
