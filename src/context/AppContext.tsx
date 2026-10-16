@@ -5,7 +5,7 @@ import { supabase } from '../supabase';
 // Core Domain Models & Types
 // ==========================================
 
-export type Role = 'ADMIN' | 'EMPLOYEE' | 'CUSTOMER' | 'GUEST';
+export type Role = 'ADMIN' | 'EMPLOYEE' | 'CUSTOMER' | 'GUEST' | 'RIDER';
 
 export interface User {
   id: string;
@@ -49,6 +49,7 @@ export interface Sale {
   orderStatus?: 'ORDER PLACED' | 'PREPARING' | 'READY FOR PICKUP' | 'OUT FOR DELIVERY' | 'COMPLETED';
   trackingCode?: string;
   notes?: string;
+  deliveryFee?: number;
   paymentMethod: 'CASH' | 'E-WALLET' | 'ONLINE BANK';
   paymentRef?: string;
   receiptUrl?: string;
@@ -189,6 +190,7 @@ interface AppContextType {
   savePurchaseOrder: (po: PurchaseOrder) => Promise<boolean>;
   saveReturnRequest: (rr: ReturnRequest) => Promise<boolean>;
   saveInquiry: (inq: Omit<Inquiry, 'id' | 'date'>) => Promise<boolean>;
+  updateSaleOrderStatus: (saleId: string, status: Sale['orderStatus']) => Promise<boolean>;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -276,15 +278,25 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       // 1. Accounts -> Users
       const { data: accountsData } = await supabase.from('accounts').select('*');
       if (accountsData && accountsData.length > 0) {
-        const mappedUsers: User[] = accountsData.map(acc => ({
-          id: acc.id,
-          name: acc.name,
-          username: acc.username,
-          password: acc.password,
-          role: acc.role,
-          memberId: acc.member_id || undefined,
-          enabled: acc.enabled ?? true
-        }));
+        const mappedUsers: User[] = accountsData.map(acc => {
+          const isRider = 
+            acc.role === 'RIDER' ||
+            acc.username.toLowerCase().startsWith('rider') ||
+            acc.name.toLowerCase().includes('(rider)') ||
+            acc.name.toLowerCase().includes('delivery rider') ||
+            acc.id.startsWith('R');
+
+          return {
+            id: acc.id,
+            name: acc.name,
+            username: acc.username,
+            password: acc.password,
+            role: isRider ? ('RIDER' as Role) : (acc.role as Role),
+            memberId: acc.member_id || undefined,
+            enabled: acc.enabled ?? true
+          };
+        });
+
         setUsers(mappedUsers);
       }
 
@@ -683,7 +695,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // ==========================================
   const saveUser = async (user: User): Promise<boolean> => {
     try {
-      const { error } = await supabase.from('accounts').upsert([{
+      // 1. Try saving with user.role directly (works once schema constraint is updated with RIDER)
+      let { error } = await supabase.from('accounts').upsert([{
         id: user.id,
         name: user.name,
         username: user.username,
@@ -692,6 +705,23 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         member_id: user.memberId || null,
         enabled: user.enabled
       }]);
+
+      let finalName = user.name;
+
+      // 2. If DB check constraint fails because 'RIDER' is not yet added in Supabase schema, fallback gracefully
+      if (error && user.role === 'RIDER') {
+        finalName = user.name.toLowerCase().includes('(rider)') ? user.name : `${user.name} (Rider)`;
+        const fallback = await supabase.from('accounts').upsert([{
+          id: user.id,
+          name: finalName,
+          username: user.username,
+          password: user.password,
+          role: 'EMPLOYEE',
+          member_id: user.memberId || null,
+          enabled: user.enabled
+        }]);
+        error = fallback.error;
+      }
 
       if (error) {
         alert('Error saving user: ' + error.message);
@@ -702,13 +732,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         const idx = prev.findIndex(u => u.id === user.id);
         if (idx >= 0) {
           const updated = [...prev];
-          updated[idx] = user;
+          updated[idx] = { ...user, name: finalName };
           return updated;
         }
-        return [user, ...prev];
+        return [{ ...user, name: finalName }, ...prev];
       });
 
-      await addAuditLog('USER_SAVED', `User account ${user.name} (${user.role}) saved.`);
+      await addAuditLog('USER_SAVED', `User account ${finalName} (${user.role}) saved.`);
       return true;
     } catch (e: any) {
       alert('Error: ' + e.message);
@@ -1017,6 +1047,28 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     await addAuditLog('BACK_ORDER_STATUS', `Back order ${id} status updated to ${status}`);
   };
 
+  const updateSaleOrderStatus = async (saleId: string, status: Sale['orderStatus']): Promise<boolean> => {
+    try {
+      const { error } = await supabase
+        .from('sales')
+        .update({ order_status: status })
+        .eq('id', saleId);
+
+      if (error) {
+        console.error('Failed to update order status:', error);
+        alert('Failed to update order status: ' + error.message);
+        return false;
+      }
+
+      setSales(prev => prev.map(s => s.id === saleId ? { ...s, orderStatus: status } : s));
+      await addAuditLog('ORDER_STATUS_UPDATED', `Order ${saleId} status updated to ${status}`);
+      return true;
+    } catch (e: any) {
+      console.error('Error updating order status:', e);
+      return false;
+    }
+  };
+
   return (
     <AppContext.Provider value={{
       initialized,
@@ -1059,7 +1111,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       deletePromo,
       savePurchaseOrder,
       saveReturnRequest,
-      saveInquiry
+      saveInquiry,
+      updateSaleOrderStatus
     }}>
       {children}
     </AppContext.Provider>

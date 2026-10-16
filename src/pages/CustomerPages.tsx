@@ -11,7 +11,11 @@ import {
   Award,
   RotateCcw,
   Sparkles,
-  Send
+  Send,
+  CreditCard,
+  CheckCircle2,
+  Truck,
+  RefreshCw
 } from 'lucide-react';
 
 export const CustomerDashboard: React.FC = () => {
@@ -21,7 +25,8 @@ export const CustomerDashboard: React.FC = () => {
     sales,
     pointsSettings,
     returnRequests,
-    saveReturnRequest
+    saveReturnRequest,
+    syncWithSupabase
   } = useAppContext();
 
   const navigate = useNavigate();
@@ -30,7 +35,7 @@ export const CustomerDashboard: React.FC = () => {
   const profile = members.find(m => m.id === currentUser?.memberId);
 
   // Tabs
-  const [activeTab, setActiveTab] = useState<'OVERVIEW' | 'ORDERS' | 'RETURNS'>('OVERVIEW');
+  const [activeTab, setActiveTab] = useState<'OVERVIEW' | 'ORDERS' | 'RETURNS' | 'PAYMENTS'>('OVERVIEW');
 
   // Modals
   const [activeReceipt, setActiveReceipt] = useState<Sale | null>(null);
@@ -123,15 +128,16 @@ export const CustomerDashboard: React.FC = () => {
           </p>
         </div>
 
-        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+        <div>
           <button
             type="button"
-            onClick={() => navigate('/shop')}
-            className="btn-primary"
-            style={{ padding: '10px 18px', fontSize: '0.85rem' }}
+            onClick={() => syncWithSupabase()}
+            className="btn"
+            style={{ padding: '9px 16px', fontSize: '0.82rem', display: 'inline-flex', alignItems: 'center', gap: '8px' }}
+            title="Refresh order history & club points"
           >
-            <ShoppingBag size={15} />
-            <span>Store Catalog</span>
+            <RefreshCw size={14} />
+            <span>Sync Orders</span>
           </button>
         </div>
       </div>
@@ -249,6 +255,27 @@ export const CustomerDashboard: React.FC = () => {
         >
           Returns & Replacements ({customerReturns.length})
         </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab('PAYMENTS')}
+          style={{
+            padding: '10px 18px',
+            fontSize: '0.85rem',
+            fontWeight: 700,
+            background: 'none',
+            border: 'none',
+            borderBottom: activeTab === 'PAYMENTS' ? '3px solid #2563eb' : '3px solid transparent',
+            color: activeTab === 'PAYMENTS' ? '#2563eb' : '#64748b',
+            cursor: 'pointer',
+            marginBottom: '-2px',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '6px'
+          }}
+        >
+          <CreditCard size={15} />
+          <span>Payment Alerts ({customerOrders.filter(o => o.paymentMethod !== 'CASH' || !!o.paymentRef).length})</span>
+        </button>
       </div>
 
       {/* Tab 1: Overview */}
@@ -342,13 +369,21 @@ export const CustomerDashboard: React.FC = () => {
                       </div>
                       <span style={{ fontSize: '0.75rem', color: '#64748b' }}>
                         {new Date(order.date).toLocaleDateString()} • {order.items.length} item(s)
+                        {order.fulfillmentType === 'DELIVERY' && ` • Delivery (+₱${(order.deliveryFee ?? 100).toLocaleString()})`}
                       </span>
                     </div>
 
                     <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-                      <strong style={{ fontSize: '1rem', color: '#0f172a' }}>
-                        ₱{order.total.toLocaleString()}
-                      </strong>
+                      <div style={{ textAlign: 'right' }}>
+                        <strong style={{ fontSize: '1rem', color: '#0f172a', display: 'block' }}>
+                          ₱{order.total.toLocaleString()}
+                        </strong>
+                        {order.fulfillmentType === 'DELIVERY' && (
+                          <span style={{ fontSize: '0.68rem', color: '#2563eb', fontWeight: 600 }}>
+                            Incl. ₱{(order.deliveryFee ?? 100).toLocaleString()} delivery
+                          </span>
+                        )}
+                      </div>
                       <button
                         type="button"
                         onClick={() => setActiveReceipt(order)}
@@ -434,6 +469,11 @@ export const CustomerDashboard: React.FC = () => {
                         <span className={`badge ${order.fulfillmentType === 'DELIVERY' ? 'badge-blue' : 'badge-yellow'}`}>
                           {order.fulfillmentType || 'STORE PICKUP'}
                         </span>
+                        {order.fulfillmentType === 'DELIVERY' && (
+                          <div style={{ fontSize: '0.72rem', color: '#2563eb', fontWeight: 700, marginTop: '3px' }}>
+                            Fee: ₱{(order.deliveryFee ?? 100).toLocaleString()}
+                          </div>
+                        )}
                       </td>
                       <td>
                         <div style={{ fontSize: '0.78rem', fontWeight: 600 }}>{order.paymentMethod}</div>
@@ -448,6 +488,11 @@ export const CustomerDashboard: React.FC = () => {
                         {order.discountApplied > 0 && (
                           <div style={{ fontSize: '0.7rem', color: '#16a34a' }}>
                             -₱{order.discountApplied.toLocaleString()} off
+                          </div>
+                        )}
+                        {order.fulfillmentType === 'DELIVERY' && (
+                          <div style={{ fontSize: '0.7rem', color: '#2563eb', fontWeight: 600 }}>
+                            +₱{(order.deliveryFee ?? 100).toLocaleString()} delivery fee
                           </div>
                         )}
                       </td>
@@ -560,6 +605,118 @@ export const CustomerDashboard: React.FC = () => {
         </div>
       )}
 
+      {/* Tab 4: Payment Notifications */}
+      {activeTab === 'PAYMENTS' && (
+        <div className="card" style={{ padding: '24px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px', flexWrap: 'wrap', gap: '12px' }}>
+            <div>
+              <h2 style={{ fontSize: '1.15rem', color: '#0f172a', margin: 0, fontWeight: 800 }}>
+                Payment Notifications & Confirmations
+              </h2>
+              <p style={{ margin: '2px 0 0', fontSize: '0.82rem', color: '#64748b' }}>
+                All online payments (GCash, Maya, Bank Transfer) verified by Boss Rap Motor Shop.
+              </p>
+            </div>
+            <span className="badge badge-green" style={{ fontSize: '0.75rem', padding: '4px 10px' }}>
+              ONLINE PAYMENTS VERIFIED
+            </span>
+          </div>
+
+          {customerOrders.filter(o => o.paymentMethod !== 'CASH' || !!o.paymentRef).length === 0 ? (
+            <div style={{ padding: '40px 16px', textAlign: 'center', color: '#64748b' }}>
+              <CreditCard size={42} color="#cbd5e1" style={{ margin: '0 auto 10px' }} />
+              <div style={{ fontSize: '0.9rem', fontWeight: 700, color: '#334155' }}>No online payment records found</div>
+              <p style={{ fontSize: '0.8rem', marginTop: '4px' }}>
+                When you place an order with GCash, Maya, or Bank Transfer, payment confirmations will appear here.
+              </p>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              {customerOrders
+                .filter(o => o.paymentMethod !== 'CASH' || !!o.paymentRef)
+                .map(order => {
+                  const isDelivery = order.fulfillmentType === 'DELIVERY';
+                  return (
+                    <div
+                      key={order.id}
+                      style={{
+                        padding: '16px 20px',
+                        borderRadius: '10px',
+                        border: '1px solid #bbf7d0',
+                        backgroundColor: '#f0fdf4',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        flexWrap: 'wrap',
+                        gap: '14px'
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                        <div style={{
+                          width: '42px',
+                          height: '42px',
+                          borderRadius: '50%',
+                          backgroundColor: '#dcfce7',
+                          color: '#15803d',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          flexShrink: 0
+                        }}>
+                          <CheckCircle2 size={24} />
+                        </div>
+                        <div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <strong style={{ fontSize: '0.95rem', color: '#0f172a' }}>
+                              Payment Confirmed • ₱{order.total.toLocaleString()}
+                            </strong>
+                            <span className="badge badge-green" style={{ fontSize: '0.68rem' }}>
+                              PAID ONLINE
+                            </span>
+                          </div>
+                          <div style={{ fontSize: '0.78rem', color: '#15803d', fontWeight: 600, marginTop: '2px' }}>
+                            via {order.paymentMethod} {order.paymentRef ? `• Ref No: ${order.paymentRef}` : ''}
+                          </div>
+                          <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '4px', display: 'flex', gap: '10px', alignItems: 'center' }}>
+                            <span>Order #{order.id}</span>
+                            <span>•</span>
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                              {isDelivery ? <Truck size={12} color="#7c3aed" /> : <Package size={12} color="#2563eb" />}
+                              <span>{isDelivery ? 'Boss Rap Rider Delivery' : 'Store Pickup'}</span>
+                            </span>
+                            <span>•</span>
+                            <span>{new Date(order.date).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => setActiveReceipt(order)}
+                        className="btn"
+                        style={{
+                          fontSize: '0.8rem',
+                          padding: '8px 14px',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          backgroundColor: '#ffffff',
+                          borderColor: '#86efac',
+                          color: '#15803d',
+                          fontWeight: 700
+                        }}
+                      >
+                        <Printer size={14} />
+                        <span>View Receipt</span>
+                      </button>
+                    </div>
+                  );
+                })}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Return Request Modal */}
       {returnModalSale && (
         <div className="modal-overlay" onClick={() => setReturnModalSale(null)}>
@@ -648,6 +805,12 @@ export const CustomerDashboard: React.FC = () => {
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px', color: '#16a34a' }}>
                   <span>Discount Applied:</span>
                   <span>-₱{activeReceipt.discountApplied.toLocaleString()}</span>
+                </div>
+              )}
+              {activeReceipt.fulfillmentType === 'DELIVERY' && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px', color: '#2563eb' }}>
+                  <span>Delivery Fee (Rider):</span>
+                  <span>+₱{(activeReceipt.deliveryFee ?? 100).toLocaleString()}</span>
                 </div>
               )}
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1rem', fontWeight: 900, margin: '6px 0' }}>

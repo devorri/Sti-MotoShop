@@ -5,7 +5,6 @@ import type { Sale, Product, User } from '../context/AppContext';
 import { supabase, uploadFileToBucket } from '../supabase';
 import {
   Users,
-  Package,
   Search,
   Trash2,
   Edit3,
@@ -15,12 +14,9 @@ import {
   PlusCircle,
   RefreshCw,
   Printer,
-  History,
   Download,
   Upload,
   AlertTriangle,
-  Clock,
-  BarChart2,
   Image as ImageIcon,
   Loader2
 } from 'lucide-react';
@@ -52,36 +48,22 @@ export const Dashboard: React.FC = () => {
     saveProduct,
     deleteProduct,
     saveUser,
-    toggleUserEnabled,
     auditLogs,
     backOrders,
     updateBackOrderStatus,
     pointsSettings
   } = useAppContext();
 
-  // Active Tab synchronized with URL search params
-  const [searchParams, setSearchParams] = useSearchParams();
+  // Active Tab synchronized with URL search params (controlled by the left sidebar navigation)
+  const [searchParams] = useSearchParams();
   const validTabs = ['ACCOUNTS', 'PRODUCTS', 'ORDERS', 'AUDIT', 'BACKORDERS', 'REPORTS', 'BACKUP'] as const;
   type TabType = typeof validTabs[number];
 
   const tabFromUrl = searchParams.get('tab') as TabType;
-  const [activeTab, setActiveTabState] = useState<TabType>(
-    tabFromUrl && validTabs.includes(tabFromUrl) ? tabFromUrl : 'ACCOUNTS'
-  );
-
-  useEffect(() => {
-    if (tabFromUrl && validTabs.includes(tabFromUrl) && tabFromUrl !== activeTab) {
-      setActiveTabState(tabFromUrl);
-    }
-  }, [tabFromUrl]);
-
-  const setActiveTab = (tab: TabType) => {
-    setActiveTabState(tab);
-    setSearchParams({ tab });
-  };
+  const activeTab: TabType = tabFromUrl && validTabs.includes(tabFromUrl) ? tabFromUrl : 'ACCOUNTS';
 
   // User tab states
-  const [roleFilter, setRoleFilter] = useState<'ALL' | 'EMPLOYEE' | 'ADMIN' | 'CUSTOMER'>('ALL');
+  const [roleFilter, setRoleFilter] = useState<'ALL' | 'EMPLOYEE' | 'ADMIN' | 'CUSTOMER' | 'RIDER'>('ALL');
   const [userSearch, setUserSearch] = useState('');
   const [showAddUserModal, setShowAddUserModal] = useState(false);
   const [newUserForm, setNewUserForm] = useState({
@@ -131,7 +113,23 @@ export const Dashboard: React.FC = () => {
   const staffCount = staffMembers.length;
   const activeStaffCount = staffMembers.filter(u => u.enabled).length;
 
-  const totalSalesRevenue = sales.reduce((sum, s) => sum + s.total, 0);
+  // Separate Walk-in vs Online revenue
+  const onlineSales = sales.filter(s => 
+    s.channel === 'ONLINE/FACEBOOK' || 
+    s.fulfillmentType === 'DELIVERY' || 
+    s.id.startsWith('S_ONL')
+  );
+  const walkInSales = sales.filter(s => 
+    s.channel !== 'ONLINE/FACEBOOK' && 
+    s.fulfillmentType !== 'DELIVERY' && 
+    !s.id.startsWith('S_ONL')
+  );
+
+  const onlineRevenue = onlineSales.reduce((sum, s) => sum + s.total, 0);
+  const walkInRevenue = walkInSales.reduce((sum, s) => sum + s.total, 0);
+  const onlineSalesCount = onlineSales.length;
+  const walkInSalesCount = walkInSales.length;
+
   const pendingOrdersCount = sales.filter(s => s.orderStatus && s.orderStatus !== 'COMPLETED').length;
   const lowStockItemsCount = products.filter(p => p.stock <= p.lowStockLevel).length;
 
@@ -457,16 +455,28 @@ export const Dashboard: React.FC = () => {
           <span style={{ fontSize: '0.75rem', color: '#64748b' }}>Assigned Cashiers</span>
         </div>
 
-        {/* Total Sales Revenue */}
+        {/* Walk-In Revenue */}
         <div className="card" style={{ padding: '18px', borderLeft: '4px solid #10b981' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b' }}>TOTAL REVENUE</span>
-            <span className="badge badge-green">SALES</span>
+            <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b' }}>WALK-IN REVENUE</span>
+            <span className="badge badge-green">COUNTER</span>
           </div>
           <h3 style={{ fontSize: '1.75rem', margin: '6px 0 2px', color: '#059669', fontWeight: 800 }}>
-            ₱{totalSalesRevenue.toLocaleString()}
+            ₱{walkInRevenue.toLocaleString()}
           </h3>
-          <span style={{ fontSize: '0.75rem', color: '#64748b' }}>{sales.length} Lifetime Transactions</span>
+          <span style={{ fontSize: '0.75rem', color: '#64748b' }}>{walkInSalesCount} In-Store Transactions</span>
+        </div>
+
+        {/* Online Revenue */}
+        <div className="card" style={{ padding: '18px', borderLeft: '4px solid #0284c7' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b' }}>ONLINE REVENUE</span>
+            <span className="badge badge-blue">ONLINE</span>
+          </div>
+          <h3 style={{ fontSize: '1.75rem', margin: '6px 0 2px', color: '#0284c7', fontWeight: 800 }}>
+            ₱{onlineRevenue.toLocaleString()}
+          </h3>
+          <span style={{ fontSize: '0.75rem', color: '#64748b' }}>{onlineSalesCount} Web & Courier Orders</span>
         </div>
 
         {/* Active Customer Orders */}
@@ -494,42 +504,6 @@ export const Dashboard: React.FC = () => {
         </div>
       </div>
 
-      {/* Navigation Tab Bar */}
-      <div style={{ display: 'flex', gap: '8px', borderBottom: '2px solid #e2e8f0', marginBottom: '22px', overflowX: 'auto' }}>
-        {[
-          { id: 'ACCOUNTS', label: `Accounts & Staff (${users.length})`, icon: <Users size={15} /> },
-          { id: 'PRODUCTS', label: `Catalog & Inventory (${products.length})`, icon: <Package size={15} /> },
-          { id: 'ORDERS', label: `Orders Feed (${sales.length})`, icon: <Box size={15} /> },
-          { id: 'AUDIT', label: `Audit Trail (${auditLogs.length})`, icon: <History size={15} /> },
-          { id: 'BACKORDERS', label: `Back Orders (${backOrders.length})`, icon: <Clock size={15} /> },
-          { id: 'REPORTS', label: 'Analytics & Reports', icon: <BarChart2 size={15} /> },
-          { id: 'BACKUP', label: 'Backup & Restore', icon: <Download size={15} /> },
-        ].map(t => (
-          <button
-            key={t.id}
-            type="button"
-            onClick={() => setActiveTab(t.id as any)}
-            style={{
-              padding: '10px 16px',
-              fontSize: '0.82rem',
-              fontWeight: 700,
-              background: 'none',
-              border: 'none',
-              borderBottom: activeTab === t.id ? '3px solid #2563eb' : '3px solid transparent',
-              color: activeTab === t.id ? '#2563eb' : '#64748b',
-              cursor: 'pointer',
-              marginBottom: '-2px',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-              whiteSpace: 'nowrap'
-            }}
-          >
-            {t.icon}
-            <span>{t.label}</span>
-          </button>
-        ))}
-      </div>
 
       {/* ======================================================== */}
       {/* Tab 1: User & Staff Accounts */}
@@ -559,7 +533,7 @@ export const Dashboard: React.FC = () => {
               </div>
 
               <div style={{ display: 'flex', gap: '4px' }}>
-                {(['ALL', 'EMPLOYEE', 'ADMIN', 'CUSTOMER'] as const).map(role => (
+                {(['ALL', 'EMPLOYEE', 'ADMIN', 'CUSTOMER', 'RIDER'] as const).map(role => (
                   <button
                     key={role}
                     type="button"
@@ -601,13 +575,12 @@ export const Dashboard: React.FC = () => {
                   <th>ROLE</th>
                   <th>LINKED MEMBER PROFILE</th>
                   <th>STATUS</th>
-                  <th>ACTION</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredUsers.length === 0 ? (
                   <tr>
-                    <td colSpan={6} style={{ textAlign: 'center', padding: '24px', color: '#64748b' }}>
+                    <td colSpan={5} style={{ textAlign: 'center', padding: '24px', color: '#64748b' }}>
                       No user accounts found. Click "Sync Supabase" above to refresh cloud accounts.
                     </td>
                   </tr>
@@ -628,7 +601,8 @@ export const Dashboard: React.FC = () => {
                         <td>
                           <span className={`badge ${
                             user.role === 'ADMIN' ? 'badge-red' :
-                            user.role === 'EMPLOYEE' ? 'badge-blue' : 'badge-green'
+                            user.role === 'EMPLOYEE' ? 'badge-blue' :
+                            user.role === 'RIDER' ? 'badge-purple' : 'badge-green'
                           }`}>
                             {user.role}
                           </span>
@@ -646,21 +620,9 @@ export const Dashboard: React.FC = () => {
                           )}
                         </td>
                         <td>
-                          <span className={`badge ${user.enabled ? 'badge-green' : 'badge-red'}`}>
-                            {user.enabled ? 'ACTIVE' : 'DISABLED'}
+                          <span className="badge badge-green">
+                            ACTIVE
                           </span>
-                        </td>
-                        <td>
-                          {user.role !== 'ADMIN' && (
-                            <button
-                              type="button"
-                              onClick={() => toggleUserEnabled(user.id)}
-                              className={user.enabled ? 'btn-danger' : 'btn'}
-                              style={{ padding: '4px 8px', fontSize: '0.72rem' }}
-                            >
-                              {user.enabled ? 'Disable' : 'Enable'}
-                            </button>
-                          )}
                         </td>
                       </tr>
                     );
@@ -945,6 +907,11 @@ export const Dashboard: React.FC = () => {
                           <span className={`badge ${sale.fulfillmentType === 'DELIVERY' ? 'badge-blue' : 'badge-yellow'}`}>
                             {sale.fulfillmentType || 'COUNTER'}
                           </span>
+                          {sale.fulfillmentType === 'DELIVERY' && (
+                            <div style={{ fontSize: '0.7rem', color: '#2563eb', fontWeight: 700, marginTop: '2px' }}>
+                              Fee: ₱{(sale.deliveryFee ?? 100).toLocaleString()}
+                            </div>
+                          )}
                         </td>
                         <td>
                           <div style={{ fontSize: '0.75rem', fontWeight: 600 }}>{sale.paymentMethod}</div>
@@ -954,6 +921,11 @@ export const Dashboard: React.FC = () => {
                         </td>
                         <td>
                           <strong style={{ color: '#0f172a', fontSize: '0.92rem' }}>₱{sale.total.toLocaleString()}</strong>
+                          {sale.fulfillmentType === 'DELIVERY' && (
+                            <div style={{ fontSize: '0.68rem', color: '#2563eb', fontWeight: 600 }}>
+                              +₱{(sale.deliveryFee ?? 100).toLocaleString()} delivery
+                            </div>
+                          )}
                         </td>
                         <td>
                           <span className={`badge ${
@@ -1738,6 +1710,7 @@ export const Dashboard: React.FC = () => {
                 >
                   <option value="EMPLOYEE">Staff Cashier (POS Access)</option>
                   <option value="ADMIN">System Administrator (Full Access)</option>
+                  <option value="RIDER">Delivery Driver / Rider (Delivery Feed)</option>
                   <option value="CUSTOMER">Customer Account</option>
                 </select>
               </div>
@@ -1793,6 +1766,12 @@ export const Dashboard: React.FC = () => {
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px', color: '#16a34a' }}>
                   <span>Discount:</span>
                   <span>-₱{activeReceipt.discountApplied.toLocaleString()}</span>
+                </div>
+              )}
+              {activeReceipt.fulfillmentType === 'DELIVERY' && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px', color: '#2563eb' }}>
+                  <span>Delivery Fee:</span>
+                  <span>+₱{(activeReceipt.deliveryFee ?? 100).toLocaleString()}</span>
                 </div>
               )}
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1rem', fontWeight: 900, margin: '6px 0' }}>

@@ -43,12 +43,19 @@ export const Login: React.FC = () => {
           .maybeSingle();
 
         if (dbUser && dbUser.password === password) {
+          const isRider = 
+            dbUser.role === 'RIDER' ||
+            dbUser.username.toLowerCase().startsWith('rider') ||
+            dbUser.name.toLowerCase().includes('(rider)') ||
+            dbUser.name.toLowerCase().includes('delivery rider') ||
+            dbUser.id.startsWith('R');
+
           foundUser = {
             id: dbUser.id,
             name: dbUser.name,
             username: dbUser.username,
             password: dbUser.password,
-            role: dbUser.role,
+            role: isRider ? 'RIDER' : dbUser.role,
             memberId: dbUser.member_id || undefined,
             enabled: dbUser.enabled ?? true
           };
@@ -71,6 +78,8 @@ export const Login: React.FC = () => {
           navigate('/admin/dashboard');
         } else if (foundUser.role === 'EMPLOYEE') {
           navigate('/staff/pos');
+        } else if (foundUser.role === 'RIDER') {
+          navigate('/rider/deliveries');
         } else {
           navigate('/dashboard');
         }
@@ -205,6 +214,7 @@ export const Login: React.FC = () => {
             </Link>
           </p>
         </div>
+
       </div>
     </div>
   );

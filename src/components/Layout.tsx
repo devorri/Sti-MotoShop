@@ -23,8 +23,10 @@ import {
   Mail,
   Tag,
   BarChart2,
-  Download
+  Download,
+  UserCheck
 } from 'lucide-react';
+import { PaymentNotificationBell } from './PaymentNotificationBell';
 
 // ==========================================
 // 1. Public Layout (Storefront & Visitors)
@@ -118,24 +120,41 @@ export const PublicLayout: React.FC<{ children: React.ReactNode }> = ({ children
 
         {/* Desktop Navigation */}
         <nav style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }} className="public-nav-links">
-          <Link to="/shop" style={{ textDecoration: 'none' }}>
-            <button 
-              className={`btn ${location.pathname === '/shop' ? 'btn-primary' : ''}`}
-              style={{ fontSize: '0.82rem', fontWeight: 700 }}
-            >
-              <ShoppingBag size={15} />
-              <span>Catalog & Shop</span>
-            </button>
-          </Link>
+          {currentUser?.role !== 'RIDER' && (
+            <Link to="/shop" style={{ textDecoration: 'none' }}>
+              <button 
+                className={`btn ${location.pathname === '/shop' ? 'btn-primary' : ''}`}
+                style={{ fontSize: '0.82rem', fontWeight: 700 }}
+              >
+                <ShoppingBag size={15} />
+                <span>Catalog & Shop</span>
+              </button>
+            </Link>
+          )}
 
           {currentUser ? (
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
               <div style={{ textAlign: 'right', marginRight: '4px' }}>
                 <span style={{ fontSize: '0.82rem', color: '#0f172a', fontWeight: 700, display: 'block' }}>{currentUser.name}</span>
-                <span className={`badge ${currentUser.role === 'ADMIN' ? 'badge-red' : currentUser.role === 'EMPLOYEE' ? 'badge-blue' : 'badge-green'}`} style={{ fontSize: '0.65rem' }}>
+                <span className={`badge ${
+                  currentUser.role === 'ADMIN' ? 'badge-red' : 
+                  currentUser.role === 'EMPLOYEE' ? 'badge-blue' : 
+                  currentUser.role === 'RIDER' ? 'badge-purple' : 'badge-green'
+                }`} style={{ fontSize: '0.65rem' }}>
                   {currentUser.role === 'EMPLOYEE' ? 'STAFF' : currentUser.role}
                 </span>
               </div>
+
+              {currentUser.role === 'RIDER' && (
+                <button 
+                  onClick={() => navigate('/rider/deliveries')} 
+                  className="btn-primary"
+                  style={{ fontSize: '0.8rem', backgroundColor: '#7c3aed', borderColor: '#6d28d9' }}
+                >
+                  <Truck size={14} />
+                  <span>Rider Deliveries</span>
+                </button>
+              )}
 
               {currentUser.role === 'CUSTOMER' && (
                 <button 
@@ -160,25 +179,27 @@ export const PublicLayout: React.FC<{ children: React.ReactNode }> = ({ children
               )}
 
               {currentUser.role === 'ADMIN' && (
-                <>
-                  <button 
-                    onClick={() => navigate('/admin/dashboard')} 
-                    className="btn-primary"
-                    style={{ fontSize: '0.8rem' }}
-                  >
-                    <Shield size={14} />
-                    <span>Admin Dashboard</span>
-                  </button>
-                  <button 
-                    onClick={() => navigate('/staff/pos')} 
-                    className="btn"
-                    style={{ fontSize: '0.8rem' }}
-                  >
-                    <Monitor size={14} />
-                    <span>POS Terminal</span>
-                  </button>
-                </>
+                <button 
+                  onClick={() => navigate('/admin/dashboard')} 
+                  className="btn-primary"
+                  style={{ fontSize: '0.8rem' }}
+                >
+                  <Shield size={14} />
+                  <span>Admin Dashboard</span>
+                </button>
               )}
+
+              <button 
+                onClick={() => navigate('/profile')} 
+                className={`btn ${location.pathname === '/profile' ? 'btn-primary' : ''}`}
+                style={{ fontSize: '0.8rem' }}
+                title="Account Profile & Settings"
+              >
+                <UserCheck size={14} />
+                <span>Profile</span>
+              </button>
+
+              <PaymentNotificationBell mode={currentUser.role === 'ADMIN' ? 'ADMIN' : 'USER'} />
 
               <button 
                 onClick={() => { logout(); navigate('/login'); }} 
@@ -190,7 +211,8 @@ export const PublicLayout: React.FC<{ children: React.ReactNode }> = ({ children
               </button>
             </div>
           ) : (
-            <div style={{ display: 'flex', gap: '8px' }}>
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+              <PaymentNotificationBell mode="USER" />
               <Link to="/login" style={{ textDecoration: 'none' }}>
                 <button 
                   className={`btn ${location.pathname === '/login' ? 'btn-primary' : ''}`} 
@@ -256,8 +278,12 @@ export const StaffLayout: React.FC<{ children: React.ReactNode }> = ({ children 
   const { currentUser, logout, syncWithSupabase } = useAppContext();
   const navigate = useNavigate();
 
-  if (!currentUser || (currentUser.role !== 'EMPLOYEE' && currentUser.role !== 'ADMIN')) {
-    navigate('/login');
+  if (!currentUser || currentUser.role !== 'EMPLOYEE') {
+    if (currentUser?.role === 'ADMIN') {
+      navigate('/admin/dashboard');
+    } else {
+      navigate('/login');
+    }
     return null;
   }
 
@@ -308,23 +334,22 @@ export const StaffLayout: React.FC<{ children: React.ReactNode }> = ({ children 
             <span>Store View</span>
           </button>
 
-          {currentUser.role === 'ADMIN' && (
-            <button 
-              onClick={() => navigate('/admin/dashboard')} 
-              className="btn"
-              style={{ fontSize: '0.8rem', color: '#dc2626', borderColor: '#fca5a5', backgroundColor: '#fef2f2' }}
-            >
-              <Shield size={14} />
-              <span>Admin Dashboard</span>
-            </button>
-          )}
-
           <div style={{ textAlign: 'right', borderLeft: '1px solid #e2e8f0', paddingLeft: '12px' }}>
             <span style={{ fontSize: '0.82rem', color: '#0f172a', fontWeight: 700, display: 'block' }}>{currentUser.name}</span>
             <span className="badge badge-blue" style={{ fontSize: '0.65rem' }}>
-              {currentUser.role === 'ADMIN' ? 'ADMINISTRATOR' : 'STAFF CASHIER'}
+              STAFF CASHIER
             </span>
           </div>
+
+          <button 
+            className="btn"
+            style={{ fontSize: '0.8rem', padding: '6px 12px' }}
+            onClick={() => navigate('/profile')}
+            title="My Staff Profile"
+          >
+            <UserCheck size={14} />
+            <span>Profile</span>
+          </button>
 
           <button 
             className="btn-danger"
@@ -781,6 +806,18 @@ export const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children 
               <span>Sync Cloud</span>
             </button>
 
+            <button 
+              type="button"
+              onClick={() => navigate('/profile')}
+              className="btn"
+              style={{ fontSize: '0.76rem', padding: '6px 12px' }}
+              title="Admin Profile & Password"
+            >
+              <UserCheck size={13} />
+              <span>Profile</span>
+            </button>
+
+            <PaymentNotificationBell mode="ADMIN" />
           </div>
         </header>
 

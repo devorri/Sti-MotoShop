@@ -14,6 +14,8 @@ import { Promos } from './pages/Promos';
 import { Returns } from './pages/Returns';
 import { Inquiries } from './pages/Inquiries';
 import { PurchaseOrders } from './pages/PurchaseOrders';
+import { RiderPortal } from './pages/RiderPortal';
+import { Profile } from './pages/Profile';
 import './App.css';
 
 // Guard for checking if user is authenticated and permitted
@@ -21,7 +23,8 @@ const RouteGuard: React.FC<{
   children: React.ReactNode; 
   adminOnly?: boolean;
   staffOnly?: boolean;
-}> = ({ children, adminOnly = false, staffOnly = false }) => {
+  riderOnly?: boolean;
+}> = ({ children, adminOnly = false, staffOnly = false, riderOnly = false }) => {
   const { initialized, currentUser } = useAppContext();
 
   if (!initialized) {
@@ -50,9 +53,18 @@ const RouteGuard: React.FC<{
     return <Navigate to="/dashboard" replace />;
   }
 
-  // Staff or Admin POS Terminal check
-  if (staffOnly && currentUser.role !== 'EMPLOYEE' && currentUser.role !== 'ADMIN') {
-    alert('UNAUTHORIZED ACCESS: Staff cashier or administrator privileges required.');
+  // Staff POS Terminal check - strictly reserved for Staff Cashiers (EMPLOYEE)
+  if (staffOnly && currentUser.role !== 'EMPLOYEE') {
+    alert('UNAUTHORIZED ACCESS: Store Staff / Cashier privileges required for POS Terminal.');
+    if (currentUser.role === 'ADMIN') {
+      return <Navigate to="/admin/dashboard" replace />;
+    }
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  // Delivery Rider or Admin check
+  if (riderOnly && currentUser.role !== 'RIDER' && currentUser.role !== 'ADMIN') {
+    alert('UNAUTHORIZED ACCESS: Delivery rider privileges required.');
     return <Navigate to="/dashboard" replace />;
   }
 
@@ -78,6 +90,9 @@ const RootRoute = () => {
     if (currentUser.role === 'EMPLOYEE') {
       return <Navigate to="/staff/pos" replace />;
     }
+    if (currentUser.role === 'RIDER') {
+      return <Navigate to="/rider/deliveries" replace />;
+    }
     return <Navigate to="/dashboard" replace />;
   }
 
@@ -102,6 +117,15 @@ function App() {
             <RouteGuard>
               <PublicLayout>
                 <CustomerDashboard />
+              </PublicLayout>
+            </RouteGuard>
+          } />
+
+          {/* Account Profile Route (Guarded for All Roles) */}
+          <Route path="/profile" element={
+            <RouteGuard>
+              <PublicLayout>
+                <Profile />
               </PublicLayout>
             </RouteGuard>
           } />
@@ -195,6 +219,15 @@ function App() {
               </AdminLayout>
             </RouteGuard>
           } />
+
+          {/* Delivery Rider Portal */}
+          <Route path="/rider/deliveries" element={
+            <RouteGuard riderOnly>
+              <RiderPortal />
+            </RouteGuard>
+          } />
+          <Route path="/rider/dashboard" element={<Navigate to="/rider/deliveries" replace />} />
+          <Route path="/rider" element={<Navigate to="/rider/deliveries" replace />} />
 
           {/* Fallbacks */}
           <Route path="/pos" element={<Navigate to="/staff/pos" replace />} />

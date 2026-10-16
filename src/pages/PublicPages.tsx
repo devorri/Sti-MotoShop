@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAppContext } from '../context/AppContext';
 import type { Product, SaleItem } from '../context/AppContext';
@@ -13,7 +13,8 @@ import {
   X, 
   Sparkles, 
   Clock, 
-  Printer 
+  Printer,
+  CheckCircle2
 } from 'lucide-react';
 
 export const Home: React.FC = () => {
@@ -143,15 +144,21 @@ export const Shop: React.FC = () => {
   const [cart, setCart] = useState<{ product: Product; quantity: number }[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [cartSuccessModal, setCartSuccessModal] = useState<{
+    product: Product;
+    quantity: number;
+    totalItems: number;
+    totalSubtotal: number;
+  } | null>(null);
   
   // Checkout flow states
-  const [checkoutStep, setCheckoutStep] = useState<'CART' | 'DETAILS'>('CART');
+  const [checkoutStep, setCheckoutStep] = useState<'CART' | 'DETAILS' | 'PAYMENT'>('CART');
   const [checkoutForm, setCheckoutForm] = useState({
     deliveryType: 'PICKUP' as 'PICKUP' | 'DELIVERY',
     address: '',
     phone: '',
     guestName: '',
-    paymentMethod: 'CASH' as 'CASH' | 'E-WALLET' | 'ONLINE BANK',
+    paymentMethod: 'E-WALLET' as 'CASH' | 'E-WALLET' | 'ONLINE BANK',
     paymentRef: ''
   });
   
@@ -203,6 +210,11 @@ export const Shop: React.FC = () => {
   };
 
   const addToCart = (product: Product) => {
+    if (currentUser?.role === 'RIDER') {
+      alert('Rider accounts cannot place orders. Please use your Rider Deliveries portal to manage parcel fulfillment.');
+      return;
+    }
+
     const existing = cart.find(item => item.product.id === product.id);
     const cartQty = existing ? existing.quantity : 0;
 
@@ -211,14 +223,35 @@ export const Shop: React.FC = () => {
       return;
     }
 
+    const nextQty = cartQty + 1;
+    let nextCart: { product: Product; quantity: number }[];
     if (existing) {
-      setCart(cart.map(item => 
+      nextCart = cart.map(item => 
         item.product.id === product.id ? { ...item, quantity: item.quantity + 1 } : item
-      ));
+      );
     } else {
-      setCart([...cart, { product, quantity: 1 }]);
+      nextCart = [...cart, { product, quantity: 1 }];
     }
+    setCart(nextCart);
+
+    const totalItems = nextCart.reduce((sum, item) => sum + item.quantity, 0);
+    const totalSubtotal = nextCart.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
+
+    setCartSuccessModal({
+      product,
+      quantity: nextQty,
+      totalItems,
+      totalSubtotal
+    });
   };
+
+  useEffect(() => {
+    if (!cartSuccessModal) return;
+    const timer = setTimeout(() => {
+      setCartSuccessModal(null);
+    }, 6000);
+    return () => clearTimeout(timer);
+  }, [cartSuccessModal]);
 
   const updateQuantity = (productId: string, qty: number) => {
     const item = cart.find(i => i.product.id === productId);
@@ -280,8 +313,10 @@ export const Shop: React.FC = () => {
     }
   };
 
+  const isDelivery = checkoutForm.deliveryType === 'DELIVERY';
+  const deliveryFee = isDelivery ? 100 : 0;
   const discountApplied = appliedPromo ? (subtotal * appliedPromo.discountPercent) / 100 : 0;
-  const total = Math.max(0, subtotal - discountApplied);
+  const total = Math.max(0, subtotal - discountApplied) + deliveryFee;
 
   // Total points that this cart will yield
   const cartPointsYield = Math.floor(total / pointsSettings.currencyPerPoint);
@@ -309,8 +344,13 @@ export const Shop: React.FC = () => {
       return;
     }
 
-    if (checkoutForm.paymentMethod !== 'CASH' && !checkoutForm.paymentRef) {
-      alert('PLEASE PROVIDE THE TRANSACTION REFERENCE NUMBER.');
+    if (checkoutForm.deliveryType === 'DELIVERY' && checkoutForm.paymentMethod === 'CASH') {
+      alert('CASH ON DELIVERY IS NOT AVAILABLE. Please pay via GCash, Maya, or Online Bank Transfer.');
+      return;
+    }
+
+    if (checkoutForm.paymentMethod !== 'CASH' && !checkoutForm.paymentRef.trim()) {
+      alert('Payment Required: Please complete your online payment and enter the transaction reference number before generating your receipt.');
       return;
     }
 
@@ -333,17 +373,18 @@ export const Shop: React.FC = () => {
       items: saleItems,
       subtotal,
       discountApplied,
+      deliveryFee,
       total,
       date: new Date().toISOString(),
       memberId: currentUser?.memberId || undefined,
       channel: 'ONLINE/FACEBOOK' as const,
       fulfillmentType: isDelivery ? 'DELIVERY' as const : 'STORE PICKUP' as const,
       orderStatus: isDelivery ? 'PREPARING' as const : 'ORDER PLACED' as const,
-      trackingCode: `${isDelivery ? 'LALA' : 'PICKUP'}-${saleId}`,
+      trackingCode: `${isDelivery ? 'RIDER' : 'PICKUP'}-${saleId}`,
       paymentMethod: checkoutForm.paymentMethod,
       paymentRef: checkoutForm.paymentMethod !== 'CASH' ? checkoutForm.paymentRef : undefined,
       notes: isDelivery 
-        ? `CUSTOMER: ${customerDisplayName}. PHONE: ${customerPhone}. SHIPPING: LALAMOVE. ADDR: ${checkoutForm.address.toUpperCase()}`
+        ? `CUSTOMER: ${customerDisplayName}. PHONE: ${customerPhone}. SHIPPING: BOSS RAP RIDER (+₱${deliveryFee}). ADDR: ${checkoutForm.address.toUpperCase()}`
         : `CUSTOMER: ${customerDisplayName}. PHONE: ${customerPhone}. STORE PICKUP AT BALIUAG`
     };
 
@@ -354,6 +395,7 @@ export const Shop: React.FC = () => {
     if (savedSale) {
       setShowReceipt({
         ...savedSale,
+        deliveryFee,
         guestName: customerDisplayName,
         deliveryDetails: isDelivery ? checkoutForm.address : 'Store Pickup'
       });
@@ -368,7 +410,7 @@ export const Shop: React.FC = () => {
         address: '',
         phone: '',
         guestName: '',
-        paymentMethod: 'CASH',
+        paymentMethod: 'E-WALLET',
         paymentRef: ''
       });
     }
@@ -377,51 +419,84 @@ export const Shop: React.FC = () => {
   return (
     <div style={{ padding: '36px 20px', maxWidth: '1280px', margin: '0 auto', position: 'relative' }}>
       
-      {/* Floating Shopping Cart Button */}
-      <button 
-        type="button"
-        onClick={() => setIsCartOpen(true)}
-        style={{
-          position: 'fixed',
-          bottom: '28px',
-          right: '28px',
-          zIndex: 999,
-          backgroundColor: '#2563eb',
-          color: '#fff',
-          border: 'none',
-          boxShadow: '0 4px 16px rgba(37, 99, 235, 0.4)',
-          borderRadius: '50%',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          width: '58px',
-          height: '58px',
-          cursor: 'pointer'
-        }}
-        title="View Cart"
-      >
-        <ShoppingCart size={24} />
-        {cart.length > 0 && (
-          <span style={{
-            position: 'absolute',
-            top: '-4px',
-            right: '-4px',
-            backgroundColor: '#dc2626',
+      {/* Floating Shopping Cart Button (Hidden for Riders) */}
+      {currentUser?.role !== 'RIDER' && (
+        <button 
+          type="button"
+          onClick={() => setIsCartOpen(true)}
+          style={{
+            position: 'fixed',
+            bottom: '28px',
+            right: '28px',
+            zIndex: 999,
+            backgroundColor: '#2563eb',
             color: '#fff',
+            border: 'none',
+            boxShadow: '0 4px 16px rgba(37, 99, 235, 0.4)',
             borderRadius: '50%',
-            width: '24px',
-            height: '24px',
-            fontSize: '0.75rem',
-            fontWeight: 'bold',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            border: '2px solid #ffffff'
-          }}>
-            {cart.reduce((sum, item) => sum + item.quantity, 0)}
-          </span>
-        )}
-      </button>
+            width: '58px',
+            height: '58px',
+            cursor: 'pointer'
+          }}
+          title="View Cart"
+        >
+          <ShoppingCart size={24} />
+          {cart.length > 0 && (
+            <span style={{
+              position: 'absolute',
+              top: '-4px',
+              right: '-4px',
+              backgroundColor: '#dc2626',
+              color: '#fff',
+              borderRadius: '50%',
+              width: '24px',
+              height: '24px',
+              fontSize: '0.75rem',
+              fontWeight: 'bold',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              border: '2px solid #ffffff'
+            }}>
+              {cart.reduce((sum, item) => sum + item.quantity, 0)}
+            </span>
+          )}
+        </button>
+      )}
+
+      {/* Delivery Rider Mode Notice */}
+      {currentUser?.role === 'RIDER' && (
+        <div style={{
+          backgroundColor: '#f5f3ff',
+          border: '1px solid #ddd6fe',
+          borderRadius: '10px',
+          padding: '14px 18px',
+          marginBottom: '20px',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: '12px'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <span style={{ fontSize: '1.4rem' }}>🛵</span>
+            <div>
+              <strong style={{ color: '#6d28d9', fontSize: '0.9rem', display: 'block' }}>
+                Delivery Rider Account Active
+              </strong>
+              <span style={{ fontSize: '0.8rem', color: '#7c3aed' }}>
+                You are currently signed in as an in-house delivery rider. Online customer ordering is disabled.
+              </span>
+            </div>
+          </div>
+          <Link to="/rider/deliveries" className="btn-primary" style={{ backgroundColor: '#7c3aed', borderColor: '#6d28d9', fontSize: '0.82rem', padding: '8px 16px', textDecoration: 'none' }}>
+            Open Deliveries Feed →
+          </Link>
+        </div>
+      )}
 
       {/* Header section */}
       <section style={{ marginBottom: '28px' }}>
@@ -579,6 +654,15 @@ export const Shop: React.FC = () => {
                       <Clock size={13} />
                       <span>Reserve Back Order</span>
                     </button>
+                  ) : currentUser?.role === 'RIDER' ? (
+                    <button 
+                      type="button"
+                      className="btn" 
+                      disabled
+                      style={{ fontSize: '0.72rem', padding: '8px 10px', width: '100%', opacity: 0.6, cursor: 'not-allowed', color: '#6d28d9' }}
+                    >
+                      <span>Driver Mode (Ordering Disabled)</span>
+                    </button>
                   ) : (
                     <button 
                       type="button"
@@ -649,18 +733,29 @@ export const Shop: React.FC = () => {
 
             <div style={{ display: 'flex', gap: '10px' }}>
               {selectedProduct.stock > 0 ? (
-                <button
-                  type="button"
-                  className="btn-primary"
-                  style={{ flex: 1, padding: '12px' }}
-                  onClick={() => {
-                    addToCart(selectedProduct);
-                    setSelectedProduct(null);
-                  }}
-                >
-                  <ShoppingCart size={15} />
-                  <span>Add to Cart ({selectedProduct.stock} Available)</span>
-                </button>
+                currentUser?.role === 'RIDER' ? (
+                  <button
+                    type="button"
+                    className="btn"
+                    disabled
+                    style={{ flex: 1, padding: '12px', opacity: 0.6, cursor: 'not-allowed', color: '#6d28d9' }}
+                  >
+                    <span>Driver Mode: Customer Ordering Disabled</span>
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    className="btn-primary"
+                    style={{ flex: 1, padding: '12px' }}
+                    onClick={() => {
+                      addToCart(selectedProduct);
+                      setSelectedProduct(null);
+                    }}
+                  >
+                    <ShoppingCart size={15} />
+                    <span>Add to Cart ({selectedProduct.stock} Available)</span>
+                  </button>
+                )
               ) : (
                 <button
                   type="button"
@@ -680,6 +775,203 @@ export const Shop: React.FC = () => {
         </div>
       )}
 
+      {/* ADD TO CART SUCCESSION POPUP MODAL */}
+      {cartSuccessModal && (
+        <div 
+          className="modal-overlay" 
+          onClick={() => setCartSuccessModal(null)}
+          style={{ zIndex: 10000 }}
+        >
+          <div 
+            className="modal" 
+            style={{ 
+              maxWidth: '560px', 
+              width: '92%', 
+              padding: '30px 28px',
+              borderRadius: '20px',
+              border: '1px solid #cbd5e1',
+              boxShadow: '0 25px 60px -15px rgba(0, 0, 0, 0.35)',
+              position: 'relative'
+            }} 
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Close Button */}
+            <button 
+              type="button" 
+              onClick={() => setCartSuccessModal(null)}
+              aria-label="Close"
+              style={{ 
+                position: 'absolute', 
+                top: '20px', 
+                right: '20px', 
+                border: '1px solid #cbd5e1', 
+                background: '#f8fafc', 
+                borderRadius: '50%',
+                width: '38px',
+                height: '38px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer', 
+                color: '#334155'
+              }}
+            >
+              <X size={18} />
+            </button>
+
+            {/* Header Success Banner */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '22px' }}>
+              <div style={{
+                width: '56px',
+                height: '56px',
+                borderRadius: '50%',
+                backgroundColor: '#dcfce7',
+                border: '2px solid #86efac',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#16a34a',
+                flexShrink: 0
+              }}>
+                <CheckCircle2 size={32} strokeWidth={2.5} />
+              </div>
+              <div>
+                <h3 style={{ margin: 0, fontSize: '1.45rem', color: '#0f172a', fontWeight: 900 }}>
+                  Added to Cart!
+                </h3>
+                <span style={{ fontSize: '0.92rem', color: '#16a34a', fontWeight: 700 }}>
+                  Item successfully added to your shopping bag
+                </span>
+              </div>
+            </div>
+
+            {/* Product Item Card Preview */}
+            <div style={{
+              display: 'flex',
+              gap: '16px',
+              backgroundColor: '#f8fafc',
+              border: '1px solid #e2e8f0',
+              borderRadius: '14px',
+              padding: '16px',
+              marginBottom: '20px',
+              alignItems: 'center'
+            }}>
+              <div style={{
+                width: '90px',
+                height: '90px',
+                borderRadius: '10px',
+                backgroundColor: '#ffffff',
+                border: '1px solid #cbd5e1',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                overflow: 'hidden',
+                flexShrink: 0
+              }}>
+                {cartSuccessModal.product.imageUrl ? (
+                  <img
+                    src={cartSuccessModal.product.imageUrl}
+                    alt={cartSuccessModal.product.name}
+                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                    onError={e => { (e.target as HTMLElement).style.display = 'none'; }}
+                  />
+                ) : (
+                  getCategoryIcon(cartSuccessModal.product.category)
+                )}
+              </div>
+
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <span className="badge badge-blue" style={{ fontSize: '0.72rem', padding: '3px 8px', marginBottom: '6px' }}>
+                  {cartSuccessModal.product.category}
+                </span>
+                <strong style={{ 
+                  display: 'block', 
+                  fontSize: '1.05rem', 
+                  color: '#0f172a', 
+                  whiteSpace: 'nowrap', 
+                  overflow: 'hidden', 
+                  textOverflow: 'ellipsis',
+                  lineHeight: 1.3
+                }}>
+                  {cartSuccessModal.product.name}
+                </strong>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '8px' }}>
+                  <span style={{ fontSize: '0.9rem', color: '#64748b', fontWeight: 600 }}>
+                    Qty in Cart: <strong style={{ color: '#0f172a', fontSize: '1rem' }}>{cartSuccessModal.quantity}</strong>
+                  </span>
+                  <span style={{ fontSize: '1.2rem', color: '#2563eb', fontWeight: 900 }}>
+                    ₱{cartSuccessModal.product.price.toLocaleString()}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Cart Summary Bar */}
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              padding: '16px 20px',
+              backgroundColor: '#eff6ff',
+              borderRadius: '12px',
+              border: '1px solid #bfdbfe',
+              marginBottom: '22px'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <ShoppingCart size={20} color="#2563eb" />
+                <span style={{ fontSize: '0.95rem', color: '#1e40af', fontWeight: 700 }}>
+                  Cart Total ({cartSuccessModal.totalItems} {cartSuccessModal.totalItems === 1 ? 'item' : 'items'}):
+                </span>
+              </div>
+              <strong style={{ fontSize: '1.3rem', color: '#1e40af', fontWeight: 900 }}>
+                ₱{cartSuccessModal.totalSubtotal.toLocaleString()}
+              </strong>
+            </div>
+
+            {/* Action Buttons */}
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <button
+                type="button"
+                className="btn"
+                style={{ 
+                  flex: 1, 
+                  padding: '13px 16px', 
+                  fontSize: '0.92rem', 
+                  fontWeight: 700, 
+                  justifyContent: 'center',
+                  backgroundColor: '#ffffff'
+                }}
+                onClick={() => setCartSuccessModal(null)}
+              >
+                Continue Shopping
+              </button>
+
+              <button
+                type="button"
+                className="btn-primary"
+                style={{ 
+                  flex: 1.3, 
+                  padding: '13px 18px', 
+                  fontSize: '0.95rem', 
+                  fontWeight: 800, 
+                  justifyContent: 'center',
+                  gap: '8px'
+                }}
+                onClick={() => {
+                  setCartSuccessModal(null);
+                  setIsCartOpen(true);
+                  setCheckoutStep('CART');
+                }}
+              >
+                <ShoppingCart size={18} />
+                <span>View Cart & Checkout</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+
       {/* SHOPPING CART & CHECKOUT MODAL */}
       {isCartOpen && (
         <div className="modal-overlay" onClick={() => setIsCartOpen(false)}>
@@ -688,7 +980,11 @@ export const Shop: React.FC = () => {
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <ShoppingCart size={20} color="#2563eb" />
                 <h3 style={{ margin: 0, fontSize: '1.2rem', color: '#0f172a' }}>
-                  {checkoutStep === 'CART' ? `Shopping Cart (${cart.length})` : 'Delivery & Payment'}
+                  {checkoutStep === 'CART' 
+                    ? `Shopping Cart (${cart.length})` 
+                    : checkoutStep === 'DETAILS' 
+                      ? 'Delivery & Order Details' 
+                      : 'Online Payment'}
                 </h3>
               </div>
               <button type="button" onClick={() => setIsCartOpen(false)} style={{ border: 'none', background: 'none', cursor: 'pointer' }}>
@@ -789,19 +1085,48 @@ export const Shop: React.FC = () => {
                   className="btn-primary"
                   style={{ width: '100%', padding: '12px', marginTop: '16px', fontSize: '0.9rem' }}
                 >
-                  <span>Proceed to Details & Payment</span>
+                  <span>Proceed to Details & Delivery</span>
                 </button>
               </div>
-            ) : (
-              <form onSubmit={handleCheckout} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            ) : checkoutStep === 'DETAILS' ? (
+              <form 
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  if (!currentUser && (!checkoutForm.guestName.trim() || !checkoutForm.phone.trim())) {
+                    alert('PLEASE PROVIDE YOUR NAME AND CONTACT PHONE.');
+                    return;
+                  }
+                  if (checkoutForm.deliveryType === 'DELIVERY' && !checkoutForm.address.trim()) {
+                    alert('PLEASE PROVIDE A DELIVERY ADDRESS.');
+                    return;
+                  }
+                  if (checkoutForm.paymentMethod === 'CASH') {
+                    if (checkoutForm.deliveryType === 'DELIVERY') {
+                      alert('CASH ON DELIVERY IS NOT AVAILABLE. Online payment is required for deliveries.');
+                      return;
+                    }
+                    handleCheckout(e);
+                  } else {
+                    setCheckoutStep('PAYMENT');
+                  }
+                }} 
+                style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}
+              >
                 <div>
                   <label>Fulfillment Method</label>
                   <select
                     value={checkoutForm.deliveryType}
-                    onChange={e => setCheckoutForm({ ...checkoutForm, deliveryType: e.target.value as any })}
+                    onChange={e => {
+                      const dt = e.target.value as 'PICKUP' | 'DELIVERY';
+                      setCheckoutForm(prev => ({
+                        ...prev,
+                        deliveryType: dt,
+                        paymentMethod: dt === 'DELIVERY' && prev.paymentMethod === 'CASH' ? 'E-WALLET' : prev.paymentMethod
+                      }));
+                    }}
                   >
-                    <option value="PICKUP">Store Counter Pickup (JP Rizal, Baliuag)</option>
-                    <option value="DELIVERY">Delivery via Lalamove / Courier</option>
+                    <option value="PICKUP">Store Counter Pickup (JP Rizal, Baliuag) - FREE</option>
+                    <option value="DELIVERY">Boss Rap Rider Delivery (+₱100 Delivery Fee)</option>
                   </select>
                 </div>
 
@@ -832,7 +1157,7 @@ export const Shop: React.FC = () => {
 
                 {checkoutForm.deliveryType === 'DELIVERY' && (
                   <div>
-                    <label>Delivery Address *</label>
+                    <label>Delivery Address (Drop-off Destination) *</label>
                     <textarea
                       rows={2}
                       placeholder="House/Street, Barangay, City (e.g. Sulivan, Baliuag, Bulacan)..."
@@ -844,41 +1169,199 @@ export const Shop: React.FC = () => {
                 )}
 
                 <div>
-                  <label>Payment Method</label>
+                  <label>Payment Method (No Cash on Delivery)</label>
                   <select
                     value={checkoutForm.paymentMethod}
                     onChange={e => setCheckoutForm({ ...checkoutForm, paymentMethod: e.target.value as any })}
                   >
-                    <option value="CASH">Cash on Counter / Cash on Delivery</option>
-                    <option value="E-WALLET">GCash / Maya E-Wallet</option>
+                    {checkoutForm.deliveryType === 'PICKUP' && (
+                      <option value="CASH">Cash on Counter (Pay at Baliuag Counter upon Pickup)</option>
+                    )}
+                    <option value="E-WALLET">GCash / Maya E-Wallet (Online Payment)</option>
                     <option value="ONLINE BANK">Online Bank Transfer (BDO / BPI)</option>
                   </select>
+                  {checkoutForm.deliveryType === 'DELIVERY' && (
+                    <span style={{ fontSize: '0.72rem', color: '#dc2626', fontWeight: 600, display: 'block', marginTop: '3px' }}>
+                      Notice: No Cash on Delivery (COD). All delivery orders require online payment prior to rider dispatch.
+                    </span>
+                  )}
                 </div>
 
-                {checkoutForm.paymentMethod !== 'CASH' && (
-                  <div>
-                    <label>Transaction Reference # *</label>
-                    <input
-                      type="text"
-                      placeholder="e.g. GCASH-881920"
-                      value={checkoutForm.paymentRef}
-                      onChange={e => setCheckoutForm({ ...checkoutForm, paymentRef: e.target.value })}
-                      required
-                    />
+                <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: '10px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', color: '#64748b' }}>
+                    <span>Items Subtotal:</span>
+                    <span>₱{subtotal.toLocaleString()}</span>
                   </div>
-                )}
-
-                <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: '10px', display: 'flex', justifyContent: 'space-between', fontWeight: 900, fontSize: '1.1rem' }}>
-                  <span>Grand Total:</span>
-                  <span style={{ color: '#2563eb' }}>₱{total.toLocaleString()}</span>
+                  {discountApplied > 0 && (
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', color: '#16a34a' }}>
+                      <span>Discount ({appliedPromo?.name}):</span>
+                      <span>-₱{discountApplied.toLocaleString()}</span>
+                    </div>
+                  )}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', color: isDelivery ? '#2563eb' : '#64748b', fontWeight: isDelivery ? 700 : 500 }}>
+                    <span>Delivery Fee:</span>
+                    <span>{isDelivery ? `+₱${deliveryFee.toLocaleString()} (Rider Delivery)` : 'FREE (Store Pickup)'}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 900, fontSize: '1.15rem', color: '#0f172a', borderTop: '1px dashed #cbd5e1', paddingTop: '6px', marginTop: '2px' }}>
+                    <span>Grand Total:</span>
+                    <span style={{ color: '#2563eb' }}>₱{total.toLocaleString()}</span>
+                  </div>
                 </div>
 
                 <div style={{ display: 'flex', gap: '10px' }}>
                   <button type="button" onClick={() => setCheckoutStep('CART')} className="btn" style={{ flex: 1 }}>
+                    Back to Cart
+                  </button>
+                  <button type="submit" className="btn-primary" style={{ flex: 1.5, fontWeight: 800 }}>
+                    {checkoutForm.paymentMethod === 'CASH' 
+                      ? 'Confirm Counter Pickup' 
+                      : 'Proceed to Payment →'}
+                  </button>
+                </div>
+              </form>
+            ) : (
+              /* Step 3: ONLINE PAYMENT VERIFICATION SCREEN */
+              <form onSubmit={handleCheckout} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                <div style={{
+                  backgroundColor: '#f0fdf4',
+                  border: '1px solid #86efac',
+                  borderRadius: '10px',
+                  padding: '12px 14px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px'
+                }}>
+                  <span style={{ fontSize: '1.4rem' }}>💳</span>
+                  <div>
+                    <strong style={{ fontSize: '0.85rem', color: '#166534', display: 'block', fontWeight: 800 }}>
+                      ONLINE PAYMENT VERIFICATION
+                    </strong>
+                    <span style={{ fontSize: '0.78rem', color: '#15803d' }}>
+                      Please send the exact amount of <strong>₱{total.toLocaleString()}</strong> using the account details below, then enter your Reference Number to verify & generate your receipt.
+                    </span>
+                  </div>
+                </div>
+
+                {checkoutForm.paymentMethod === 'E-WALLET' ? (
+                  <div style={{
+                    backgroundColor: '#eff6ff',
+                    border: '2px solid #2563eb',
+                    borderRadius: '12px',
+                    padding: '16px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '10px'
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span className="badge badge-blue" style={{ fontSize: '0.75rem', fontWeight: 800 }}>
+                        GCASH / MAYA OFFICIAL ACCOUNT
+                      </span>
+                      <span style={{ fontSize: '0.75rem', color: '#1d4ed8', fontWeight: 700 }}>
+                        Express Send
+                      </span>
+                    </div>
+
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#ffffff', padding: '12px 14px', borderRadius: '8px', border: '1px solid #cbd5e1' }}>
+                      <div>
+                        <span style={{ fontSize: '0.7rem', color: '#64748b', display: 'block', fontWeight: 700 }}>GCASH / MAYA NUMBER</span>
+                        <strong style={{ fontSize: '1.15rem', color: '#0f172a', letterSpacing: '0.04em' }}>0912 345 6789</strong>
+                        <span style={{ fontSize: '0.72rem', color: '#16a34a', display: 'block', fontWeight: 700, marginTop: '2px' }}>
+                          BOSS RAP MOTOR SHOP / RAPHAEL G.
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          navigator.clipboard.writeText('09123456789');
+                          alert('Copied 09123456789 to clipboard!');
+                        }}
+                        className="btn"
+                        style={{ fontSize: '0.75rem', padding: '6px 12px' }}
+                      >
+                        Copy #
+                      </button>
+                    </div>
+
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#dbeafe', padding: '10px 14px', borderRadius: '8px' }}>
+                      <span style={{ fontSize: '0.82rem', color: '#1e40af', fontWeight: 700 }}>Exact Amount to Send:</span>
+                      <strong style={{ fontSize: '1.3rem', color: '#1d4ed8', fontWeight: 900 }}>₱{total.toLocaleString()}</strong>
+                    </div>
+                  </div>
+                ) : (
+                  <div style={{
+                    backgroundColor: '#ecfdf5',
+                    border: '2px solid #059669',
+                    borderRadius: '12px',
+                    padding: '16px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '10px'
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span className="badge badge-green" style={{ fontSize: '0.75rem', fontWeight: 800 }}>
+                        BDO / BPI ONLINE BANK TRANSFER
+                      </span>
+                      <span style={{ fontSize: '0.75rem', color: '#047857', fontWeight: 700 }}>
+                        Instapay / Pesonet
+                      </span>
+                    </div>
+
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#ffffff', padding: '12px 14px', borderRadius: '8px', border: '1px solid #cbd5e1' }}>
+                      <div>
+                        <span style={{ fontSize: '0.7rem', color: '#64748b', display: 'block', fontWeight: 700 }}>BDO UNIBANK ACCOUNT</span>
+                        <strong style={{ fontSize: '1.15rem', color: '#0f172a', letterSpacing: '0.04em' }}>0012 3456 7890</strong>
+                        <span style={{ fontSize: '0.72rem', color: '#16a34a', display: 'block', fontWeight: 700, marginTop: '2px' }}>
+                          BOSS RAP MOTOR SHOP
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          navigator.clipboard.writeText('001234567890');
+                          alert('Copied BDO Account 001234567890 to clipboard!');
+                        }}
+                        className="btn"
+                        style={{ fontSize: '0.75rem', padding: '6px 12px' }}
+                      >
+                        Copy #
+                      </button>
+                    </div>
+
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#a7f3d0', padding: '10px 14px', borderRadius: '8px' }}>
+                      <span style={{ fontSize: '0.82rem', color: '#065f46', fontWeight: 700 }}>Exact Amount to Transfer:</span>
+                      <strong style={{ fontSize: '1.3rem', color: '#047857', fontWeight: 900 }}>₱{total.toLocaleString()}</strong>
+                    </div>
+                  </div>
+                )}
+
+                <div>
+                  <label style={{ color: '#0f172a', fontWeight: 800 }}>
+                    Transaction Reference Number (Required to Generate Receipt) *
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. 1002 9384 7129 or MP-88912"
+                    value={checkoutForm.paymentRef}
+                    onChange={e => setCheckoutForm({ ...checkoutForm, paymentRef: e.target.value })}
+                    required
+                    style={{ height: '42px', fontSize: '0.92rem', fontWeight: 700 }}
+                  />
+                  <span style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '4px', display: 'block' }}>
+                    Copy the Reference No. from your GCash / Maya SMS or Bank Mobile confirmation screen.
+                  </span>
+                </div>
+
+                <div style={{ display: 'flex', gap: '10px', marginTop: '4px' }}>
+                  <button type="button" onClick={() => setCheckoutStep('DETAILS')} className="btn" style={{ flex: 1 }}>
                     Back
                   </button>
-                  <button type="submit" disabled={checkingOut} className="btn-primary" style={{ flex: 1 }}>
-                    {checkingOut ? 'Placing Order...' : 'Confirm Order'}
+                  <button 
+                    type="submit" 
+                    disabled={checkingOut || !checkoutForm.paymentRef.trim()} 
+                    className="btn-primary" 
+                    style={{ flex: 1.6, padding: '12px', fontSize: '0.88rem', fontWeight: 800 }}
+                  >
+                    {checkingOut ? 'Verifying & Generating...' : 'I Have Paid — Generate Receipt'}
                   </button>
                 </div>
               </form>
@@ -890,7 +1373,29 @@ export const Shop: React.FC = () => {
       {/* Post-Checkout Receipt Modal */}
       {showReceipt && (
         <div className="modal-overlay" onClick={() => setShowReceipt(null)}>
-          <div className="modal" style={{ maxWidth: '420px', width: '100%' }} onClick={e => e.stopPropagation()}>
+          <div className="modal" style={{ maxWidth: '440px', width: '100%' }} onClick={e => e.stopPropagation()}>
+            {/* Live Payment Confirmation Notification */}
+            <div style={{
+              backgroundColor: '#ecfdf5',
+              border: '1px solid #a7f3d0',
+              borderRadius: '8px',
+              padding: '12px 14px',
+              marginBottom: '16px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px'
+            }}>
+              <CheckCircle2 size={24} color="#059669" style={{ flexShrink: 0 }} />
+              <div>
+                <strong style={{ fontSize: '0.85rem', color: '#065f46', display: 'block' }}>
+                  Payment Notification Verified!
+                </strong>
+                <span style={{ fontSize: '0.75rem', color: '#047857', display: 'block', marginTop: '2px' }}>
+                  ₱{showReceipt.total.toLocaleString()} paid via {showReceipt.paymentMethod} {showReceipt.paymentRef ? `(Ref: ${showReceipt.paymentRef})` : ''}. Store Admin and Delivery Rider have been notified in real time.
+                </span>
+              </div>
+            </div>
+
             <div id="receipt-print-area" style={{ fontFamily: 'monospace', fontSize: '0.82rem', color: '#0f172a' }}>
               <div style={{ textAlign: 'center', marginBottom: '12px' }}>
                 <h2 style={{ fontSize: '1.15rem', margin: 0, fontWeight: 900 }}>BOSS RAP MOTOR SHOP</h2>
@@ -915,9 +1420,26 @@ export const Shop: React.FC = () => {
 
               <div style={{ borderBottom: '1px dashed #cbd5e1', margin: '8px 0' }} />
 
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1rem', fontWeight: 900 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                <span>Subtotal:</span>
+                <span>₱{showReceipt.subtotal?.toLocaleString()}</span>
+              </div>
+              {showReceipt.discountApplied > 0 && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px', color: '#16a34a' }}>
+                  <span>Discount:</span>
+                  <span>-₱{showReceipt.discountApplied.toLocaleString()}</span>
+                </div>
+              )}
+              {showReceipt.fulfillmentType === 'DELIVERY' && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px', color: '#2563eb' }}>
+                  <span>Delivery Fee:</span>
+                  <span>+₱{(showReceipt.deliveryFee ?? 100).toLocaleString()}</span>
+                </div>
+              )}
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1rem', fontWeight: 900, margin: '6px 0' }}>
                 <span>TOTAL:</span>
-                <span>₱{showReceipt.total.toLocaleString()}</span>
+                <span>₱{showReceipt.total?.toLocaleString()}</span>
               </div>
 
               <div style={{ borderBottom: '1px dashed #cbd5e1', margin: '8px 0' }} />
