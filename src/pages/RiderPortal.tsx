@@ -19,6 +19,7 @@ import {
   UserCheck
 } from 'lucide-react';
 import { PaymentNotificationBell } from '../components/PaymentNotificationBell';
+import { sendOutForDeliverySms, sendDeliveryCompletedSms } from '../services/smsService';
 
 export const RiderPortal: React.FC = () => {
   const { 
@@ -95,10 +96,32 @@ export const RiderPortal: React.FC = () => {
     try {
       const ok = await updateSaleOrderStatus(saleId, newStatus);
       if (ok) {
+        // Send real-time SMS to customer via TranslertPH
+        const targetSale = sales.find(s => s.id === saleId);
+        if (targetSale) {
+          const { customer, phone, address } = parseDeliveryNotes(targetSale.notes);
+          if (phone && phone !== 'N/A') {
+            if (newStatus === 'OUT FOR DELIVERY') {
+              sendOutForDeliverySms({
+                phone,
+                orderId: saleId,
+                riderName: currentUser?.name || 'Kuya Dennis',
+                address
+              }).catch(e => console.warn('SMS dispatch error:', e));
+            } else if (newStatus === 'COMPLETED') {
+              sendDeliveryCompletedSms({
+                phone,
+                orderId: saleId,
+                customerName: customer
+              }).catch(e => console.warn('SMS dispatch error:', e));
+            }
+          }
+        }
+
         setSuccessToast(
           newStatus === 'COMPLETED' 
-            ? `Order #${saleId} marked as DELIVERED! Great job!` 
-            : `Order #${saleId} is now OUT FOR DELIVERY!`
+            ? `Order #${saleId} marked as DELIVERED & customer SMS notified!` 
+            : `Order #${saleId} is now OUT FOR DELIVERY & customer SMS notified!`
         );
         setTimeout(() => setSuccessToast(null), 4000);
       }

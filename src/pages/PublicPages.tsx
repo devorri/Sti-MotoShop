@@ -16,6 +16,7 @@ import {
   Printer,
   CheckCircle2
 } from 'lucide-react';
+import { sendOrderConfirmationSms } from '../services/smsService';
 
 export const Home: React.FC = () => {
   return (
@@ -393,6 +394,18 @@ export const Shop: React.FC = () => {
     setCheckingOut(false);
 
     if (savedSale) {
+      // Send Order Confirmation SMS in background if valid phone number provided
+      if (customerPhone && customerPhone !== 'N/A') {
+        sendOrderConfirmationSms({
+          phone: customerPhone,
+          orderId: saleId,
+          total,
+          paymentMethod: checkoutForm.paymentMethod,
+          fulfillmentType: isDelivery ? 'Boss Rap Rider Delivery' : 'Store Pickup',
+          customerName: customerDisplayName
+        }).catch(err => console.warn('SMS dispatch error:', err));
+      }
+
       setShowReceipt({
         ...savedSale,
         deliveryFee,

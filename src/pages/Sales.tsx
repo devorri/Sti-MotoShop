@@ -666,7 +666,7 @@ export const Sales: React.FC = () => {
               )}
 
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1.25rem', fontWeight: 900, color: '#0f172a', marginTop: '6px', paddingTop: '6px', borderTop: '1px solid #e2e8f0' }}>
-                <span>TOTAL DUE:</span>
+                <span>TOTAL AMOUNT:</span>
                 <span style={{ color: '#2563eb' }}>₱{total.toLocaleString()}</span>
               </div>
             </div>
