@@ -272,6 +272,34 @@ export const Login: React.FC = () => {
     }
   };
 
+  // Resend OTP via SMS
+  const handleResendOtp = async () => {
+    if (!fpTargetPhone) return;
+    setFpLoading(true);
+    setFpError('');
+    try {
+      const generatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
+      const expirationTimestamp = Date.now() + 15 * 60 * 1000;
+
+      setFpOtpSent(generatedOtp);
+      setFpOtpExpiresAt(expirationTimestamp);
+
+      const smsResult = await sendPasswordResetOtpSms({
+        phone: fpTargetPhone,
+        otpCode: generatedOtp,
+        expirationMinutes: 15
+      });
+
+      if (!smsResult.success) {
+        console.warn('Semaphore SMS error:', smsResult.error);
+      }
+    } catch (err: any) {
+      setFpError(err.message || 'Failed to resend SMS.');
+    } finally {
+      setFpLoading(false);
+    }
+  };
+
   // Helper to mask phone number: e.g. 09171234567 -> 0917 ••• ••67
   const maskPhone = (phone: string) => {
     if (!phone || phone.length < 11) return phone;
@@ -597,27 +625,25 @@ export const Login: React.FC = () => {
                     autoFocus
                     style={{ height: '44px', fontSize: '1.2rem', letterSpacing: '0.3em', textAlign: 'center', fontWeight: 900 }}
                   />
-                  {/* Test mode OTP indicator for easy evaluation */}
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '4px' }}>
-                    <span style={{ fontSize: '0.7rem', color: '#64748b' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '6px' }}>
+                    <span style={{ fontSize: '0.72rem', color: '#64748b' }}>
                       Didn't get code? Check phone signal
                     </span>
                     <button
                       type="button"
-                      onClick={() => {
-                        setFpOtpInput(fpOtpSent);
-                      }}
+                      onClick={handleResendOtp}
+                      disabled={fpLoading}
                       style={{
                         background: 'none',
                         border: 'none',
                         padding: 0,
-                        color: '#2563eb',
-                        fontSize: '0.72rem',
+                        color: fpLoading ? '#94a3b8' : '#2563eb',
+                        fontSize: '0.75rem',
                         fontWeight: 700,
-                        cursor: 'pointer'
+                        cursor: fpLoading ? 'not-allowed' : 'pointer'
                       }}
                     >
-                      Fill Code ({fpOtpSent})
+                      {fpLoading ? 'Sending...' : 'Resend SMS'}
                     </button>
                   </div>
                 </div>
