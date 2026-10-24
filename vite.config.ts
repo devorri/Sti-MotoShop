@@ -10,6 +10,11 @@ export default defineConfig({
         target: 'https://api.semaphore.co/api/v4',
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api\/semaphore/, '')
+      },
+      '/api/paymongo': {
+        target: 'https://api.paymongo.com/v1',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/paymongo/, '')
       }
     }
   }

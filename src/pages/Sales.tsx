@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useAppContext } from '../context/AppContext';
 import type { Product, SaleItem } from '../context/AppContext';
+import { toEan13 } from '../components/Ean13Barcode';
 import { 
   Monitor, 
   CornerDownLeft, 
@@ -13,8 +14,101 @@ import {
   ScanBarcode, 
   Barcode, 
   UserCheck, 
-  RefreshCw
+  RefreshCw,
+  QrCode,
+  ExternalLink,
+  X
 } from 'lucide-react';
+import { createQrPhPayment, checkPaymentIntentStatus, type PayMongoQrResponse } from '../services/paymongoService';
+
+const EditablePosQty: React.FC<{
+  quantity: number;
+  maxStock: number;
+  onUpdate: (qty: number) => void;
+}> = ({ quantity, maxStock, onUpdate }) => {
+  const [val, setVal] = useState<string>(String(quantity));
+
+  useEffect(() => {
+    setVal(String(quantity));
+  }, [quantity]);
+
+  const commit = () => {
+    const parsed = parseInt(val, 10);
+    if (isNaN(parsed) || parsed < 0) {
+      setVal(String(quantity));
+    } else if (parsed === 0) {
+      onUpdate(0);
+    } else {
+      onUpdate(Math.min(maxStock, parsed));
+    }
+  };
+
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
+      <button
+        type="button"
+        onClick={() => onUpdate(quantity - 1)}
+        style={{
+          width: '24px',
+          height: '24px',
+          borderRadius: '4px',
+          border: '1px solid #cbd5e1',
+          backgroundColor: '#fff',
+          cursor: 'pointer',
+          fontWeight: 700,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontSize: '0.85rem'
+        }}
+        title="Decrease quantity"
+      >-</button>
+      <input
+        type="number"
+        min="1"
+        max={maxStock}
+        value={val}
+        onChange={e => setVal(e.target.value)}
+        onBlur={commit}
+        onKeyDown={e => {
+          if (e.key === 'Enter') {
+            (e.target as HTMLInputElement).blur();
+          }
+        }}
+        style={{
+          width: '46px',
+          height: '24px',
+          borderRadius: '4px',
+          border: '1px solid #cbd5e1',
+          textAlign: 'center',
+          fontWeight: 800,
+          fontSize: '0.82rem',
+          padding: '0 2px',
+          backgroundColor: '#fff'
+        }}
+        title="Type bulk quantity and press Enter"
+      />
+      <button
+        type="button"
+        onClick={() => onUpdate(quantity + 1)}
+        style={{
+          width: '24px',
+          height: '24px',
+          borderRadius: '4px',
+          border: '1px solid #cbd5e1',
+          backgroundColor: '#fff',
+          cursor: 'pointer',
+          fontWeight: 700,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontSize: '0.85rem'
+        }}
+        title="Increase quantity"
+      >+</button>
+    </div>
+  );
+};
 
 export const Sales: React.FC = () => {
   const { 
@@ -39,6 +133,13 @@ export const Sales: React.FC = () => {
   const [memberInput, setMemberInput] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<'CASH' | 'E-WALLET' | 'ONLINE BANK'>('CASH');
   const [paymentRef, setPaymentRef] = useState('');
+
+  // POS PayMongo QR Ph Modal States
+  const [showPosQrModal, setShowPosQrModal] = useState(false);
+  const [posQrLoading, setPosQrLoading] = useState(false);
+  const [posQrData, setPosQrData] = useState<PayMongoQrResponse | null>(null);
+  const [posQrPaid, setPosQrPaid] = useState(false);
+  const [posQrError, setPosQrError] = useState<string | null>(null);
 
   // Cash Tendered & Change calculations
   const [cashTendered, setCashTendered] = useState<string>('');
@@ -95,6 +196,50 @@ export const Sales: React.FC = () => {
       });
     } catch (e) {}
   };
+
+  const handleGeneratePosQr = async () => {
+    if (total <= 0) return;
+    setPosQrLoading(true);
+    setPosQrError(null);
+    setPosQrPaid(false);
+    try {
+      const res = await createQrPhPayment({
+        amountInPhp: total,
+        description: `Boss Rap POS (${selectedMemberId || 'Walk-In Customer'})`
+      });
+      if (res.success && res.qrCodeUrl) {
+        setPosQrData(res);
+      } else {
+        setPosQrError(res.error || 'Failed to generate QR Ph code from PayMongo');
+      }
+    } catch (e: any) {
+      setPosQrError(e.message || 'PayMongo connection error');
+    } finally {
+      setPosQrLoading(false);
+    }
+  };
+
+  // Polling for POS QR Ph payment
+  useEffect(() => {
+    if (!posQrData?.paymentIntentId || posQrPaid || !showPosQrModal) return;
+
+    const interval = setInterval(async () => {
+      try {
+        const check = await checkPaymentIntentStatus(posQrData.paymentIntentId!);
+        if (check.paid) {
+          setPosQrPaid(true);
+          playCashRegisterChime();
+          const ref = check.paymentId || posQrData.paymentIntentId!;
+          setPaymentRef(ref);
+          clearInterval(interval);
+        }
+      } catch (err) {
+        console.warn('POS QR poll error:', err);
+      }
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, [posQrData?.paymentIntentId, posQrPaid, showPosQrModal]);
 
   // Add product to register cart
   const addProductToRegister = (product: Product, quantityToAdd: number = 1) => {
@@ -157,6 +302,7 @@ export const Sales: React.FC = () => {
 
     const matchedProduct = products.find(p =>
       p.barcode === targetBarcode ||
+      toEan13(p.barcode) === targetBarcode ||
       p.id.toLowerCase() === targetBarcode.toLowerCase() ||
       p.name.toLowerCase() === targetBarcode.toLowerCase()
     );
@@ -278,9 +424,18 @@ export const Sales: React.FC = () => {
       return;
     }
 
-    if (paymentMethod !== 'CASH' && !paymentRef) {
-      alert('PLEASE ENTER THE TRANSACTION REFERENCE NUMBER.');
-      return;
+    if (paymentMethod !== 'CASH') {
+      if (!paymentRef.trim()) {
+        alert('PLEASE ENTER THE TRANSACTION REFERENCE NUMBER.');
+        return;
+      }
+      if (paymentMethod === 'E-WALLET' && !posQrPaid) {
+        const cleanRef = paymentRef.replace(/[\s-]/g, '');
+        if (cleanRef.length < 10 || cleanRef.length > 13) {
+          alert(`GCash / Maya Reference Number must be between 10 and 13 digits long (current: ${cleanRef.length} digits). Please enter a valid reference.`);
+          return;
+        }
+      }
     }
 
     setProcessing(true);
@@ -326,6 +481,9 @@ export const Sales: React.FC = () => {
       setPaymentRef('');
       setCashTendered('');
       setPaymentMethod('CASH');
+      setPosQrData(null);
+      setPosQrPaid(false);
+      setShowPosQrModal(false);
       barcodeInputRef.current?.focus();
     }
   };
@@ -627,21 +785,11 @@ export const Sales: React.FC = () => {
                       <span style={{ fontSize: '0.72rem', color: '#64748b' }}>₱{item.price.toLocaleString()} each</span>
                     </div>
 
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <button
-                        type="button"
-                        onClick={() => updateCartQty(item.productId, item.quantity - 1)}
-                        style={{ width: '22px', height: '22px', borderRadius: '4px', border: '1px solid #cbd5e1', backgroundColor: '#fff', cursor: 'pointer', fontWeight: 700 }}
-                      >-</button>
-                      <span style={{ fontSize: '0.85rem', fontWeight: 800, minWidth: '22px', textAlign: 'center' }}>
-                        {item.quantity}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => updateCartQty(item.productId, item.quantity + 1)}
-                        style={{ width: '22px', height: '22px', borderRadius: '4px', border: '1px solid #cbd5e1', backgroundColor: '#fff', cursor: 'pointer', fontWeight: 700 }}
-                      >+</button>
-                    </div>
+                    <EditablePosQty
+                      quantity={item.quantity}
+                      maxStock={products.find(p => p.id === item.productId)?.stock || 9999}
+                      onUpdate={(qty) => updateCartQty(item.productId, qty)}
+                    />
 
                     <strong style={{ fontSize: '0.88rem', color: '#0f172a', marginLeft: '12px', minWidth: '60px', textAlign: 'right' }}>
                       ₱{(item.price * item.quantity).toLocaleString()}
@@ -817,15 +965,55 @@ export const Sales: React.FC = () => {
                 )}
               </div>
             ) : (
-              <div style={{ marginBottom: '14px' }}>
-                <label>Transaction Reference # *</label>
+              <div style={{ marginBottom: '14px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <label style={{ margin: 0, fontWeight: 700, fontSize: '0.82rem' }}>Transaction Reference # *</label>
+                  {paymentMethod === 'E-WALLET' && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowPosQrModal(true);
+                        handleGeneratePosQr();
+                      }}
+                      className="btn btn-primary"
+                      style={{ fontSize: '0.72rem', padding: '4px 10px', display: 'flex', alignItems: 'center', gap: '4px' }}
+                    >
+                      <QrCode size={13} /> Show Customer QR Ph
+                    </button>
+                  )}
+                </div>
                 <input
                   type="text"
-                  placeholder="e.g. GCASH-192837 or BDO-8821..."
+                  placeholder={paymentMethod === 'E-WALLET' ? "e.g. Scan QR Ph or enter GCash Ref (10-13 digits)..." : "e.g. BDO-882193..."}
                   value={paymentRef}
+                  maxLength={20}
                   onChange={e => setPaymentRef(e.target.value)}
                   required
+                  style={{
+                    backgroundColor: posQrPaid ? '#f0fdf4' : '#ffffff',
+                    borderColor: posQrPaid ? '#86efac' : (
+                      paymentMethod === 'E-WALLET' && paymentRef
+                        ? (paymentRef.replace(/[\s-]/g, '').length >= 10 && paymentRef.replace(/[\s-]/g, '').length <= 13 ? '#86efac' : '#f59e0b')
+                        : '#cbd5e1'
+                    ),
+                    fontWeight: 700
+                  }}
                 />
+                {paymentMethod === 'E-WALLET' && !posQrPaid && paymentRef && (() => {
+                  const cleanRef = paymentRef.replace(/[\s-]/g, '');
+                  const isValid = cleanRef.length >= 10 && cleanRef.length <= 13;
+                  return (
+                    <span style={{ fontSize: '0.72rem', color: isValid ? '#16a34a' : '#d97706', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '4px', marginTop: '3px' }}>
+                      {isValid ? <CheckCircle2 size={12} color="#16a34a" /> : <AlertCircle size={12} color="#d97706" />}
+                      <span>{isValid ? `Valid Reference (${cleanRef.length} digits)` : `GCash Ref: ${cleanRef.length}/10-13 digits`}</span>
+                    </span>
+                  );
+                })()}
+                {posQrPaid && (
+                  <span style={{ fontSize: '0.72rem', color: '#16a34a', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '4px', marginTop: '3px' }}>
+                    <CheckCircle2 size={13} /> Paid via PayMongo QR Ph (Ref: {paymentRef})
+                  </span>
+                )}
               </div>
             )}
 
@@ -849,6 +1037,184 @@ export const Sales: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* POS Customer Facing QR Ph Modal */}
+      {showPosQrModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(15, 23, 42, 0.75)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 9999,
+          padding: '16px'
+        }}>
+          <div style={{
+            backgroundColor: '#ffffff',
+            borderRadius: '16px',
+            width: '100%',
+            maxWidth: '420px',
+            padding: '24px',
+            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.2)',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            textAlign: 'center',
+            position: 'relative',
+            gap: '14px'
+          }}>
+            <button
+              type="button"
+              onClick={() => setShowPosQrModal(false)}
+              style={{
+                position: 'absolute',
+                top: '16px',
+                right: '16px',
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                color: '#64748b'
+              }}
+            >
+              <X size={20} />
+            </button>
+
+            <span className="badge badge-blue" style={{ fontSize: '0.75rem', fontWeight: 800 }}>
+              COUNTER-TOP QR PH TERMINAL
+            </span>
+
+            <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 900, color: '#0f172a' }}>
+              Customer Scan & Pay
+            </h3>
+
+            <div style={{ backgroundColor: '#dbeafe', padding: '8px 16px', borderRadius: '8px', width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontSize: '0.8rem', color: '#1e40af', fontWeight: 700 }}>Total Due:</span>
+              <strong style={{ fontSize: '1.3rem', color: '#1d4ed8', fontWeight: 900 }}>₱{total.toLocaleString()}</strong>
+            </div>
+
+            {posQrLoading ? (
+              <div style={{ padding: '36px 20px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
+                <RefreshCw className="animate-spin" size={36} color="#2563eb" />
+                <span style={{ fontSize: '0.88rem', fontWeight: 700, color: '#1e40af' }}>
+                  Generating QR Ph code from PayMongo...
+                </span>
+              </div>
+            ) : posQrError ? (
+              <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px' }}>
+                <AlertCircle size={32} color="#dc2626" />
+                <span style={{ fontSize: '0.85rem', color: '#b91c1c', fontWeight: 700 }}>{posQrError}</span>
+                <button type="button" onClick={handleGeneratePosQr} className="btn btn-primary" style={{ fontSize: '0.75rem' }}>
+                  Retry Generation
+                </button>
+              </div>
+            ) : posQrPaid ? (
+              <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px' }}>
+                <div style={{ width: 56, height: 56, borderRadius: '50%', backgroundColor: '#dcfce7', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <CheckCircle2 size={36} color="#16a34a" />
+                </div>
+                <h4 style={{ margin: 0, color: '#15803d', fontWeight: 900, fontSize: '1.15rem' }}>
+                  PAYMENT RECEIVED!
+                </h4>
+                <p style={{ margin: 0, fontSize: '0.82rem', color: '#166534' }}>
+                  PayMongo verified payment. Reference saved to POS register.
+                </p>
+                <div style={{ backgroundColor: '#f0fdf4', padding: '6px 14px', borderRadius: '6px', border: '1px solid #bbf7d0', fontSize: '0.8rem', fontWeight: 700, color: '#14532d' }}>
+                  Ref: {paymentRef}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowPosQrModal(false)}
+                  className="btn btn-primary"
+                  style={{ marginTop: '8px', fontSize: '0.85rem', width: '100%' }}
+                >
+                  Continue POS Checkout
+                </button>
+              </div>
+            ) : posQrData?.qrCodeUrl ? (
+              <>
+                <div style={{
+                  backgroundColor: '#ffffff',
+                  padding: '12px',
+                  borderRadius: '12px',
+                  border: '1px solid #cbd5e1',
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.06)'
+                }}>
+                  <img
+                    src={posQrData.qrCodeUrl}
+                    alt="Customer QR Ph"
+                    style={{ width: '220px', height: '220px', objectFit: 'contain', display: 'block' }}
+                  />
+                </div>
+
+                <div style={{ fontSize: '0.72rem', color: '#64748b' }}>
+                  Customer can scan using GCash, Maya, ShopeePay, or any bank app.
+                </div>
+
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  fontSize: '0.74rem',
+                  color: '#1d4ed8',
+                  backgroundColor: '#eff6ff',
+                  padding: '6px 12px',
+                  borderRadius: '20px',
+                  border: '1px solid #bfdbfe'
+                }}>
+                  <span style={{
+                    width: '8px',
+                    height: '8px',
+                    borderRadius: '50%',
+                    backgroundColor: '#2563eb',
+                    display: 'inline-block'
+                  }} />
+                  <span>Awaiting payment... Auto-detects within seconds</span>
+                </div>
+
+                {/* Test simulation button */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', width: '100%', marginTop: '4px' }}>
+                  {posQrData.testUrl && (
+                    <a
+                      href={posQrData.testUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="btn"
+                      style={{ fontSize: '0.72rem', padding: '5px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '4px', textDecoration: 'none' }}
+                    >
+                      <ExternalLink size={12} /> PayMongo Simulator Page
+                    </a>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const mockRef = posQrData.paymentIntentId || `PAY_POS_${Date.now()}`;
+                      setPosQrPaid(true);
+                      setPaymentRef(mockRef);
+                      playCashRegisterChime();
+                    }}
+                    style={{
+                      fontSize: '0.72rem',
+                      padding: '5px 8px',
+                      borderRadius: '6px',
+                      backgroundColor: '#f1f5f9',
+                      color: '#475569',
+                      border: '1px dashed #94a3b8',
+                      cursor: 'pointer',
+                      fontWeight: 600
+                    }}
+                  >
+                    ⚡ Simulate Customer Scan Success
+                  </button>
+                </div>
+              </>
+            ) : null}
+          </div>
+        </div>
+      )}
 
       {/* Printable Receipt Modal */}
       {showReceipt && (

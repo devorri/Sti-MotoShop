@@ -265,3 +265,26 @@ export async function sendPaymentVerifiedSms(params: {
   const message = `Boss Rap Motor Shop: Payment of ₱${params.amount.toLocaleString()}${refText} for Order #${params.orderId} is VERIFIED! Your parcel is being packed for dispatch.`;
   return sendSms({ to: params.phone, message });
 }
+
+// 5. Password Reset OTP Verification
+export async function sendPasswordResetOtpSms(params: {
+  phone: string;
+  otpCode: string;
+  expirationMinutes?: number;
+}): Promise<SmsSendResult> {
+  const mins = params.expirationMinutes || 15;
+  const message = `Boss Rap Motor Shop: Your password reset One-Time PIN (OTP) is ${params.otpCode}. Valid for ${mins} minutes. Do not share this code with anyone.`;
+  return sendSms({ to: params.phone, message });
+}
+
+// 6. New account verification
+export async function sendRegistrationOtpSms(params: {
+  phone: string;
+  otpCode: string;
+  expirationMinutes?: number;
+}): Promise<SmsSendResult> {
+  const mins = params.expirationMinutes || 10;
+  const message = `Boss Rap Motor Shop: Your account verification OTP is ${params.otpCode}. Valid for ${mins} minutes. Do not share this code with anyone.`;
+  return sendSms({ to: params.phone, message });
+}
+

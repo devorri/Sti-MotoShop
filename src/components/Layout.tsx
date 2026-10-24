@@ -25,6 +25,7 @@ import {
   BarChart2,
   Download,
   UserCheck
+  ,MessageCircle
 } from 'lucide-react';
 import { PaymentNotificationBell } from './PaymentNotificationBell';
 
@@ -32,7 +33,7 @@ import { PaymentNotificationBell } from './PaymentNotificationBell';
 // 1. Public Layout (Storefront & Visitors)
 // ==========================================
 export const PublicLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { currentUser, logout } = useAppContext();
+  const { currentUser, logout, cart } = useAppContext();
   const navigate = useNavigate();
   const location = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -124,10 +125,23 @@ export const PublicLayout: React.FC<{ children: React.ReactNode }> = ({ children
             <Link to="/shop" style={{ textDecoration: 'none' }}>
               <button 
                 className={`btn ${location.pathname === '/shop' ? 'btn-primary' : ''}`}
-                style={{ fontSize: '0.82rem', fontWeight: 700 }}
+                style={{ fontSize: '0.82rem', fontWeight: 700, position: 'relative' }}
               >
                 <ShoppingBag size={15} />
                 <span>Catalog & Shop</span>
+                {cart && cart.length > 0 && (
+                  <span style={{
+                    backgroundColor: '#ef4444',
+                    color: '#ffffff',
+                    borderRadius: '999px',
+                    padding: '1px 6px',
+                    fontSize: '0.68rem',
+                    fontWeight: 800,
+                    marginLeft: '4px'
+                  }}>
+                    {cart.reduce((sum, item) => sum + item.quantity, 0)}
+                  </span>
+                )}
               </button>
             </Link>
           )}
@@ -167,6 +181,12 @@ export const PublicLayout: React.FC<{ children: React.ReactNode }> = ({ children
                 </button>
               )}
 
+              {(currentUser.role === 'CUSTOMER' || currentUser.role === 'ADMIN') && (
+                <button onClick={() => navigate(currentUser.role === 'ADMIN' ? '/admin/chat' : '/chat')} className="btn" style={{ fontSize: '0.8rem' }} title="Customer support chat">
+                  <MessageCircle size={14} /><span>Chat</span>
+                </button>
+              )}
+
               {currentUser.role === 'EMPLOYEE' && (
                 <button 
                   onClick={() => navigate('/staff/pos')} 
@@ -199,7 +219,7 @@ export const PublicLayout: React.FC<{ children: React.ReactNode }> = ({ children
                 <span>Profile</span>
               </button>
 
-              <PaymentNotificationBell mode={currentUser.role === 'ADMIN' ? 'ADMIN' : 'USER'} />
+              <PaymentNotificationBell mode="AUTO" />
 
               <button 
                 onClick={() => { logout(); navigate('/login'); }} 
@@ -212,7 +232,7 @@ export const PublicLayout: React.FC<{ children: React.ReactNode }> = ({ children
             </div>
           ) : (
             <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-              <PaymentNotificationBell mode="USER" />
+              <PaymentNotificationBell mode="GUEST" />
               <Link to="/login" style={{ textDecoration: 'none' }}>
                 <button 
                   className={`btn ${location.pathname === '/login' ? 'btn-primary' : ''}`} 
@@ -351,6 +371,8 @@ export const StaffLayout: React.FC<{ children: React.ReactNode }> = ({ children 
             <span>Profile</span>
           </button>
 
+          <PaymentNotificationBell mode="EMPLOYEE" />
+
           <button 
             className="btn-danger"
             style={{ fontSize: '0.8rem', padding: '6px 12px' }}
@@ -467,6 +489,7 @@ export const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children 
         { label: 'Back Orders', path: '/admin/dashboard', tab: 'BACKORDERS', icon: <Clock size={17} />, count: backOrders.length },
         { label: 'Returns & RMA', path: '/admin/returns', icon: <RotateCcw size={17} />, count: returnRequests.length },
         { label: 'Inquiries Inbox', path: '/admin/inquiries', icon: <Mail size={17} />, count: inquiries.length },
+        { label: 'Customer Chat', path: '/admin/chat', icon: <MessageCircle size={17} /> },
         { label: 'Promos & Discounts', path: '/admin/promos', icon: <Tag size={17} />, count: promos.length },
       ]
     },

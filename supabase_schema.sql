@@ -33,13 +33,13 @@ CREATE TABLE IF NOT EXISTS public.products (
   CONSTRAINT products_pkey PRIMARY KEY (id)
 );
 
--- 4. Accounts Table (Users, Cashiers, Admins)
+-- 4. Accounts Table (Users, Cashiers, Admins, Riders)
 CREATE TABLE IF NOT EXISTS public.accounts (
   id text NOT NULL DEFAULT (gen_random_uuid())::text,
   name text NOT NULL,
   username text NOT NULL UNIQUE,
   password text NOT NULL,
-  role text NOT NULL CHECK (role = ANY (ARRAY['ADMIN'::text, 'EMPLOYEE'::text, 'CUSTOMER'::text, 'GUEST'::text])),
+  role text NOT NULL CHECK (role = ANY (ARRAY['ADMIN'::text, 'EMPLOYEE'::text, 'CUSTOMER'::text, 'GUEST'::text, 'RIDER'::text])),
   member_id text,
   enabled boolean NOT NULL DEFAULT true,
   created_at timestamp with time zone NOT NULL DEFAULT now(),
@@ -53,6 +53,9 @@ CREATE TABLE IF NOT EXISTS public.promos (
   name text NOT NULL,
   description text,
   discount_percent numeric NOT NULL DEFAULT 0,
+  discount_type text NOT NULL DEFAULT 'PERCENT' CHECK (discount_type = ANY (ARRAY['PERCENT'::text, 'FREE_SHIPPING'::text])),
+  first_order_only boolean NOT NULL DEFAULT false,
+  single_use_per_customer boolean NOT NULL DEFAULT false,
   min_spend numeric NOT NULL DEFAULT 0.00,
   start_date date,
   end_date date,
@@ -66,20 +69,39 @@ CREATE TABLE IF NOT EXISTS public.sales (
   id text NOT NULL,
   subtotal numeric NOT NULL DEFAULT 0.00,
   discount_applied numeric NOT NULL DEFAULT 0.00,
+  promo_id text,
+  promo_code text,
   total numeric NOT NULL DEFAULT 0.00,
   date timestamp with time zone NOT NULL DEFAULT now(),
   member_id text,
   channel text CHECK (channel = ANY (ARRAY['WALK-IN'::text, 'ONLINE/FACEBOOK'::text])),
   fulfillment_type text CHECK (fulfillment_type = ANY (ARRAY['STORE PICKUP'::text, 'DELIVERY'::text, 'COUNTER'::text])),
-  order_status text CHECK (order_status = ANY (ARRAY['ORDER PLACED'::text, 'PREPARING'::text, 'READY FOR PICKUP'::text, 'OUT FOR DELIVERY'::text, 'COMPLETED'::text])),
+  order_status text CHECK (order_status = ANY (ARRAY['ORDER PLACED'::text, 'PREPARING'::text, 'READY FOR PICKUP'::text, 'READY FOR DELIVERY'::text, 'OUT FOR DELIVERY'::text, 'COMPLETED'::text])),
   tracking_code text,
   notes text,
   payment_method text NOT NULL CHECK (payment_method = ANY (ARRAY['CASH'::text, 'E-WALLET'::text, 'ONLINE BANK'::text])),
   payment_ref text,
   receipt_url text,
   created_at timestamp with time zone NOT NULL DEFAULT now(),
+  delivery_fee numeric DEFAULT 0.00,
+  latitude numeric(10, 7),
+  longitude numeric(10, 7),
+  shipping_address text,
+  customer_name text,
+  customer_phone text,
   CONSTRAINT sales_pkey PRIMARY KEY (id),
   CONSTRAINT sales_member_id_fkey FOREIGN KEY (member_id) REFERENCES public.members(id) ON DELETE SET NULL
+);
+
+CREATE TABLE IF NOT EXISTS public.promo_redemptions (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  promo_id text NOT NULL REFERENCES public.promos(id) ON DELETE RESTRICT,
+  member_id text NOT NULL REFERENCES public.members(id) ON DELETE CASCADE,
+  sale_id text NOT NULL REFERENCES public.sales(id) ON DELETE CASCADE,
+  redeemed_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT promo_redemptions_pkey PRIMARY KEY (id),
+  CONSTRAINT promo_redemptions_promo_member_unique UNIQUE (promo_id, member_id),
+  CONSTRAINT promo_redemptions_sale_unique UNIQUE (sale_id)
 );
 
 -- 7. Sale Items Table
@@ -120,6 +142,28 @@ CREATE TABLE IF NOT EXISTS public.inquiries (
   date timestamp with time zone NOT NULL DEFAULT now(),
   CONSTRAINT inquiries_pkey PRIMARY KEY (id)
 );
+
+-- 9b. Logged-in customer ↔ store staff chat
+CREATE TABLE IF NOT EXISTS public.chat_conversations (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  customer_id text NOT NULL REFERENCES public.accounts(id) ON DELETE CASCADE,
+  customer_name text NOT NULL,
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  UNIQUE (customer_id)
+);
+
+CREATE TABLE IF NOT EXISTS public.chat_messages (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  conversation_id uuid NOT NULL REFERENCES public.chat_conversations(id) ON DELETE CASCADE,
+  sender_id text NOT NULL REFERENCES public.accounts(id) ON DELETE CASCADE,
+  sender_name text NOT NULL,
+  sender_role text NOT NULL,
+  body text NOT NULL CHECK (char_length(trim(body)) BETWEEN 1 AND 2000),
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  read_at timestamp with time zone
+);
+
+CREATE INDEX IF NOT EXISTS chat_messages_conversation_created_idx ON public.chat_messages (conversation_id, created_at);
 
 -- 10. Points Settings Table (Store Loyalty Configuration)
 CREATE TABLE IF NOT EXISTS public.points_settings (

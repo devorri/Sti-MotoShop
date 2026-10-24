@@ -11,6 +11,9 @@ export const Promos: React.FC = () => {
     minSpend: 500,
     startDate: '',
     endDate: '',
+    discountType: 'PERCENT' as 'PERCENT' | 'FREE_SHIPPING',
+    firstOrderOnly: false,
+    singleUsePerCustomer: false,
   });
 
   const handleAddPromo = async (e: React.FormEvent) => {
@@ -29,6 +32,9 @@ export const Promos: React.FC = () => {
       minSpend: Number(newPromo.minSpend),
       startDate: newPromo.startDate,
       endDate: newPromo.endDate,
+      discountType: newPromo.discountType,
+      firstOrderOnly: newPromo.firstOrderOnly,
+      singleUsePerCustomer: newPromo.singleUsePerCustomer,
       active: true
     };
 
@@ -41,6 +47,9 @@ export const Promos: React.FC = () => {
       minSpend: 500,
       startDate: '',
       endDate: '',
+      discountType: 'PERCENT',
+      firstOrderOnly: false,
+      singleUsePerCustomer: false,
     });
   };
 
@@ -73,7 +82,7 @@ export const Promos: React.FC = () => {
               <tr>
                 <th>CODE / NAME</th>
                 <th>DESCRIPTION</th>
-                <th>DISCOUNT (%)</th>
+                <th>BENEFIT</th>
                 <th>MIN. SPEND</th>
                 <th>START DATE</th>
                 <th>END DATE</th>
@@ -90,7 +99,14 @@ export const Promos: React.FC = () => {
                     <td style={{ fontWeight: 'bold' }}>{p.name}</td>
                     <td>{p.description}</td>
                     <td>
-                      <span className="badge" style={{ borderColor: 'green', color: 'green', fontWeight: 'bold' }}>{p.discountPercent}% OFF</span>
+                      <span className="badge" style={{ borderColor: 'green', color: 'green', fontWeight: 'bold' }}>
+                        {p.discountType === 'FREE_SHIPPING' ? 'FREE SHIPPING' : `${p.discountPercent}% OFF`}
+                      </span>
+                      {(p.firstOrderOnly || p.singleUsePerCustomer) && (
+                        <div style={{ fontSize: '0.62rem', color: '#64748b', marginTop: '4px' }}>
+                          {p.firstOrderOnly ? 'FIRST ORDER' : 'ONE USE / CUSTOMER'}
+                        </div>
+                      )}
                     </td>
                     <td style={{ fontWeight: 'bold' }}>₱{p.minSpend.toLocaleString()}</td>
                     <td>{p.startDate}</td>
@@ -154,16 +170,26 @@ export const Promos: React.FC = () => {
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
                 <div>
+                  <label style={{ fontSize: '0.65rem', fontWeight: 'bold', display: 'block', marginBottom: '5px' }}>VOUCHER BENEFIT</label>
+                  <select value={newPromo.discountType} onChange={e => setNewPromo({...newPromo, discountType: e.target.value as 'PERCENT' | 'FREE_SHIPPING'})}>
+                    <option value="PERCENT">Percentage Discount</option>
+                    <option value="FREE_SHIPPING">Free Shipping</option>
+                  </select>
+                </div>
+                <div>
                   <label style={{ fontSize: '0.65rem', fontWeight: 'bold', display: 'block', marginBottom: '5px' }}>DISCOUNT PERCENTAGE (%)</label>
                   <input 
                     type="number" 
-                    required 
+                    required={newPromo.discountType === 'PERCENT'}
                     min={1}
                     max={100}
                     value={newPromo.discountPercent}
                     onChange={e => setNewPromo({...newPromo, discountPercent: Number(e.target.value)})}
+                    disabled={newPromo.discountType === 'FREE_SHIPPING'}
                   />
                 </div>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
                 <div>
                   <label style={{ fontSize: '0.65rem', fontWeight: 'bold', display: 'block', marginBottom: '5px' }}>MINIMUM PURCHASE (₱)</label>
                   <input 
@@ -174,6 +200,17 @@ export const Promos: React.FC = () => {
                     onChange={e => setNewPromo({...newPromo, minSpend: Number(e.target.value)})}
                   />
                 </div>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '0.8rem' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                  <input type="checkbox" checked={newPromo.firstOrderOnly} onChange={e => setNewPromo({...newPromo, firstOrderOnly: e.target.checked, singleUsePerCustomer: e.target.checked || newPromo.singleUsePerCustomer})} />
+                  First order only (automatically limited to one use per customer)
+                </label>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                  <input type="checkbox" checked={newPromo.singleUsePerCustomer} onChange={e => setNewPromo({...newPromo, singleUsePerCustomer: e.target.checked})} />
+                  Limit to one use per customer
+                </label>
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>

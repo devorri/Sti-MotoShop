@@ -16,6 +16,7 @@ import { Inquiries } from './pages/Inquiries';
 import { PurchaseOrders } from './pages/PurchaseOrders';
 import { RiderPortal } from './pages/RiderPortal';
 import { Profile } from './pages/Profile';
+import { Chat } from './pages/Chat';
 import './App.css';
 
 // Guard for checking if user is authenticated and permitted
@@ -129,6 +130,7 @@ function App() {
               </PublicLayout>
             </RouteGuard>
           } />
+          <Route path="/chat" element={<RouteGuard><PublicLayout><Chat /></PublicLayout></RouteGuard>} />
 
           {/* Staff POS Station (Staff & Admin) */}
           <Route path="/staff/pos" element={
@@ -203,6 +205,7 @@ function App() {
               </AdminLayout>
             </RouteGuard>
           } />
+          <Route path="/admin/chat" element={<RouteGuard adminOnly><AdminLayout><Chat admin /></AdminLayout></RouteGuard>} />
 
           <Route path="/admin/reports" element={
             <RouteGuard adminOnly>

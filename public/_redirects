@@ -1,0 +1,3 @@
+/api/semaphore/* https://api.semaphore.co/api/v4/:splat 200!
+/api/paymongo/* https://api.paymongo.com/v1/:splat 200!
+/* /index.html 200

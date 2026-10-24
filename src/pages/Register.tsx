@@ -3,6 +3,17 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useAppContext } from '../context/AppContext';
 import { supabase } from '../supabase';
 import { CheckCircle2, ArrowRight, ShoppingBag, AlertCircle, UserPlus } from 'lucide-react';
+import { formatPhoneNumber, isValidPhilippineNumber, sendRegistrationOtpSms } from '../services/smsService';
+
+const passwordRequirements = [
+  { label: 'At least 8 characters', test: (value: string) => value.length >= 8 },
+  { label: 'One uppercase letter', test: (value: string) => /[A-Z]/.test(value) },
+  { label: 'One lowercase letter', test: (value: string) => /[a-z]/.test(value) },
+  { label: 'One number', test: (value: string) => /\d/.test(value) },
+  { label: 'One special character', test: (value: string) => /[^A-Za-z0-9]/.test(value) }
+];
+
+const isStrongPassword = (value: string) => passwordRequirements.every(requirement => requirement.test(value));
 
 export const Register: React.FC = () => {
   const [formData, setFormData] = useState({
@@ -15,6 +26,11 @@ export const Register: React.FC = () => {
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [otpSent, setOtpSent] = useState('');
+  const [otpInput, setOtpInput] = useState('');
+  const [otpExpiresAt, setOtpExpiresAt] = useState(0);
+  const [phoneVerified, setPhoneVerified] = useState(false);
+  const [otpSending, setOtpSending] = useState(false);
   const [successInfo, setSuccessInfo] = useState<{
     memberId: string;
     name: string;
@@ -25,19 +41,45 @@ export const Register: React.FC = () => {
   const { setCurrentUser, syncWithSupabase, addAuditLog } = useAppContext();
   const navigate = useNavigate();
 
+  const validateRegistration = () => {
+    if (!formData.name.trim() || !formData.username.trim()) return 'Please complete your name and username.';
+    if (!isValidPhilippineNumber(formData.contact)) return 'Enter a valid 11-digit Philippine mobile number to verify your account.';
+    if (!isStrongPassword(formData.password)) return 'Your password does not meet all security requirements.';
+    if (formData.password !== formData.confirmPassword) return 'Passwords do not match.';
+    return '';
+  };
+
+  const sendOtp = async () => {
+    setError('');
+    const validationError = validateRegistration();
+    if (validationError) { setError(validationError); return; }
+    setOtpSending(true);
+    try {
+      const code = Math.floor(100000 + Math.random() * 900000).toString();
+      const result = await sendRegistrationOtpSms({ phone: formatPhoneNumber(formData.contact), otpCode: code, expirationMinutes: 10 });
+      if (!result.success) throw new Error(result.error || 'Unable to send verification code.');
+      setOtpSent(code);
+      setOtpExpiresAt(Date.now() + 10 * 60 * 1000);
+      setPhoneVerified(false);
+    } catch (err: any) {
+      setError(err.message || 'Unable to send verification code.');
+    } finally { setOtpSending(false); }
+  };
+
+  const verifyOtp = () => {
+    setError('');
+    if (Date.now() > otpExpiresAt) { setError('This code has expired. Please request a new one.'); return; }
+    if (otpInput !== otpSent) { setError('Incorrect verification code. Please check the SMS and try again.'); return; }
+    setPhoneVerified(true);
+  };
+
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
-    if (formData.password !== formData.confirmPassword) {
-      setError('Passwords do not match.');
-      return;
-    }
-
-    if (formData.password.length < 3) {
-      setError('Password must be at least 3 characters.');
-      return;
-    }
+    const validationError = validateRegistration();
+    if (validationError) { setError(validationError); return; }
+    if (!phoneVerified) { setError('Verify the OTP sent to your mobile number before creating your account.'); return; }
 
     setLoading(true);
 
@@ -286,7 +328,14 @@ export const Register: React.FC = () => {
                     type="tel"
                     placeholder="0912 345 6789"
                     value={formData.contact}
-                    onChange={e => setFormData({ ...formData, contact: e.target.value })}
+                  onChange={e => {
+                    setFormData({ ...formData, contact: e.target.value });
+                    setPhoneVerified(false);
+                    setOtpSent('');
+                    setOtpInput('');
+                    setOtpExpiresAt(0);
+                  }}
+                  required
                   />
                 </div>
                 <div>
@@ -311,6 +360,30 @@ export const Register: React.FC = () => {
                   onChange={e => setFormData({ ...formData, password: e.target.value })}
                   required
                 />
+                <div style={{ marginTop: '8px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px 12px' }}>
+                  {passwordRequirements.map(requirement => (
+                    <span key={requirement.label} style={{ fontSize: '0.72rem', color: requirement.test(formData.password) ? '#15803d' : '#64748b' }}>
+                      {requirement.test(formData.password) ? '✓' : '○'} {requirement.label}
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              <div style={{ border: '1px solid #bfdbfe', borderRadius: '8px', padding: '12px', background: '#f8fbff' }}>
+                <div style={{ fontSize: '0.82rem', fontWeight: 800, color: '#1e3a8a', marginBottom: '8px' }}>Mobile verification (required)</div>
+                {!otpSent ? (
+                  <button type="button" className="btn" onClick={sendOtp} disabled={otpSending} style={{ width: '100%' }}>
+                    {otpSending ? 'Sending SMS...' : 'Send 6-digit OTP'}
+                  </button>
+                ) : phoneVerified ? (
+                  <div style={{ color: '#15803d', fontSize: '0.82rem', fontWeight: 700 }}>✓ Mobile number verified</div>
+                ) : (
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <input aria-label="6-digit OTP" inputMode="numeric" maxLength={6} placeholder="6-digit OTP" value={otpInput} onChange={e => setOtpInput(e.target.value.replace(/\D/g, ''))} />
+                    <button type="button" className="btn-primary" onClick={verifyOtp} disabled={otpInput.length !== 6}>Verify</button>
+                    <button type="button" className="btn" onClick={sendOtp} disabled={otpSending}>Resend</button>
+                  </div>
+                )}
               </div>
 
               <div>

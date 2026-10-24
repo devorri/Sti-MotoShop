@@ -3,6 +3,18 @@
   publish = "dist"
 
 [[redirects]]
+  from = "/api/semaphore/*"
+  to = "https://api.semaphore.co/api/v4/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/paymongo/*"
+  to = "https://api.paymongo.com/v1/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAppContext } from '../context/AppContext';
+import { useAppContext, type Sale } from '../context/AppContext';
 import { 
   Truck, 
   CheckCircle2, 
@@ -31,10 +31,11 @@ export const RiderPortal: React.FC = () => {
   } = useAppContext();
 
   const navigate = useNavigate();
-  const [filter, setFilter] = useState<'ALL' | 'PREPARING' | 'OUT FOR DELIVERY' | 'COMPLETED'>('ALL');
+  const [filter, setFilter] = useState<'ALL' | 'READY' | 'PREPARING' | 'OUT FOR DELIVERY' | 'COMPLETED'>('ALL');
   const [syncing, setSyncing] = useState(false);
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [confirmCompleteModal, setConfirmCompleteModal] = useState<string | null>(null);
+  const [confirmStartModal, setConfirmStartModal] = useState<Sale | null>(null);
   const [successToast, setSuccessToast] = useState<string | null>(null);
 
   // Sync on mount
@@ -60,35 +61,50 @@ export const RiderPortal: React.FC = () => {
 
   // Metrics
   const totalDeliveries = deliverySales.length;
+  const readyCount = deliverySales.filter(s => s.orderStatus === 'READY FOR PICKUP').length;
   const inTransitCount = deliverySales.filter(s => s.orderStatus === 'OUT FOR DELIVERY').length;
   const completedCount = deliverySales.filter(s => s.orderStatus === 'COMPLETED').length;
-  const pendingCount = deliverySales.filter(s => s.orderStatus === 'PREPARING' || s.orderStatus === 'ORDER PLACED').length;
+  const preparingCount = deliverySales.filter(s => s.orderStatus === 'PREPARING' || s.orderStatus === 'ORDER PLACED').length;
 
   // Filtered view
   const filteredSales = deliverySales.filter(s => {
     if (filter === 'ALL') return true;
+    if (filter === 'READY') return s.orderStatus === 'READY FOR PICKUP';
     if (filter === 'PREPARING') return s.orderStatus === 'PREPARING' || s.orderStatus === 'ORDER PLACED';
     return s.orderStatus === filter;
   });
 
-  // Helper to parse address and customer contact from notes
-  const parseDeliveryNotes = (notes?: string) => {
-    if (!notes) return { customer: 'Customer', phone: 'N/A', address: 'Baliuag, Bulacan' };
+  // Helper to parse address, customer contact, and GPS coordinates from sale
+  const getDeliveryDetails = (sale: Sale) => {
+    let customer = sale.customerName || 'Customer';
+    let phone = sale.customerPhone || 'N/A';
+    let address = sale.shippingAddress || 'Baliuag, Bulacan';
+    let lat = sale.latitude;
+    let lng = sale.longitude;
 
-    let customer = 'Customer';
-    let phone = 'N/A';
-    let address = 'Baliuag, Bulacan';
+    if (sale.notes) {
+      if (!sale.customerName) {
+        const custMatch = sale.notes.match(/CUSTOMER:\s*([^.]+)/i);
+        if (custMatch) customer = custMatch[1].trim();
+      }
+      if (!sale.customerPhone) {
+        const phoneMatch = sale.notes.match(/PHONE:\s*([^.]+)/i);
+        if (phoneMatch) phone = phoneMatch[1].trim();
+      }
+      if (!sale.shippingAddress) {
+        const addrMatch = sale.notes.match(/ADDR:\s*(.+)$/i);
+        if (addrMatch) address = addrMatch[1].trim();
+      }
+      if (lat === undefined || lng === undefined) {
+        const gpsMatch = sale.notes.match(/GPS:\s*([0-9.-]+)\s*,\s*([0-9.-]+)/i);
+        if (gpsMatch) {
+          lat = parseFloat(gpsMatch[1]);
+          lng = parseFloat(gpsMatch[2]);
+        }
+      }
+    }
 
-    const custMatch = notes.match(/CUSTOMER:\s*([^.]+)/i);
-    if (custMatch) customer = custMatch[1].trim();
-
-    const phoneMatch = notes.match(/PHONE:\s*([^.]+)/i);
-    if (phoneMatch) phone = phoneMatch[1].trim();
-
-    const addrMatch = notes.match(/ADDR:\s*(.+)$/i);
-    if (addrMatch) address = addrMatch[1].trim();
-
-    return { customer, phone, address };
+    return { customer, phone, address, lat, lng };
   };
 
   const handleUpdateStatus = async (saleId: string, newStatus: 'OUT FOR DELIVERY' | 'COMPLETED') => {
@@ -99,7 +115,7 @@ export const RiderPortal: React.FC = () => {
         // Send real-time SMS to customer via TranslertPH
         const targetSale = sales.find(s => s.id === saleId);
         if (targetSale) {
-          const { customer, phone, address } = parseDeliveryNotes(targetSale.notes);
+          const { customer, phone, address } = getDeliveryDetails(targetSale);
           if (phone && phone !== 'N/A') {
             if (newStatus === 'OUT FOR DELIVERY') {
               sendOutForDeliverySms({
@@ -229,7 +245,7 @@ export const RiderPortal: React.FC = () => {
             <span>Profile</span>
           </button>
 
-          <PaymentNotificationBell mode="USER" />
+          <PaymentNotificationBell mode="RIDER" />
 
           <button
             onClick={() => { logout(); navigate('/login'); }}
@@ -294,31 +310,47 @@ export const RiderPortal: React.FC = () => {
             </div>
           </div>
 
+          {/* Ready to Pick Up */}
+          <div className="card" style={{ padding: '18px 20px', borderLeft: '4px solid #7c3aed' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#6d28d9', letterSpacing: '0.04em' }}>
+                READY TO PICK UP
+              </span>
+              <Package size={20} color="#7c3aed" />
+            </div>
+            <div style={{ fontSize: '1.8rem', fontWeight: 900, color: '#7c3aed', marginTop: '6px' }}>
+              {readyCount}
+            </div>
+            <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '4px' }}>
+              Packed & waiting at counter
+            </div>
+          </div>
+
           {/* Pending / Preparing */}
           <div className="card" style={{ padding: '18px 20px', borderLeft: '4px solid #f59e0b' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#64748b', letterSpacing: '0.04em' }}>
-                TO PICK UP
+                AWAITING PREP
               </span>
               <Clock size={20} color="#f59e0b" />
             </div>
             <div style={{ fontSize: '1.8rem', fontWeight: 900, color: '#d97706', marginTop: '6px' }}>
-              {pendingCount}
+              {preparingCount}
             </div>
             <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '4px' }}>
-              Preparing at store
+              Shop staff is packing
             </div>
           </div>
 
           {/* In Transit */}
-          <div className="card" style={{ padding: '18px 20px', borderLeft: '4px solid #7c3aed' }}>
+          <div className="card" style={{ padding: '18px 20px', borderLeft: '4px solid #2563eb' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#64748b', letterSpacing: '0.04em' }}>
                 OUT FOR DELIVERY
               </span>
-              <Truck size={20} color="#7c3aed" />
+              <Truck size={20} color="#2563eb" />
             </div>
-            <div style={{ fontSize: '1.8rem', fontWeight: 900, color: '#7c3aed', marginTop: '6px' }}>
+            <div style={{ fontSize: '1.8rem', fontWeight: 900, color: '#2563eb', marginTop: '6px' }}>
               {inTransitCount}
             </div>
             <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '4px' }}>
@@ -351,12 +383,12 @@ export const RiderPortal: React.FC = () => {
                 Live Delivery Orders Feed
               </h2>
               <p style={{ fontSize: '0.78rem', color: '#64748b', margin: '2px 0 0' }}>
-                Click "Complete Delivery" once parcel has been handed over to the customer.
+                Orders marked "Ready for Delivery" by Admin can be picked up and taken on the road.
               </p>
             </div>
 
             <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-              {(['ALL', 'PREPARING', 'OUT FOR DELIVERY', 'COMPLETED'] as const).map(tab => (
+              {(['ALL', 'READY', 'PREPARING', 'OUT FOR DELIVERY', 'COMPLETED'] as const).map(tab => (
                 <button
                   key={tab}
                   onClick={() => setFilter(tab)}
@@ -373,7 +405,8 @@ export const RiderPortal: React.FC = () => {
                   }}
                 >
                   {tab === 'ALL' && `All (${deliverySales.length})`}
-                  {tab === 'PREPARING' && `To Pick Up (${pendingCount})`}
+                  {tab === 'READY' && `Ready to Pick Up (${readyCount})`}
+                  {tab === 'PREPARING' && `Awaiting Prep (${preparingCount})`}
                   {tab === 'OUT FOR DELIVERY' && `In Transit (${inTransitCount})`}
                   {tab === 'COMPLETED' && `Delivered (${completedCount})`}
                 </button>
@@ -403,13 +436,17 @@ export const RiderPortal: React.FC = () => {
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             {filteredSales.map(sale => {
-              const { customer, phone, address } = parseDeliveryNotes(sale.notes);
+              const { customer, phone, address, lat, lng } = getDeliveryDetails(sale);
               const isCompleted = sale.orderStatus === 'COMPLETED';
               const isOutForDelivery = sale.orderStatus === 'OUT FOR DELIVERY';
-              const isPreparing = !isCompleted && !isOutForDelivery;
+              const isReadyForPickup = sale.orderStatus === 'READY FOR PICKUP';
+              const isPreparing = !isCompleted && !isOutForDelivery && !isReadyForPickup;
               const isProcessing = processingId === sale.id;
 
-              const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address + ', Bulacan, Philippines')}`;
+              const hasExactGps = typeof lat === 'number' && typeof lng === 'number' && !isNaN(lat) && !isNaN(lng);
+              const mapsUrl = hasExactGps
+                ? `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`
+                : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address + ', Bulacan, Philippines')}`;
 
               return (
                 <div 
@@ -418,7 +455,7 @@ export const RiderPortal: React.FC = () => {
                   style={{
                     padding: '20px 24px',
                     borderLeft: `6px solid ${
-                      isCompleted ? '#16a34a' : isOutForDelivery ? '#7c3aed' : '#f59e0b'
+                      isCompleted ? '#16a34a' : isOutForDelivery ? '#2563eb' : isReadyForPickup ? '#7c3aed' : '#f59e0b'
                     }`,
                     boxShadow: '0 2px 6px rgba(0,0,0,0.05)'
                   }}
@@ -440,9 +477,24 @@ export const RiderPortal: React.FC = () => {
                           Order #{sale.id}
                         </span>
                         <span className={`badge ${
-                          isCompleted ? 'badge-green' : isOutForDelivery ? 'badge-blue' : 'badge-yellow'
-                        }`} style={{ fontSize: '0.72rem', padding: '3px 8px' }}>
-                          {isCompleted ? '✅ COMPLETED' : isOutForDelivery ? '🛵 OUT FOR DELIVERY' : '📦 PREPARING'}
+                          isCompleted ? 'badge-green' : isOutForDelivery ? 'badge-blue' : isReadyForPickup ? 'badge-purple' : 'badge-yellow'
+                        }`} style={{ 
+                          fontSize: '0.72rem', 
+                          padding: '3px 8px',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          ...(isReadyForPickup ? { backgroundColor: '#f3e8ff', color: '#6d28d9', border: '1px solid #d8b4fe' } : {})
+                        }}>
+                          {isCompleted ? (
+                            <><CheckCircle2 size={12} color="#16a34a" /> DELIVERED</>
+                          ) : isOutForDelivery ? (
+                            <><Truck size={12} color="#2563eb" /> OUT FOR DELIVERY</>
+                          ) : isReadyForPickup ? (
+                            <><Package size={12} color="#7c3aed" /> READY FOR PICKUP</>
+                          ) : (
+                            <><Clock size={12} color="#d97706" /> PREPARING AT SHOP</>
+                          )}
                         </span>
                       </div>
 
@@ -474,17 +526,19 @@ export const RiderPortal: React.FC = () => {
                           display: 'inline-flex',
                           alignItems: 'center',
                           gap: '6px',
-                          padding: '7px 12px',
+                          padding: '7px 14px',
                           fontSize: '0.78rem',
-                          fontWeight: 700,
-                          backgroundColor: '#f8fafc',
-                          border: '1px solid #cbd5e1',
+                          fontWeight: 800,
+                          backgroundColor: hasExactGps ? '#ecfdf5' : '#f8fafc',
+                          border: `1px solid ${hasExactGps ? '#a7f3d0' : '#cbd5e1'}`,
                           borderRadius: '6px',
-                          color: '#2563eb'
+                          color: hasExactGps ? '#047857' : '#2563eb',
+                          boxShadow: hasExactGps ? '0 1px 3px rgba(16, 185, 129, 0.2)' : 'none'
                         }}
+                        title={hasExactGps ? `Open Turn-by-Turn GPS Navigation (${lat.toFixed(5)}, ${lng.toFixed(5)})` : 'Search Address on Google Maps'}
                       >
                         <Navigation size={14} />
-                        <span>Google Maps</span>
+                        <span>{hasExactGps ? 'Start GPS Navigation' : 'Google Maps'}</span>
                         <ExternalLink size={12} />
                       </a>
 
@@ -499,10 +553,10 @@ export const RiderPortal: React.FC = () => {
                             padding: '7px 12px',
                             fontSize: '0.78rem',
                             fontWeight: 700,
-                            backgroundColor: '#ecfdf5',
-                            border: '1px solid #a7f3d0',
+                            backgroundColor: '#eff6ff',
+                            border: '1px solid #bfdbfe',
                             borderRadius: '6px',
-                            color: '#047857'
+                            color: '#1d4ed8'
                           }}
                         >
                           <Phone size={14} />
@@ -531,9 +585,46 @@ export const RiderPortal: React.FC = () => {
                       <div style={{ fontSize: '0.95rem', fontWeight: 800, color: '#0f172a' }}>
                         {address}
                       </div>
-                      <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '2px' }}>
-                        Courier: Boss Rap In-House Rider • Flat ₱100 Delivery Fee Paid
-                      </div>
+                      {hasExactGps ? (
+                        <div style={{
+                          marginTop: '8px',
+                          padding: '6px 10px',
+                          borderRadius: '6px',
+                          backgroundColor: '#ecfdf5',
+                          border: '1px solid #bbf7d0',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '8px',
+                          flexWrap: 'wrap'
+                        }}>
+                          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '0.76rem', fontWeight: 800, color: '#166534' }}>
+                            <MapPin size={13} color="#16a34a" />
+                            <span>PINPOINTED DELIVERY LOCATION</span>
+                          </div>
+                          <a
+                            href={`https://www.google.com/maps/search/?api=1&query=${lat},${lng}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={{
+                              fontSize: '0.72rem',
+                              fontWeight: 700,
+                              color: '#15803d',
+                              textDecoration: 'underline',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '3px'
+                            }}
+                            title="Open exact pinpoint in Google Maps"
+                          >
+                            <span>Open Pin on Map</span>
+                            <ExternalLink size={10} />
+                          </a>
+                        </div>
+                      ) : (
+                        <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '2px' }}>
+                          Courier: Boss Rap In-House Rider • Flat ₱100 Delivery Fee Paid
+                        </div>
+                      )}
                     </div>
 
                     <div>
@@ -620,23 +711,65 @@ export const RiderPortal: React.FC = () => {
                     paddingTop: '14px'
                   }}>
                     {isPreparing && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                        <span style={{ 
+                          fontSize: '0.74rem', 
+                          color: '#b45309', 
+                          backgroundColor: '#fffbeb', 
+                          border: '1px solid #fde68a', 
+                          padding: '6px 12px', 
+                          borderRadius: '6px', 
+                          fontWeight: 700, 
+                          display: 'inline-flex', 
+                          alignItems: 'center', 
+                          gap: '5px' 
+                        }}>
+                          <Clock size={13} color="#b45309" />
+                          <span>Shop is packing parcel • Unlocks when Admin marks "Ready"</span>
+                        </span>
+                        <button
+                          disabled
+                          className="btn"
+                          style={{
+                            backgroundColor: '#f1f5f9',
+                            color: '#94a3b8',
+                            borderColor: '#e2e8f0',
+                            cursor: 'not-allowed',
+                            padding: '10px 18px',
+                            fontSize: '0.82rem',
+                            fontWeight: 700,
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            opacity: 0.85
+                          }}
+                          title="Admin or shop staff must reach 'Ready for Delivery' before you can pick up this parcel"
+                        >
+                          <Truck size={15} color="#94a3b8" />
+                          <span>Pickup Disabled (Not Ready)</span>
+                        </button>
+                      </div>
+                    )}
+
+                    {isReadyForPickup && (
                       <button
-                        onClick={() => handleUpdateStatus(sale.id, 'OUT FOR DELIVERY')}
+                        onClick={() => setConfirmStartModal(sale)}
                         disabled={isProcessing}
                         className="btn-primary"
                         style={{
                           backgroundColor: '#7c3aed',
                           borderColor: '#6d28d9',
-                          padding: '10px 20px',
-                          fontSize: '0.85rem',
+                          padding: '10px 22px',
+                          fontSize: '0.88rem',
                           fontWeight: 800,
                           display: 'inline-flex',
                           alignItems: 'center',
-                          gap: '8px'
+                          gap: '8px',
+                          boxShadow: '0 4px 14px rgba(124, 58, 237, 0.3)'
                         }}
                       >
                         <Truck size={16} />
-                        <span>{isProcessing ? 'Updating...' : 'Start Delivery (Pick Up Parcel)'}</span>
+                        <span>{isProcessing ? 'Updating...' : 'Pick Up Parcel & Start Delivery'}</span>
                       </button>
                     )}
 
@@ -685,6 +818,108 @@ export const RiderPortal: React.FC = () => {
           </div>
         )}
       </main>
+
+      {/* Confirmation Modal to Start Delivery (Out for Delivery) */}
+      {confirmStartModal && (() => {
+        const { customer, phone, address, lat, lng } = getDeliveryDetails(confirmStartModal);
+        const hasGps = typeof lat === 'number' && typeof lng === 'number' && !isNaN(lat) && !isNaN(lng);
+
+        return (
+          <div className="modal-overlay" onClick={() => processingId !== confirmStartModal.id && setConfirmStartModal(null)}>
+            <div className="modal" style={{ maxWidth: '440px', width: '92%', padding: '24px' }} onClick={e => e.stopPropagation()}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
+                <div style={{
+                  width: '46px',
+                  height: '46px',
+                  borderRadius: '50%',
+                  backgroundColor: '#ede9fe',
+                  color: '#7c3aed',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0
+                }}>
+                  <Truck size={24} />
+                </div>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '1.2rem', color: '#0f172a', fontWeight: 800 }}>
+                    Simulan ang Delivery?
+                  </h3>
+                  <span style={{ fontSize: '0.8rem', color: '#64748b' }}>Order #{confirmStartModal.id}</span>
+                </div>
+              </div>
+
+              <div style={{ backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px', marginBottom: '16px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px', fontSize: '0.85rem' }}>
+                  <span style={{ color: '#64748b' }}>Customer:</span>
+                  <strong style={{ color: '#0f172a' }}>{customer}</strong>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px', fontSize: '0.85rem' }}>
+                  <span style={{ color: '#64748b' }}>Contact #:</span>
+                  <strong style={{ color: '#0f172a' }}>{phone}</strong>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', marginBottom: hasGps ? '6px' : '0' }}>
+                  <span style={{ color: '#64748b' }}>Address:</span>
+                  <span style={{ color: '#0f172a', fontWeight: 600, textAlign: 'right', maxWidth: '240px' }}>{address}</span>
+                </div>
+                {hasGps && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '6px', borderTop: '1px dashed #e2e8f0', fontSize: '0.85rem' }}>
+                    <span style={{ color: '#166534', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                      <MapPin size={13} color="#16a34a" /> Delivery Pin:
+                    </span>
+                    <a
+                      href={`https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{ color: '#15803d', fontWeight: 800, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                      title="Open turn-by-turn navigation in Google Maps"
+                    >
+                      <span>Pinned Location on Map</span>
+                      <ExternalLink size={11} />
+                    </a>
+                  </div>
+                )}
+              </div>
+
+              <div style={{ backgroundColor: '#fef3c7', border: '1px solid #fde68a', borderRadius: '8px', padding: '10px 12px', marginBottom: '18px', fontSize: '0.78rem', color: '#92400e', lineHeight: 1.4, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <AlertCircle size={16} color="#b45309" style={{ flexShrink: 0 }} />
+                <span><strong>Paalala:</strong> Kapag kinumpirma mo ito, magiging <strong>OUT FOR DELIVERY</strong> ang status at awtomatikong magpapadala ng SMS notification sa customer na kasama ang iyong pangalan bilang rider.</span>
+              </div>
+
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <button
+                  type="button"
+                  onClick={() => setConfirmStartModal(null)}
+                  className="btn"
+                  disabled={processingId === confirmStartModal.id}
+                  style={{ flex: 1, padding: '10px' }}
+                >
+                  Kanselahin
+                </button>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    const saleId = confirmStartModal.id;
+                    await handleUpdateStatus(saleId, 'OUT FOR DELIVERY');
+                    setConfirmStartModal(null);
+                  }}
+                  className="btn-primary"
+                  disabled={processingId === confirmStartModal.id}
+                  style={{
+                    flex: 1.4,
+                    padding: '10px',
+                    backgroundColor: '#7c3aed',
+                    borderColor: '#6d28d9',
+                    fontWeight: 800
+                  }}
+                >
+                  {processingId === confirmStartModal.id ? 'Updating...' : 'Oo, Simulan ang Delivery'}
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Confirmation Modal to Mark as Delivered */}
       {confirmCompleteModal && (

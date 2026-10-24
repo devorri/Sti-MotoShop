@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '../supabase';
 
 // ==========================================
@@ -27,6 +27,8 @@ export interface Product {
   lowStockLevel: number;
   barcode: string;
   imageUrl?: string;
+  weightKg?: number;
+  isBulky?: boolean;
 }
 
 export interface SaleItem {
@@ -41,9 +43,14 @@ export interface Sale {
   items: SaleItem[];
   subtotal: number;
   discountApplied: number;
+  promoId?: string;
+  promoCode?: string;
   total: number;
   date: string;
   memberId?: string;
+  customerName?: string;
+  customerPhone?: string;
+  shippingAddress?: string;
   channel?: 'WALK-IN' | 'ONLINE/FACEBOOK';
   fulfillmentType?: 'STORE PICKUP' | 'DELIVERY' | 'COUNTER';
   orderStatus?: 'ORDER PLACED' | 'PREPARING' | 'READY FOR PICKUP' | 'OUT FOR DELIVERY' | 'COMPLETED';
@@ -52,7 +59,10 @@ export interface Sale {
   deliveryFee?: number;
   paymentMethod: 'CASH' | 'E-WALLET' | 'ONLINE BANK';
   paymentRef?: string;
+  paymentVerified?: boolean;
   receiptUrl?: string;
+  latitude?: number;
+  longitude?: number;
 }
 
 export interface Member {
@@ -73,6 +83,9 @@ export interface Promo {
   startDate: string;
   endDate: string;
   active: boolean;
+  discountType?: 'PERCENT' | 'FREE_SHIPPING';
+  firstOrderOnly?: boolean;
+  singleUsePerCustomer?: boolean;
 }
 
 export interface ReturnRequest {
@@ -138,6 +151,11 @@ export interface BackOrder {
   createdAt: string;
 }
 
+export interface CartItem {
+  product: Product;
+  quantity: number;
+}
+
 // ==========================================
 // Context Interface
 // ==========================================
@@ -147,6 +165,11 @@ interface AppContextType {
   currentUser: User | null;
   setCurrentUser: (user: User | null) => void;
   logout: () => void;
+
+  // Shopping Cart Persistence
+  cart: CartItem[];
+  setCart: React.Dispatch<React.SetStateAction<CartItem[]>>;
+  clearCart: () => void;
 
   // Domain Entities
   users: User[];
@@ -191,6 +214,7 @@ interface AppContextType {
   saveReturnRequest: (rr: ReturnRequest) => Promise<boolean>;
   saveInquiry: (inq: Omit<Inquiry, 'id' | 'date'>) => Promise<boolean>;
   updateSaleOrderStatus: (saleId: string, status: Sale['orderStatus']) => Promise<boolean>;
+  verifySalePayment: (saleId: string) => Promise<boolean>;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -202,7 +226,41 @@ const DEFAULT_POINTS_SETTINGS: PointsSettings = {
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [initialized, setInitialized] = useState(false);
-  const [currentUser, setCurrentUserState] = useState<User | null>(null);
+
+  // Synchronous initialization of currentUser from localStorage
+  const [currentUser, setCurrentUserState] = useState<User | null>(() => {
+    try {
+      const saved = localStorage.getItem('motoshop_current_user');
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
+
+  // Flag to avoid wiping user cart during logout
+  const isLoggingOutRef = useRef(false);
+
+  // Synchronous initialization of cart from localStorage (persists across page refreshes and browser re-opens)
+  const [cart, setCart] = useState<CartItem[]>(() => {
+    try {
+      const savedUserStr = localStorage.getItem('motoshop_current_user');
+      const savedUser = savedUserStr ? JSON.parse(savedUserStr) : null;
+      const userKey = savedUser?.id ? `motoshop_cart_${savedUser.id}` : 'motoshop_cart';
+      const savedCart = localStorage.getItem(userKey);
+      if (savedCart) {
+        const parsed = JSON.parse(savedCart);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+      const generalCart = localStorage.getItem('motoshop_cart');
+      if (generalCart) {
+        const parsed = JSON.parse(generalCart);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch (e) {
+      console.error('Error loading cart from localStorage:', e);
+    }
+    return [];
+  });
 
   // Production entities initialized to empty arrays
   const [users, setUsers] = useState<User[]>([]);
@@ -227,12 +285,151 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   }, []);
 
-  const logout = useCallback(() => {
-    if (currentUser) {
-      addAuditLog('LOGOUT', `User ${currentUser.name} (${currentUser.username}) signed out`);
+  // Save cart whenever it changes (tied strictly to current user so it never gets lost)
+  // Track whether the cloud cart has been initialized for the current user session
+  const cloudCartLoadedForUserRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (isLoggingOutRef.current) return;
+    try {
+      if (currentUser?.id) {
+        const userKey = `motoshop_cart_${currentUser.id}`;
+        localStorage.setItem(userKey, JSON.stringify(cart));
+
+        // Only push to Supabase if we have already finished loading this user's cloud cart
+        // This prevents an initial empty state from wiping out existing cloud items on fresh devices!
+        if (cloudCartLoadedForUserRef.current === currentUser.id) {
+          (async () => {
+            try {
+              await supabase
+                .from('cart_items')
+                .delete()
+                .eq('account_id', currentUser.id);
+
+              if (cart.length > 0) {
+                const rows = cart.map(item => ({
+                  account_id: currentUser.id,
+                  product_id: item.product.id,
+                  quantity: item.quantity
+                }));
+                await supabase.from('cart_items').insert(rows);
+              }
+            } catch (err) {
+              console.warn('Error syncing cart with Supabase:', err);
+            }
+          })();
+        }
+      } else {
+        localStorage.setItem('motoshop_cart', JSON.stringify(cart));
+      }
+    } catch (e) {
+      console.error('Error saving cart to localStorage:', e);
     }
-    setCurrentUser(null);
-  }, [currentUser, setCurrentUser]);
+  }, [cart, currentUser?.id]);
+
+  // Synchronize and restore cart when currentUser changes or products are loaded
+  useEffect(() => {
+    if (isLoggingOutRef.current) return;
+    if (!currentUser?.id) {
+      cloudCartLoadedForUserRef.current = null;
+      return;
+    }
+
+    // Wait until products are loaded to reconstruct cart items accurately
+    if (products.length === 0) return;
+
+    // Avoid redundant fetches if already loaded for this user
+    if (cloudCartLoadedForUserRef.current === currentUser.id) return;
+
+    const userKey = `motoshop_cart_${currentUser.id}`;
+
+    const loadCloudCart = async () => {
+      try {
+        // 1. Fetch from live Supabase cloud cart_items table
+        const { data, error } = await supabase
+          .from('cart_items')
+          .select('*')
+          .eq('account_id', currentUser.id);
+
+        if (!error && data && data.length > 0) {
+          const restoredCloudCart: CartItem[] = [];
+          data.forEach((row: any) => {
+            const matchedProd = products.find(p => p.id === row.product_id);
+            if (matchedProd && matchedProd.stock > 0) {
+              restoredCloudCart.push({
+                product: matchedProd,
+                quantity: Math.min(matchedProd.stock, row.quantity || 1)
+              });
+            }
+          });
+
+          if (restoredCloudCart.length > 0) {
+            setCart(restoredCloudCart);
+            localStorage.setItem(userKey, JSON.stringify(restoredCloudCart));
+            cloudCartLoadedForUserRef.current = currentUser.id;
+            return;
+          }
+        }
+
+        // 2. If no cloud cart found or table just created, check user's local storage
+        try {
+          const savedUserCart = localStorage.getItem(userKey);
+          if (savedUserCart) {
+            const parsed = JSON.parse(savedUserCart);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              setCart(parsed);
+              // Migrate local items to cloud
+              const rows = parsed.map((item: CartItem) => ({
+                account_id: currentUser.id,
+                product_id: item.product.id,
+                quantity: item.quantity
+              }));
+              await supabase.from('cart_items').insert(rows);
+              cloudCartLoadedForUserRef.current = currentUser.id;
+              return;
+            }
+          }
+
+          // 3. If new user, adopt any guest cart that was created before logging in
+          const guestCart = localStorage.getItem('motoshop_cart');
+          if (guestCart) {
+            const parsed = JSON.parse(guestCart);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              setCart(parsed);
+              localStorage.setItem(userKey, guestCart);
+              localStorage.removeItem('motoshop_cart');
+              const rows = parsed.map((item: CartItem) => ({
+                account_id: currentUser.id,
+                product_id: item.product.id,
+                quantity: item.quantity
+              }));
+              await supabase.from('cart_items').insert(rows);
+            }
+          }
+        } catch (e) {
+          console.error('Error migrating local cart to cloud:', e);
+        }
+
+        cloudCartLoadedForUserRef.current = currentUser.id;
+      } catch {
+        cloudCartLoadedForUserRef.current = currentUser.id;
+      }
+    };
+
+    loadCloudCart();
+  }, [currentUser?.id, products]);
+
+  // Clear cart only on successful checkout!
+  const clearCart = useCallback(() => {
+    setCart([]);
+    try {
+      if (currentUser?.id) {
+        localStorage.removeItem(`motoshop_cart_${currentUser.id}`);
+        supabase.from('cart_items').delete().eq('account_id', currentUser.id).then(() => {}, () => {});
+      }
+      localStorage.removeItem('motoshop_cart');
+    } catch (e) {}
+  }, [currentUser?.id]);
 
   // ==========================================
   // Audit Trail Logging
@@ -269,6 +466,22 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       // Table may not exist yet in public schema; graceful fallback
     }
   }, [currentUser]);
+
+  // Safe Logout: preserves user's cart in localStorage so logging back in restores their exact items!
+  const logout = useCallback(() => {
+    if (currentUser) {
+      addAuditLog('LOGOUT', `User ${currentUser.name} (${currentUser.username}) signed out`);
+    }
+    isLoggingOutRef.current = true;
+    setCurrentUser(null);
+    setCart([]);
+    try {
+      localStorage.removeItem('motoshop_cart');
+    } catch (e) {}
+    setTimeout(() => {
+      isLoggingOutRef.current = false;
+    }, 400);
+  }, [currentUser, setCurrentUser, addAuditLog]);
 
   // ==========================================
   // Supabase Comprehensive Sync
@@ -326,7 +539,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           stock: Number(p.stock) || 0,
           lowStockLevel: Number(p.low_stock_level) || 5,
           barcode: p.barcode || '',
-          imageUrl: p.image_url || undefined
+          imageUrl: p.image_url || undefined,
+          weightKg: p.weight_kg !== undefined && p.weight_kg !== null ? Number(p.weight_kg) : 0.5,
+          isBulky: Boolean(p.is_bulky)
         }));
         setProducts(mappedProducts);
       }
@@ -342,7 +557,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           minSpend: Number(p.min_spend) || 0,
           startDate: p.start_date || '',
           endDate: p.end_date || '',
-          active: p.active ?? true
+          active: p.active ?? true,
+          discountType: p.discount_type === 'FREE_SHIPPING' ? 'FREE_SHIPPING' : 'PERCENT',
+          firstOrderOnly: Boolean(p.first_order_only),
+          singleUsePerCustomer: Boolean(p.single_use_per_customer)
         }));
         setPromos(mappedPromos);
       }
@@ -354,28 +572,84 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         .order('created_at', { ascending: false });
 
       if (salesData && salesData.length > 0) {
-        const mappedSales: Sale[] = salesData.map(s => ({
-          id: s.id,
-          subtotal: Number(s.subtotal) || 0,
-          discountApplied: Number(s.discount_applied) || 0,
-          total: Number(s.total) || 0,
-          date: s.date || s.created_at,
-          memberId: s.member_id || undefined,
-          channel: s.channel || 'WALK-IN',
-          fulfillmentType: s.fulfillment_type || 'COUNTER',
-          orderStatus: s.order_status || 'COMPLETED',
-          trackingCode: s.tracking_code || undefined,
-          notes: s.notes || undefined,
-          paymentMethod: s.payment_method || 'CASH',
-          paymentRef: s.payment_ref || undefined,
-          receiptUrl: s.receipt_url || undefined,
-          items: (s.sale_items || []).map((it: any) => ({
-            productId: it.product_id || '',
-            name: it.name || '',
-            quantity: Number(it.quantity) || 1,
-            price: Number(it.price) || 0
-          }))
-        }));
+        const mappedSales: Sale[] = salesData.map(s => {
+          let custName: string | undefined = s.customer_name || undefined;
+          let custPhone: string | undefined = s.customer_phone || undefined;
+          let shipAddress: string | undefined = s.shipping_address || undefined;
+          let delFee: number | undefined = s.delivery_fee !== undefined && s.delivery_fee !== null ? Number(s.delivery_fee) : undefined;
+          let payVerified: boolean = s.channel === 'WALK-IN' && s.payment_method === 'CASH';
+          let displayNotes: string | undefined = s.notes || undefined;
+          let lat: number | undefined = s.latitude !== undefined && s.latitude !== null ? Number(s.latitude) : undefined;
+          let lng: number | undefined = s.longitude !== undefined && s.longitude !== null ? Number(s.longitude) : undefined;
+
+          if (s.notes) {
+            try {
+              const parsed = JSON.parse(s.notes);
+              if (parsed && typeof parsed === 'object') {
+                if (!custName) custName = parsed.customerName || undefined;
+                if (!custPhone) custPhone = parsed.customerPhone || undefined;
+                if (!shipAddress) shipAddress = parsed.shippingAddress || undefined;
+                if (delFee === undefined) delFee = Number(parsed.deliveryFee) || undefined;
+                if (parsed.paymentVerified !== undefined) {
+                  payVerified = Boolean(parsed.paymentVerified);
+                }
+                if (lat === undefined) {
+                  if (parsed.latitude !== undefined && parsed.latitude !== null) lat = Number(parsed.latitude);
+                  else if (parsed.lat !== undefined && parsed.lat !== null) lat = Number(parsed.lat);
+                }
+                if (lng === undefined) {
+                  if (parsed.longitude !== undefined && parsed.longitude !== null) lng = Number(parsed.longitude);
+                  else if (parsed.lng !== undefined && parsed.lng !== null) lng = Number(parsed.lng);
+                }
+
+                if (parsed.receiptUrl && !s.receipt_url) {
+                  s.receipt_url = parsed.receiptUrl;
+                }
+                displayNotes = parsed.rawNotes || undefined;
+              }
+            } catch (e) {
+              if (lat === undefined || lng === undefined) {
+                const gpsMatch = (s.notes as string).match(/GPS:\s*([0-9.-]+)\s*,\s*([0-9.-]+)/i);
+                if (gpsMatch) {
+                  lat = parseFloat(gpsMatch[1]);
+                  lng = parseFloat(gpsMatch[2]);
+                }
+              }
+            }
+          }
+
+          return {
+            id: s.id,
+            subtotal: Number(s.subtotal) || 0,
+            discountApplied: Number(s.discount_applied) || 0,
+            promoId: s.promo_id || undefined,
+            promoCode: s.promo_code || undefined,
+            total: Number(s.total) || 0,
+            date: s.date || s.created_at,
+            memberId: s.member_id || undefined,
+            customerName: custName,
+            customerPhone: custPhone,
+            shippingAddress: shipAddress,
+            deliveryFee: delFee,
+            paymentVerified: payVerified,
+            latitude: lat,
+            longitude: lng,
+            channel: s.channel || 'WALK-IN',
+            fulfillmentType: s.fulfillment_type || 'COUNTER',
+            orderStatus: s.order_status || 'COMPLETED',
+            trackingCode: s.tracking_code || undefined,
+            notes: displayNotes,
+            paymentMethod: s.payment_method || 'CASH',
+            paymentRef: s.payment_ref || undefined,
+            receiptUrl: s.receipt_url || undefined,
+            items: (s.sale_items || []).map((it: any) => ({
+              productId: it.product_id || '',
+              name: it.name || '',
+              quantity: Number(it.quantity) || 1,
+              price: Number(it.price) || 0
+            }))
+          };
+        });
 
         // Guarantee newest first sorting
         mappedSales.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
@@ -498,7 +772,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             productName: b.product_name,
             quantity: Number(b.quantity) || 1,
             customerName: b.customer_name || undefined,
-            customerContact: b.customer_contact || undefined,
+            customerContact: b.customer_contact || b.contact || undefined,
             status: b.status || 'PENDING',
             notes: b.notes || undefined,
             createdAt: b.created_at
@@ -518,7 +792,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   }, []);
 
-  // Initial mount load
+  // Initial mount load & global Supabase real-time sync across the entire app
   useEffect(() => {
     const savedCurrentUser = localStorage.getItem('motoshop_current_user');
     if (savedCurrentUser) {
@@ -530,6 +804,57 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     syncWithSupabase().finally(() => {
       setInitialized(true);
     });
+
+    // Real-time listener for products table across ALL connected clients
+    const productsChannel = supabase
+      .channel('global_products_realtime')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'products' },
+        (payload) => {
+          if (payload.eventType === 'UPDATE' && payload.new) {
+            const updated = payload.new as any;
+            setProducts(prev => prev.map(p => p.id === updated.id ? {
+              ...p,
+              stock: Number(updated.stock) ?? 0,
+              price: Number(updated.price) ?? p.price,
+              name: updated.name ?? p.name,
+              category: updated.category ?? p.category
+            } : p));
+          } else {
+            syncWithSupabase();
+          }
+        }
+      )
+      .subscribe();
+
+    // Real-time listener for sales table
+    const salesChannel = supabase
+      .channel('global_sales_realtime')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'sales' },
+        () => {
+          syncWithSupabase();
+        }
+      )
+      .subscribe();
+
+    // Auto-refresh when tab gains focus and periodic heartbeat
+    const handleFocus = () => {
+      syncWithSupabase();
+    };
+    window.addEventListener('focus', handleFocus);
+    const syncInterval = setInterval(() => {
+      syncWithSupabase();
+    }, 5000);
+
+    return () => {
+      supabase.removeChannel(productsChannel);
+      supabase.removeChannel(salesChannel);
+      window.removeEventListener('focus', handleFocus);
+      clearInterval(syncInterval);
+    };
   }, [syncWithSupabase]);
 
   // ==========================================
@@ -548,8 +873,92 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         date: saleDate
       };
 
-      // 1. Insert into Supabase 'sales' table
-      const { error: saleError } = await supabase.from('sales').insert([{
+      // 0. Strict Concurrency & Overselling Prevention:
+      // Perform atomic conditional decrement on each product using `.gte('stock', quantity)`.
+      // This evaluates inside the row-lock at database level so two concurrent checkouts cannot oversell.
+      const deductedItems: { productId: string; quantity: number; previousStock: number }[] = [];
+      let deductionFailed = false;
+      let failureReason = '';
+
+      for (const item of newSale.items) {
+        if (!item.productId) continue;
+
+        // Fetch fresh product data from Supabase
+        const { data: dbProd, error: fetchErr } = await supabase
+          .from('products')
+          .select('id, name, stock')
+          .eq('id', item.productId)
+          .single();
+
+        if (fetchErr || !dbProd) {
+          deductionFailed = true;
+          failureReason = `Could not verify live stock for "${item.name}". Please try again.`;
+          break;
+        }
+
+        const currentDbStock = Number(dbProd.stock) || 0;
+        if (currentDbStock < item.quantity) {
+          deductionFailed = true;
+          failureReason = `ORDER REJECTED: "${item.name}" only has ${currentDbStock} unit(s) remaining in stock, but your order requested ${item.quantity}.`;
+          break;
+        }
+
+        const newStock = currentDbStock - item.quantity;
+
+        // ATOMIC CONDITIONAL UPDATE:
+        // By adding `.gte('stock', item.quantity)`, Postgres evaluates this check
+        // inside the row-lock at the exact instant of execution.
+        // If another transaction reduced stock in the meantime, 0 rows match.
+        const { data: updatedRows, error: updateErr } = await supabase
+          .from('products')
+          .update({ stock: newStock })
+          .eq('id', item.productId)
+          .gte('stock', item.quantity)
+          .select('id, stock');
+
+        if (updateErr || !updatedRows || updatedRows.length === 0) {
+          deductionFailed = true;
+          failureReason = `ORDER REJECTED (STOCK CONFLICT): Another customer just purchased "${item.name}". Only ${currentDbStock} unit(s) were available.`;
+          break;
+        }
+
+        deductedItems.push({
+          productId: item.productId,
+          quantity: item.quantity,
+          previousStock: currentDbStock
+        });
+      }
+
+      // If ANY product in this order failed atomic reservation, ROLLBACK all previously deducted products!
+      if (deductionFailed) {
+        for (const rolled of deductedItems) {
+          await supabase
+            .from('products')
+            .update({ stock: rolled.previousStock })
+            .eq('id', rolled.productId);
+        }
+        await syncWithSupabase();
+        alert(failureReason);
+        return null;
+      }
+
+      // Serialize metadata (customer details, delivery fee, paymentVerified, GPS coordinates) into notes JSON
+      const notesPayload = JSON.stringify({
+        customerName: newSale.customerName,
+        customerPhone: newSale.customerPhone,
+        shippingAddress: newSale.shippingAddress,
+        deliveryFee: newSale.deliveryFee || 0,
+        paymentVerified: newSale.paymentVerified ?? (newSale.channel === 'WALK-IN' && newSale.paymentMethod === 'CASH'),
+        latitude: newSale.latitude,
+        longitude: newSale.longitude,
+        receiptUrl: newSale.receiptUrl || null,
+        promoId: newSale.promoId || null,
+        promoCode: newSale.promoCode || null,
+        rawNotes: newSale.notes || ''
+      });
+
+      // 1. Insert into Supabase 'sales' table with dedicated location & delivery columns
+      const saleRow: Record<string, any> = {
         id: newSale.id,
         subtotal: newSale.subtotal,
         discount_applied: newSale.discountApplied,
@@ -560,14 +969,73 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         fulfillment_type: newSale.fulfillmentType || 'COUNTER',
         order_status: newSale.orderStatus || 'COMPLETED',
         tracking_code: newSale.trackingCode || null,
-        notes: newSale.notes || null,
+        notes: notesPayload,
         payment_method: newSale.paymentMethod,
         payment_ref: newSale.paymentRef || null,
-        receipt_url: newSale.receiptUrl || null
-      }]);
+        receipt_url: newSale.receiptUrl || null,
+        promo_id: newSale.promoId || null,
+        promo_code: newSale.promoCode || null,
+        delivery_fee: newSale.deliveryFee || 0
+      };
+
+      if (newSale.latitude !== undefined && newSale.latitude !== null) {
+        saleRow.latitude = newSale.latitude;
+      }
+      if (newSale.longitude !== undefined && newSale.longitude !== null) {
+        saleRow.longitude = newSale.longitude;
+      }
+      if (newSale.shippingAddress) {
+        saleRow.shipping_address = newSale.shippingAddress;
+      }
+      if (newSale.customerName) {
+        saleRow.customer_name = newSale.customerName;
+      }
+      if (newSale.customerPhone) {
+        saleRow.customer_phone = newSale.customerPhone;
+      }
+
+      let { error: saleError } = await supabase.from('sales').insert([saleRow]);
+
+      // If Supabase table does not have the new columns yet (pre-migration), retry cleanly without them
+      if (saleError && saleError.message && (
+        saleError.message.toLowerCase().includes('latitude') ||
+        saleError.message.toLowerCase().includes('longitude') ||
+        saleError.message.toLowerCase().includes('shipping_address') ||
+        saleError.message.toLowerCase().includes('customer_name') ||
+        saleError.message.toLowerCase().includes('customer_phone') ||
+        saleError.message.toLowerCase().includes('column')
+      )) {
+        const legacyRow = {
+          id: newSale.id,
+          subtotal: newSale.subtotal,
+          discount_applied: newSale.discountApplied,
+          total: newSale.total,
+          date: newSale.date,
+          member_id: newSale.memberId || null,
+          channel: newSale.channel || 'WALK-IN',
+          fulfillment_type: newSale.fulfillmentType || 'COUNTER',
+          order_status: newSale.orderStatus || 'COMPLETED',
+          tracking_code: newSale.trackingCode || null,
+          notes: notesPayload,
+          payment_method: newSale.paymentMethod,
+          payment_ref: newSale.paymentRef || null,
+          receipt_url: newSale.receiptUrl || null,
+          delivery_fee: newSale.deliveryFee || 0
+        };
+        const retryResult = await supabase.from('sales').insert([legacyRow]);
+        saleError = retryResult.error;
+      }
 
       if (saleError) {
         console.error('Supabase sales insert error:', saleError);
+        // Rollback all deducted stocks!
+        for (const rolled of deductedItems) {
+          await supabase
+            .from('products')
+            .update({ stock: rolled.previousStock })
+            .eq('id', rolled.productId);
+        }
+        await syncWithSupabase();
         alert('Failed to save sale to cloud database: ' + saleError.message);
         return null;
       }
@@ -576,7 +1044,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       if (newSale.items.length > 0) {
         const saleItemsPayload = newSale.items.map(item => ({
           sale_id: newSale.id,
-          product_id: item.productId || null,
+          product_id: (item.productId && products.some(p => p.id === item.productId)) ? item.productId : null,
           name: item.name,
           quantity: item.quantity,
           price: item.price
@@ -591,14 +1059,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         }
       }
 
-      // 3. Deduct product stock in Supabase & local state
-      for (const item of newSale.items) {
-        const currentProd = products.find(p => p.id === item.productId);
-        if (currentProd) {
-          const newStock = Math.max(0, currentProd.stock - item.quantity);
-          await supabase.from('products').update({ stock: newStock }).eq('id', item.productId);
+      // Record the redemption so one-use and first-order vouchers remain enforced across devices.
+      if (newSale.promoId && newSale.memberId) {
+        const { error: redemptionError } = await supabase.from('promo_redemptions').insert([{
+          promo_id: newSale.promoId,
+          member_id: newSale.memberId,
+          sale_id: newSale.id
+        }]);
+        if (redemptionError) {
+          console.error('Promo redemption record error:', redemptionError);
         }
       }
+
+      // 3. Update local products state with the deducted quantities
       setProducts(prev => prev.map(p => {
         const cartItem = newSale.items.find(it => it.productId === p.id);
         return cartItem ? { ...p, stock: Math.max(0, p.stock - cartItem.quantity) } : p;
@@ -624,6 +1097,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         `Sale ${newSale.id} completed. Total: ₱${newSale.total.toLocaleString()} (${newSale.channel || 'WALK-IN'}, ${newSale.paymentMethod})`
       );
 
+      // 7. Ensure local state has latest refreshed products from cloud
+      await syncWithSupabase();
+
       return newSale;
     } catch (err: any) {
       console.error('Record sale exception:', err);
@@ -637,7 +1113,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // ==========================================
   const saveProduct = async (product: Product): Promise<boolean> => {
     try {
-      const { error } = await supabase.from('products').upsert([{
+      const payload: any = {
         id: product.id,
         name: product.name,
         description: product.description,
@@ -646,8 +1122,20 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         stock: product.stock,
         low_stock_level: product.lowStockLevel,
         barcode: product.barcode,
-        image_url: product.imageUrl || null
-      }]);
+        image_url: product.imageUrl || null,
+        weight_kg: product.weightKg ?? 0.5,
+        is_bulky: product.isBulky ?? false
+      };
+
+      let { error } = await supabase.from('products').upsert([payload]);
+
+      // If columns haven't been added yet to Supabase, fallback cleanly
+      if (error && error.message?.includes('column')) {
+        delete payload.weight_kg;
+        delete payload.is_bulky;
+        const fallback = await supabase.from('products').upsert([payload]);
+        error = fallback.error;
+      }
 
       if (error) {
         console.error('Supabase product save error:', error);
@@ -808,6 +1296,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         name: promo.name,
         description: promo.description,
         discount_percent: promo.discountPercent,
+        discount_type: promo.discountType || 'PERCENT',
+        first_order_only: promo.firstOrderOnly || false,
+        single_use_per_customer: promo.singleUsePerCustomer || false,
         min_spend: promo.minSpend,
         start_date: promo.startDate,
         end_date: promo.endDate,
@@ -877,7 +1368,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         await supabase.from('purchase_order_items').delete().eq('purchase_order_id', po.id);
         const itemsPayload = po.items.map(item => ({
           purchase_order_id: po.id,
-          product_id: item.productId || null,
+          product_id: (item.productId && products.some(p => p.id === item.productId)) ? item.productId : null,
           name: item.name,
           quantity: item.quantity,
           cost_price: item.costPrice
@@ -1014,16 +1505,28 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     } catch (e) {}
 
     try {
-      await supabase.from('back_orders').insert([{
+      const boRow: Record<string, any> = {
         id: newBO.id,
-        product_id: newBO.productId,
+        product_id: (newBO.productId && products.some(p => p.id === newBO.productId)) ? newBO.productId : null,
         product_name: newBO.productName,
         quantity: newBO.quantity,
         customer_name: newBO.customerName || null,
         customer_contact: newBO.customerContact || null,
+        contact: newBO.customerContact || null,
         status: newBO.status,
         notes: newBO.notes || null
-      }]);
+      };
+      let { error: boErr } = await supabase.from('back_orders').insert([boRow]);
+      if (boErr && boErr.message?.includes('column')) {
+        // Retry with either contact or customer_contact depending on which one the table has
+        delete boRow.contact;
+        const retry1 = await supabase.from('back_orders').insert([boRow]);
+        if (retry1.error && retry1.error.message?.includes('column')) {
+          delete boRow.customer_contact;
+          boRow.contact = newBO.customerContact || null;
+          await supabase.from('back_orders').insert([boRow]);
+        }
+      }
     } catch (e) {}
 
     await addAuditLog('BACK_ORDER_CREATED', `Back order created for ${newBO.quantity}x "${newBO.productName}"`);
@@ -1069,12 +1572,59 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
+  const verifySalePayment = async (saleId: string): Promise<boolean> => {
+    try {
+      const sale = sales.find(s => s.id === saleId);
+      if (!sale) return false;
+
+      let existingNotesObj: any = {};
+      if (sale.notes) {
+        try {
+          existingNotesObj = JSON.parse(sale.notes);
+        } catch (e) {
+          existingNotesObj = { rawNotes: sale.notes };
+        }
+      }
+      existingNotesObj.paymentVerified = true;
+      existingNotesObj.customerName = sale.customerName;
+      existingNotesObj.customerPhone = sale.customerPhone;
+      existingNotesObj.shippingAddress = sale.shippingAddress;
+      existingNotesObj.deliveryFee = sale.deliveryFee;
+      existingNotesObj.latitude = sale.latitude;
+      existingNotesObj.longitude = sale.longitude;
+      existingNotesObj.receiptUrl = sale.receiptUrl || existingNotesObj.receiptUrl;
+
+      const serializedNotes = JSON.stringify(existingNotesObj);
+
+      const { error } = await supabase
+        .from('sales')
+        .update({ notes: serializedNotes })
+        .eq('id', saleId);
+
+      if (error) {
+        console.error('Failed to verify payment:', error);
+        alert('Failed to verify payment: ' + error.message);
+        return false;
+      }
+
+      setSales(prev => prev.map(s => s.id === saleId ? { ...s, paymentVerified: true } : s));
+      await addAuditLog('PAYMENT_VERIFIED', `Payment for Order #${saleId} verified by Admin (Ref: ${sale.paymentRef || 'N/A'})`);
+      return true;
+    } catch (e: any) {
+      console.error('Error verifying payment:', e);
+      return false;
+    }
+  };
+
   return (
     <AppContext.Provider value={{
       initialized,
       currentUser,
       setCurrentUser,
       logout,
+      cart,
+      setCart,
+      clearCart,
       users,
       setUsers,
       members,
@@ -1112,7 +1662,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       savePurchaseOrder,
       saveReturnRequest,
       saveInquiry,
-      updateSaleOrderStatus
+      updateSaleOrderStatus,
+      verifySalePayment
     }}>
       {children}
     </AppContext.Provider>

@@ -15,11 +15,15 @@ import {
   CheckCircle2,
   AlertCircle,
   Truck,
+  Store,
+  Crown,
   Printer,
   X,
   QrCode,
   RefreshCw,
-  Monitor
+  Monitor,
+  Clock,
+  MapPin
 } from 'lucide-react';
 
 export const Profile: React.FC = () => {
@@ -476,9 +480,12 @@ export const Profile: React.FC = () => {
                   fontSize: '0.68rem',
                   fontWeight: 900,
                   padding: '3px 8px',
-                  borderRadius: '6px'
+                  borderRadius: '6px',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px'
                 }}>
-                  ON DUTY 🛵
+                  <Truck size={11} /> ON DUTY
                 </span>
               </div>
 
@@ -712,7 +719,7 @@ export const Profile: React.FC = () => {
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', color: '#64748b' }}>
                 <span>Earn 1 pt per ₱{pointsSettings.currencyPerPoint} spent</span>
-                {tier.next ? <span>{tier.next - points} pts to next tier</span> : <span>MAX TIER REACHED 👑</span>}
+                {tier.next ? <span>{tier.next - points} pts to next tier</span> : <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}><Crown size={12} color="#eab308" /> MAX TIER REACHED</span>}
               </div>
             </div>
           )}
@@ -1099,20 +1106,47 @@ export const Profile: React.FC = () => {
                           </span>
                         </td>
                         <td>
-                          <span className={`badge ${sale.orderStatus === 'COMPLETED' ? 'badge-green' : 'badge-yellow'}`} style={{ fontSize: '0.68rem' }}>
-                            {sale.orderStatus}
+                          <span className={`badge ${
+                            sale.orderStatus === 'COMPLETED' ? 'badge-green' :
+                            sale.orderStatus === 'OUT FOR DELIVERY' ? 'badge-blue' :
+                            sale.orderStatus === 'READY FOR PICKUP' ? (sale.fulfillmentType === 'DELIVERY' ? 'badge-purple' : 'badge-blue') :
+                            'badge-yellow'
+                          }`} style={{ 
+                            fontSize: '0.68rem',
+                            ...(sale.orderStatus === 'READY FOR PICKUP' && sale.fulfillmentType === 'DELIVERY' ? { backgroundColor: '#f3e8ff', color: '#6d28d9', border: '1px solid #d8b4fe' } : {})
+                          }}>
+                            {sale.orderStatus === 'READY FOR PICKUP' && sale.fulfillmentType === 'DELIVERY'
+                              ? 'READY FOR DELIVERY'
+                              : sale.orderStatus}
                           </span>
                         </td>
                         <td>
-                          <button
-                            type="button"
-                            onClick={() => setActiveReceipt(sale)}
-                            className="btn"
-                            style={{ fontSize: '0.7rem', padding: '4px 8px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
-                          >
-                            <Printer size={12} />
-                            <span>Receipt</span>
-                          </button>
+                          {(() => {
+                            const isPaid = Boolean(sale.paymentVerified);
+                            return (
+                              <button
+                                type="button"
+                                onClick={() => { if (isPaid) setActiveReceipt(sale); }}
+                                disabled={!isPaid}
+                                className="btn"
+                                style={{ 
+                                  fontSize: '0.7rem', 
+                                  padding: '4px 8px', 
+                                  display: 'inline-flex', 
+                                  alignItems: 'center', 
+                                  gap: '4px',
+                                  borderColor: isPaid ? '#10b981' : '#fde68a',
+                                  color: isPaid ? '#047857' : '#b45309',
+                                  backgroundColor: isPaid ? '#ecfdf5' : '#fffbeb',
+                                  fontWeight: 700
+                                }}
+                                title={isPaid ? "View Official Sales Receipt" : "Official Receipt locked until Admin verifies payment"}
+                              >
+                                {isPaid ? <Printer size={12} /> : <Clock size={12} />}
+                                <span>{isPaid ? 'Receipt' : 'Awaiting Verification'}</span>
+                              </button>
+                            );
+                          })()}
                         </td>
                       </tr>
                     ))}
@@ -1128,102 +1162,201 @@ export const Profile: React.FC = () => {
       {/* ======================================================== */}
       {/* 3. Official Receipt Modal (Customer) */}
       {/* ======================================================== */}
-      {activeReceipt && (
-        <div className="modal-overlay" onClick={() => setActiveReceipt(null)}>
-          <div className="modal" style={{ maxWidth: '420px', width: '92%' }} onClick={e => e.stopPropagation()}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #e2e8f0', paddingBottom: '10px', marginBottom: '14px' }}>
-              <h3 style={{ margin: 0, fontSize: '1rem', color: '#0f172a' }}>OFFICIAL SALES RECEIPT</h3>
-              <button type="button" onClick={() => setActiveReceipt(null)} style={{ border: 'none', background: 'none', cursor: 'pointer' }}>
-                <X size={18} />
-              </button>
-            </div>
+      {activeReceipt && (() => {
+        const isPaid = Boolean(activeReceipt.paymentVerified);
+        const customerName = activeReceipt.customerName || currentUser?.name || 'Customer';
+        const customerPhone = activeReceipt.customerPhone || 'On File';
+        const deliveryAddress = activeReceipt.shippingAddress || (activeReceipt.fulfillmentType === 'DELIVERY' ? 'Address on File' : null);
 
-            <div style={{
-              fontFamily: 'monospace',
-              backgroundColor: '#fff',
-              padding: '16px',
-              border: '1px solid #cbd5e1',
-              borderRadius: '8px',
-              fontSize: '0.8rem',
-              color: '#000'
-            }}>
-              <div style={{ textAlign: 'center', borderBottom: '1px dashed #94a3b8', paddingBottom: '10px', marginBottom: '10px' }}>
-                <strong style={{ fontSize: '1.05rem', display: 'block' }}>BOSS RAP MOTOR SHOP</strong>
-                <span>Baliuag, Bulacan • Contact: 0912 345 6789</span><br />
-                <span>VAT Reg TIN: 000-123-456-000</span>
+        return (
+          <div className="modal-overlay" onClick={() => setActiveReceipt(null)}>
+            <div className="modal" style={{ maxWidth: '440px', width: '92%' }} onClick={e => e.stopPropagation()}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #e2e8f0', paddingBottom: '10px', marginBottom: '14px' }}>
+                <h3 style={{ margin: 0, fontSize: '1rem', color: '#0f172a' }}>
+                  {isPaid ? 'OFFICIAL SALES RECEIPT (PAID)' : 'ORDER INVOICE / ACKNOWLEDGEMENT'}
+                </h3>
+                <button type="button" onClick={() => setActiveReceipt(null)} style={{ border: 'none', background: 'none', cursor: 'pointer' }}>
+                  <X size={18} />
+                </button>
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
-                <span>RECEIPT #:</span>
-                <strong>{activeReceipt.id}</strong>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
-                <span>DATE:</span>
-                <span>{new Date(activeReceipt.date).toLocaleString()}</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
-                <span>CUSTOMER:</span>
-                <span>{currentUser.name}</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
-                <span>PAYMENT METHOD:</span>
-                <strong>{activeReceipt.paymentMethod}</strong>
-              </div>
-
-              <div style={{ borderTop: '1px dashed #94a3b8', borderBottom: '1px dashed #94a3b8', padding: '8px 0', margin: '8px 0' }}>
-                {activeReceipt.items.map((it, idx) => (
-                  <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-                    <span>{it.quantity}x {it.name}</span>
-                    <span>₱{(it.price * it.quantity).toLocaleString()}</span>
+              <div style={{
+                fontFamily: 'monospace',
+                backgroundColor: '#fff',
+                padding: '16px',
+                border: '1px solid #cbd5e1',
+                borderRadius: '8px',
+                fontSize: '0.8rem',
+                color: '#000'
+              }}>
+                <div style={{ textAlign: 'center', borderBottom: '1px dashed #94a3b8', paddingBottom: '10px', marginBottom: '10px' }}>
+                  <strong style={{ fontSize: '1.05rem', display: 'block' }}>BOSS RAP MOTOR SHOP</strong>
+                  <span>Baliuag, Bulacan • Contact: (0905) 123-4567</span><br />
+                  <span>VAT Reg TIN: 000-123-456-000</span>
+                  <div style={{
+                    padding: '4px 8px',
+                    borderRadius: '4px',
+                    marginTop: '8px',
+                    backgroundColor: isPaid ? '#ecfdf5' : '#fffbeb',
+                    border: `1px solid ${isPaid ? '#a7f3d0' : '#fde68a'}`,
+                    color: isPaid ? '#065f46' : '#92400e',
+                    fontWeight: 800,
+                    fontSize: '0.78rem'
+                  }}>
+                    {isPaid ? 'OFFICIAL STORE RECEIPT (PAID)' : 'ORDER INVOICE / ACKNOWLEDGEMENT (UNPAID)'}
                   </div>
-                ))}
-              </div>
-
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-                <span>SUBTOTAL:</span>
-                <span>₱{activeReceipt.subtotal.toLocaleString()}</span>
-              </div>
-              {activeReceipt.discountApplied > 0 && (
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px', color: '#16a34a' }}>
-                  <span>DISCOUNT:</span>
-                  <span>-₱{activeReceipt.discountApplied.toLocaleString()}</span>
                 </div>
-              )}
-              {activeReceipt.deliveryFee && activeReceipt.deliveryFee > 0 ? (
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px', color: '#2563eb' }}>
-                  <span>DELIVERY FEE:</span>
-                  <span>+₱{activeReceipt.deliveryFee.toLocaleString()}</span>
+
+                {/* Customer Information Block */}
+                <div style={{
+                  backgroundColor: '#f8fafc',
+                  padding: '8px 10px',
+                  borderRadius: '6px',
+                  border: '1px solid #e2e8f0',
+                  fontSize: '0.72rem',
+                  color: '#334155',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '3px',
+                  marginBottom: '10px'
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span style={{ color: '#64748b' }}>RECEIPT / ORDER #:</span>
+                    <strong>{activeReceipt.id}</strong>
+                  </div>
+                  {activeReceipt.trackingCode && (
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span style={{ color: '#64748b' }}>TRACKING CODE:</span>
+                      <strong>{activeReceipt.trackingCode}</strong>
+                    </div>
+                  )}
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span style={{ color: '#64748b' }}>DATE & TIME:</span>
+                    <span>{new Date(activeReceipt.date).toLocaleString()}</span>
+                  </div>
+                  <div style={{ borderTop: '1px dashed #cbd5e1', margin: '4px 0' }} />
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span style={{ color: '#64748b' }}>CUSTOMER NAME:</span>
+                    <strong>{customerName}</strong>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span style={{ color: '#64748b' }}>CONTACT:</span>
+                    <span>{customerPhone}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span style={{ color: '#64748b' }}>MEMBER ID:</span>
+                    <span>{activeReceipt.memberId || currentUser?.memberId || 'REGULAR CUSTOMER'}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span style={{ color: '#64748b' }}>FULFILLMENT:</span>
+                    <strong style={{ color: activeReceipt.fulfillmentType === 'DELIVERY' ? '#2563eb' : '#0f172a', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                      {activeReceipt.fulfillmentType === 'DELIVERY' ? (
+                        <><Truck size={12} color="#2563eb" /> HOME DELIVERY</>
+                      ) : (
+                        <><Store size={12} color="#64748b" /> STORE PICKUP</>
+                      )}
+                    </strong>
+                  </div>
+                  {deliveryAddress && (
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '2px' }}>
+                      <span style={{ color: '#64748b' }}>ADDRESS:</span>
+                      <span style={{ textAlign: 'right', maxWidth: '65%' }}>{deliveryAddress}</span>
+                    </div>
+                  )}
+                  {activeReceipt.latitude && activeReceipt.longitude && (
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '2px', alignItems: 'center' }}>
+                      <span style={{ color: '#64748b' }}>DELIVERY PIN:</span>
+                      <a
+                        href={`https://www.google.com/maps/search/?api=1&query=${activeReceipt.latitude},${activeReceipt.longitude}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{ color: '#16a34a', fontWeight: 700, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                        title="View pinned location on Google Maps"
+                      >
+                        <MapPin size={11} color="#16a34a" />
+                        <span>Pinned Location on Map</span>
+                      </a>
+                    </div>
+                  )}
                 </div>
-              ) : null}
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1.05rem', fontWeight: 900, borderTop: '1px solid #000', paddingTop: '6px', marginTop: '6px' }}>
-                <span>TOTAL:</span>
-                <span>₱{activeReceipt.total.toLocaleString()}</span>
+
+                <div style={{ borderTop: '1px dashed #94a3b8', borderBottom: '1px dashed #94a3b8', padding: '8px 0', margin: '8px 0' }}>
+                  {activeReceipt.items.map((it, idx) => (
+                    <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                      <span>{it.quantity}x {it.name}</span>
+                      <span>₱{(it.price * it.quantity).toLocaleString()}</span>
+                    </div>
+                  ))}
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                  <span>SUBTOTAL:</span>
+                  <span>₱{activeReceipt.subtotal.toLocaleString()}</span>
+                </div>
+                {activeReceipt.discountApplied > 0 && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px', color: '#16a34a' }}>
+                    <span>{activeReceipt.promoCode ? `VOUCHER (${activeReceipt.promoCode}):` : 'DISCOUNT:'}</span>
+                    <span>-₱{activeReceipt.discountApplied.toLocaleString()}</span>
+                  </div>
+                )}
+                {activeReceipt.deliveryFee && activeReceipt.deliveryFee > 0 ? (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px', color: '#2563eb' }}>
+                    <span>DELIVERY FEE:</span>
+                    <span>+₱{activeReceipt.deliveryFee.toLocaleString()}</span>
+                  </div>
+                ) : null}
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1.05rem', fontWeight: 900, borderTop: '1px solid #000', paddingTop: '6px', marginTop: '6px' }}>
+                  <span>TOTAL:</span>
+                  <span>₱{activeReceipt.total.toLocaleString()}</span>
+                </div>
+
+                {/* Payment Verification Status Notice */}
+                <div style={{
+                  marginTop: '10px',
+                  padding: '8px 10px',
+                  borderRadius: '6px',
+                  backgroundColor: isPaid ? '#f0fdf4' : '#fffbeb',
+                  border: `1px solid ${isPaid ? '#bbf7d0' : '#fef3c7'}`,
+                  textAlign: 'center',
+                  fontSize: '0.72rem'
+                }}>
+                  <div style={{ fontWeight: 800, color: isPaid ? '#15803d' : '#b45309', marginBottom: '2px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
+                    {isPaid ? (
+                      <><CheckCircle2 size={13} color="#16a34a" /> PAYMENT STATUS: PAID & VERIFIED</>
+                    ) : (
+                      <><AlertCircle size={13} color="#d97706" /> PAYMENT STATUS: PENDING / UNPAID</>
+                    )}
+                  </div>
+                  <div>Payment Method: <strong>{activeReceipt.paymentMethod}</strong> {activeReceipt.paymentRef ? `(Ref: ${activeReceipt.paymentRef})` : ''}</div>
+                  <div>Order Status: <strong>{activeReceipt.orderStatus}</strong></div>
+                  {!isPaid && (
+                    <div style={{ marginTop: '4px', color: '#b45309', fontStyle: 'italic', fontSize: '0.68rem' }}>
+                      {activeReceipt.paymentMethod === 'CASH' 
+                        ? '* Payment to be settled in cash at the counter upon pickup.'
+                        : '* Online payment reference is awaiting shop admin verification.'}
+                    </div>
+                  )}
+                </div>
+
+                <div style={{ textAlign: 'center', marginTop: '14px', fontSize: '0.72rem', color: '#64748b' }}>
+                  Thank you for tuning with Boss Rap Motor Shop!<br />
+                  Ride safe, idol!
+                </div>
               </div>
 
-              {activeReceipt.paymentRef && (
-                <div style={{ marginTop: '8px', fontSize: '0.75rem', color: '#2563eb' }}>
-                  Payment Ref: <strong>{activeReceipt.paymentRef}</strong>
-                </div>
-              )}
-
-              <div style={{ textAlign: 'center', marginTop: '14px', fontSize: '0.72rem', color: '#64748b' }}>
-                Thank you for tuning with Boss Rap Motor Shop!<br />
-                Ride safe, idol! 🏁
+              <div style={{ display: 'flex', gap: '10px', marginTop: '14px' }}>
+                <button type="button" onClick={() => window.print()} className="btn-primary" style={{ flex: 1, padding: '10px' }}>
+                  <Printer size={15} />
+                  <span>Print Copy</span>
+                </button>
+                <button type="button" onClick={() => setActiveReceipt(null)} className="btn" style={{ flex: 1, padding: '10px' }}>
+                  Close
+                </button>
               </div>
-            </div>
-
-            <div style={{ display: 'flex', gap: '10px', marginTop: '14px' }}>
-              <button type="button" onClick={() => window.print()} className="btn-primary" style={{ flex: 1, padding: '10px' }}>
-                <Printer size={15} />
-                <span>Print Copy</span>
-              </button>
-              <button type="button" onClick={() => setActiveReceipt(null)} className="btn" style={{ flex: 1, padding: '10px' }}>
-                Close
-              </button>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
     </div>
   );

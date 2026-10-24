@@ -1,37 +1,52 @@
 import React, { useState } from 'react';
 import { useAppContext } from '../context/AppContext';
+import { PaginationControls } from '../components/PaginationControls';
 
 export const Reports: React.FC = () => {
   const { sales, products, members } = useAppContext();
   
   // Date Filters
-  const [filterType, setFilterType] = useState<'TODAY' | 'WEEK' | 'MONTH' | 'CUSTOM'>('MONTH');
+  const [filterType, setFilterType] = useState<'TODAY' | 'YESTERDAY' | 'WEEK' | 'MONTH' | 'YEAR' | 'CUSTOM'>('MONTH');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+  const [journalPage, setJournalPage] = useState(1);
+  const [journalPageSize, setJournalPageSize] = useState(10);
 
   // Helper to filter sales based on date
   const filteredSales = sales.filter(s => {
     const saleDate = new Date(s.date);
+    const saleTime = saleDate.getTime();
     const today = new Date();
     
     // Normalize today to start of day
-    const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime();
+    const todayEnd = todayStart + 24 * 60 * 60 * 1000 - 1;
     
     if (filterType === 'TODAY') {
-      return saleDate >= todayStart;
+      return saleTime >= todayStart && saleTime <= todayEnd;
+    } else if (filterType === 'YESTERDAY') {
+      const yesterdayStart = todayStart - 24 * 60 * 60 * 1000;
+      const yesterdayEnd = todayStart - 1;
+      return saleTime >= yesterdayStart && saleTime <= yesterdayEnd;
     } else if (filterType === 'WEEK') {
-      const oneWeekAgo = new Date(todayStart.getTime() - 7 * 24 * 60 * 60 * 1000);
-      return saleDate >= oneWeekAgo;
+      const oneWeekAgo = todayStart - 7 * 24 * 60 * 60 * 1000;
+      return saleTime >= oneWeekAgo;
     } else if (filterType === 'MONTH') {
-      const oneMonthAgo = new Date(today.getFullYear(), today.getMonth() - 1, today.getDate());
-      return saleDate >= oneMonthAgo;
+      const oneMonthAgo = new Date(today.getFullYear(), today.getMonth() - 1, today.getDate()).getTime();
+      return saleTime >= oneMonthAgo;
+    } else if (filterType === 'YEAR') {
+      const yearStart = new Date(today.getFullYear(), 0, 1).getTime();
+      return saleTime >= yearStart;
     } else if (filterType === 'CUSTOM') {
-      const start = startDate ? new Date(startDate) : new Date(0);
-      const end = endDate ? new Date(endDate + 'T23:59:59') : new Date();
-      return saleDate >= start && saleDate <= end;
+      const start = startDate ? new Date(startDate).getTime() : 0;
+      const end = endDate ? new Date(endDate + 'T23:59:59').getTime() : Date.now();
+      return saleTime >= start && saleTime <= end;
     }
     return true;
   });
+
+  // ALWAYS SORT TRANSACTIONS: MOST RECENT FIRST
+  filteredSales.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
   // Calculate Metrics
   const totalRevenue = filteredSales.reduce((sum, s) => sum + s.total, 0);
@@ -134,14 +149,14 @@ export const Reports: React.FC = () => {
           <div>
             <label style={{ fontSize: '0.65rem', fontWeight: 'bold', display: 'block', marginBottom: '5px' }}>TIME RANGE</label>
             <div style={{ display: 'flex', gap: '8px' }}>
-              {(['TODAY', 'WEEK', 'MONTH', 'CUSTOM'] as const).map(type => (
+              {(['TODAY', 'YESTERDAY', 'WEEK', 'MONTH', 'YEAR', 'CUSTOM'] as const).map(type => (
                 <button 
                   key={type} 
                   className={filterType === type ? 'primary' : ''} 
-                  onClick={() => setFilterType(type)}
+                  onClick={() => { setFilterType(type); setJournalPage(1); }}
                   style={{ fontSize: '0.65rem' }}
                 >
-                  {type}
+                  {type === 'YEAR' ? 'ANNUALLY' : type}
                 </button>
               ))}
             </div>
@@ -257,8 +272,8 @@ export const Reports: React.FC = () => {
         
         {/* Sales Log */}
         <div className="card">
-          <h3>SALES TRANSACTION JOURNAL</h3>
-          <div className="table-container" style={{ marginTop: '20px', maxHeight: '300px' }}>
+          <h3>SALES TRANSACTION JOURNAL (Sorted Most Recent First)</h3>
+          <div className="table-container" style={{ marginTop: '20px' }}>
             <table>
               <thead>
                 <tr>
@@ -272,19 +287,32 @@ export const Reports: React.FC = () => {
               </thead>
               <tbody>
                 {filteredSales.length === 0 ? (
-                  <tr><td colSpan={6} style={{ textAlign: 'center' }}>NO TRANSACTIONS IN FILTER RANGE</td></tr>
+                  <tr><td colSpan={6} style={{ textAlign: 'center', padding: '20px' }}>NO TRANSACTIONS IN FILTER RANGE</td></tr>
                 ) : (
-                  filteredSales.map(s => (
+                  filteredSales.slice((journalPage - 1) * journalPageSize, journalPage * journalPageSize).map(s => (
                     <tr key={s.id}>
                       <td style={{ fontWeight: 'bold' }}>{s.id}</td>
-                      <td style={{ fontSize: '0.7rem' }}>{new Date(s.date).toLocaleDateString()}</td>
+                      <td style={{ fontSize: '0.7rem' }}>{new Date(s.date).toLocaleDateString()} {new Date(s.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</td>
                       <td style={{ fontSize: '0.65rem' }}>
                         {s.items.map(item => `${item.name} (${item.quantity})`).join(', ')}
                       </td>
                       <td>
                         <span className="badge" style={{ fontSize: '0.55rem' }}>{s.paymentMethod}</span>
                       </td>
-                      <td style={{ fontSize: '0.65rem' }}>{s.paymentRef || '-'}</td>
+                      <td style={{ fontSize: '0.65rem' }}>
+                        <div>{s.paymentRef || '-'}</div>
+                        {s.receiptUrl && (
+                          <a
+                            href={s.receiptUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={{ color: '#2563eb', fontWeight: 700, fontSize: '0.62rem', display: 'inline-flex', alignItems: 'center', gap: '2px', textDecoration: 'none', marginTop: '2px' }}
+                            title="View receipt proof screenshot from Files bucket"
+                          >
+                            <span>📷 Receipt Proof</span>
+                          </a>
+                        )}
+                      </td>
                       <td style={{ fontWeight: 'bold' }}>₱{s.total.toLocaleString()}</td>
                     </tr>
                   ))
@@ -292,6 +320,15 @@ export const Reports: React.FC = () => {
               </tbody>
             </table>
           </div>
+          <PaginationControls
+            currentPage={journalPage}
+            totalItems={filteredSales.length}
+            pageSize={journalPageSize}
+            onPageChange={setJournalPage}
+            onPageSizeChange={setJournalPageSize}
+            pageSizeOptions={[5, 10, 25, 50]}
+            itemLabel="sales"
+          />
         </div>
 
         {/* Top Member Customers */}

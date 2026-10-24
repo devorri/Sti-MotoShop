@@ -210,6 +210,38 @@ tr:hover td {
   background-color: #f8fafc;
 }
 
+/* Keep long customer, product, and payment details inside the live orders feed. */
+.orders-feed-table {
+  min-width: 940px;
+  table-layout: fixed;
+}
+
+.orders-feed-table th:nth-child(1) { width: 13%; }
+.orders-feed-table th:nth-child(2) { width: 16%; }
+.orders-feed-table th:nth-child(3) { width: 21%; }
+.orders-feed-table th:nth-child(4) { width: 12%; }
+.orders-feed-table th:nth-child(5) { width: 13%; }
+.orders-feed-table th:nth-child(6) { width: 8%; }
+.orders-feed-table th:nth-child(7) { width: 10%; }
+.orders-feed-table th:nth-child(8) { width: 7%; }
+
+.orders-feed-table td {
+  vertical-align: top;
+  overflow-wrap: anywhere;
+}
+
+.order-feed-customer,
+.order-feed-secondary {
+  overflow-wrap: anywhere;
+}
+
+.order-feed-items {
+  max-height: 7.2em;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 4px;
+}
+
 /* Badges */
 .badge {
   display: inline-flex;
@@ -273,3 +305,176 @@ tr:hover td {
 .spin {
   animation: spin 1s linear infinite;
 }
+
+/* ======================================================== */
+/* Premium Shop & Catalog Card Styles                       */
+/* ======================================================== */
+.product-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+  position: relative;
+}
+
+.product-card:hover {
+  transform: translateY(-4px);
+  border-color: #cbd5e1;
+  box-shadow: 0 14px 28px -6px rgba(15, 23, 42, 0.08), 0 0 0 1px rgba(37, 99, 235, 0.12);
+}
+
+.product-card-media {
+  position: relative;
+  aspect-ratio: 16 / 11;
+  background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.product-card-media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.product-card:hover .product-card-media img {
+  transform: scale(1.05);
+}
+
+.product-chip {
+  position: absolute;
+  z-index: 2;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-radius: 9999px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+}
+
+.product-chip-category {
+  top: 10px;
+  left: 10px;
+  background: rgba(255, 255, 255, 0.94);
+  color: #1e293b;
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
+}
+
+.product-chip-stock {
+  top: 10px;
+  right: 10px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+}
+
+.product-chip-stock.in-stock {
+  background: rgba(240, 253, 244, 0.95);
+  color: #15803d;
+  border: 1px solid #bbf7d0;
+}
+
+.product-chip-stock.low-stock {
+  background: rgba(254, 252, 232, 0.95);
+  color: #a16207;
+  border: 1px solid #fef08a;
+}
+
+.product-chip-stock.out-stock {
+  background: rgba(254, 242, 242, 0.95);
+  color: #b91c1c;
+  border: 1px solid #fecaca;
+}
+
+.product-chip-barcode {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  font-family: monospace;
+  font-size: 0.65rem;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid #e2e8f0;
+  color: #64748b;
+  border-radius: 6px;
+  padding: 2px 6px;
+  backdrop-filter: blur(4px);
+}
+
+.qty-stepper-capsule {
+  display: inline-flex;
+  align-items: center;
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  overflow: hidden;
+  height: 36px;
+}
+
+.qty-stepper-btn {
+  width: 30px;
+  height: 100%;
+  border: none;
+  background: transparent;
+  color: #475569;
+  font-weight: 700;
+  font-size: 0.9rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.qty-stepper-btn:hover {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+.qty-stepper-input {
+  width: 44px;
+  height: 100%;
+  border: none;
+  background: #ffffff;
+  text-align: center;
+  font-weight: 800;
+  font-size: 0.88rem;
+  color: #0f172a;
+  outline: none;
+  padding: 0;
+}
+
+/* Selection Cards (Delivery & Payment) */
+.selectable-option-card {
+  border: 2px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 14px 16px;
+  background: #ffffff;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-align: left;
+  width: 100%;
+}
+
+.selectable-option-card:hover {
+  border-color: #cbd5e1;
+  background: #f8fafc;
+}
+
+.selectable-option-card.selected {
+  border-color: #2563eb;
+  background: #eff6ff;
+  box-shadow: 0 0 0 1px #2563eb;
+}
+
