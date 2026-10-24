@@ -22,13 +22,69 @@ export const toEan13 = (value: string) => {
   return `${value}${(10 - (sum % 10)) % 10}`;
 };
 
-export const Ean13Barcode: React.FC<{ value: string; height?: number }> = ({ value, height = 74 }) => {
+export const Ean13Barcode: React.FC<{ 
+  value: string; 
+  height?: number | string; 
+  width?: number | string;
+  className?: string;
+  showText?: boolean;
+}> = ({ value, height = 110, width = '100%', className, showText = true }) => {
   const ean13 = toEan13(value);
   if (!ean13) return <span style={{ fontSize: '0.75rem', color: '#64748b' }}>A valid EAN-13 barcode is required.</span>;
   const digits = ean13.split('').map(Number);
   const encoded = ['101', ...digits.slice(1, 7).map((digit, index) => (parityPatterns[digits[0]][index] === 'L' ? leftPatterns[digit] : middlePatterns[digit])), '01010', ...digits.slice(7).map(digit => rightPatterns[digit]), '101'].join('');
-  return <svg role="img" aria-label={`EAN-13 barcode ${ean13}`} viewBox="0 0 95 72" style={{ display: 'block', width: '100%', height, background: '#fff' }}>
-    {encoded.split('').map((bit, index) => bit === '1' && <rect key={index} x={index} y={index < 3 || (index >= 45 && index < 50) || index >= 92 ? 0 : 4} width="1" height={index < 3 || (index >= 45 && index < 50) || index >= 92 ? 58 : 54} fill="#0f172a" />)}
-    <text x="47.5" y="69" textAnchor="middle" fontSize="8" letterSpacing="1.2" fill="#0f172a">{ean13}</text>
-  </svg>;
+  
+  // Standard GS1 quiet zones (11 modules left, 9 modules right for optical scanner detection)
+  const leftQuiet = 11;
+  const rightQuiet = 9;
+  const totalWidth = 95 + leftQuiet + rightQuiet; // 115 modules
+
+  return (
+    <svg
+      role="img"
+      aria-label={`EAN-13 barcode ${ean13}`}
+      viewBox={`0 0 ${totalWidth} 68`}
+      shapeRendering="crispEdges"
+      className={className}
+      style={{
+        display: 'block',
+        width: typeof width === 'number' ? `${width}px` : width,
+        height: typeof height === 'number' ? `${height}px` : height,
+        background: '#ffffff',
+        margin: '0 auto',
+        maxWidth: '100%'
+      }}
+    >
+      <rect width={totalWidth} height="68" fill="#ffffff" />
+      {encoded.split('').map((bit, index) => {
+        if (bit !== '1') return null;
+        const isGuard = index < 3 || (index >= 45 && index < 50) || index >= 92;
+        return (
+          <rect
+            key={index}
+            x={leftQuiet + index}
+            y={0}
+            width="1"
+            height={isGuard ? 54 : 48}
+            fill="#000000"
+          />
+        );
+      })}
+      {showText && (
+        <text
+          x={totalWidth / 2}
+          y="63"
+          textAnchor="middle"
+          fontSize="8.5"
+          fontWeight="bold"
+          fontFamily="'Courier New', Courier, monospace"
+          letterSpacing="1.8"
+          fill="#000000"
+          shapeRendering="auto"
+        >
+          {ean13}
+        </text>
+      )}
+    </svg>
+  );
 };

@@ -284,10 +284,11 @@ tr:hover td {
   body * {
     visibility: hidden;
   }
-  #receipt-print-area, #receipt-print-area * {
+  #receipt-print-area, #receipt-print-area *,
+  #barcode-label-print-area, #barcode-label-print-area * {
     visibility: visible;
   }
-  #receipt-print-area {
+  #receipt-print-area, #barcode-label-print-area {
     position: absolute;
     left: 0;
     top: 0;

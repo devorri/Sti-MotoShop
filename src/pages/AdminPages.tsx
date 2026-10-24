@@ -1235,8 +1235,8 @@ export const Dashboard: React.FC = () => {
                             <code style={{ fontSize: '0.8rem', fontWeight: 700 }}>{toEan13(product.barcode) || product.barcode}</code>
                           </div>
                           <span style={{ fontSize: '0.68rem', color: '#94a3b8' }}>ID: {product.id}</span>
-                          {toEan13(product.barcode) && <div style={{ width: '148px', marginTop: '5px', border: '1px solid #e2e8f0', borderRadius: '4px', padding: '3px', background: '#ffffff' }}><Ean13Barcode value={product.barcode} height={40} /></div>}
-                          {toEan13(product.barcode) && <button type="button" onClick={() => setBarcodePreview(product)} style={{ marginTop: '4px', padding: '3px 6px', fontSize: '0.66rem', border: '1px solid #bfdbfe', borderRadius: '4px', color: '#1d4ed8', background: '#eff6ff', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '3px' }}><Barcode size={11} /> View / print</button>}
+                          {toEan13(product.barcode) && <div style={{ width: '180px', marginTop: '6px', border: '2px solid #0f172a', borderRadius: '6px', padding: '6px 8px', background: '#ffffff', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}><Ean13Barcode value={product.barcode} height={65} /></div>}
+                          {toEan13(product.barcode) && <button type="button" onClick={() => setBarcodePreview(product)} style={{ marginTop: '5px', padding: '4px 8px', fontSize: '0.7rem', border: '1px solid #bfdbfe', borderRadius: '4px', color: '#1d4ed8', background: '#eff6ff', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px', fontWeight: 700 }}><Barcode size={13} /> View / Print Label</button>}
                         </td>
                         <td>
                           <strong style={{ color: '#0f172a', fontSize: '0.88rem', display: 'block' }}>
@@ -1952,7 +1952,7 @@ export const Dashboard: React.FC = () => {
                             {currentProduct ? (
                               isRestocked ? (
                                 <span className="badge badge-green" style={{ fontSize: '0.65rem', padding: '1px 6px' }}>
-                                  ✓ In Stock: {currentProduct.stock} (Ready to Fulfill)
+                                  In Stock: {currentProduct.stock} (Ready to Fulfill)
                                 </span>
                               ) : (
                                 <span className="badge badge-yellow" style={{ fontSize: '0.65rem', padding: '1px 6px' }}>
@@ -2560,20 +2560,31 @@ export const Dashboard: React.FC = () => {
 
       {barcodePreview && (
         <div className="modal-overlay" onClick={() => setBarcodePreview(null)}>
-          <div className="modal" style={{ maxWidth: '420px', width: '100%' }} onClick={event => event.stopPropagation()}>
+          <div className="modal" style={{ maxWidth: '580px', width: '95%' }} onClick={event => event.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
               <div>
-                <h2 style={{ fontSize: '1.05rem', color: '#0f172a', margin: 0, fontWeight: 800 }}>Product Barcode Label</h2>
-                <p style={{ margin: '3px 0 0', fontSize: '0.76rem', color: '#64748b' }}>{barcodePreview.name}</p>
+                <span className="badge badge-blue" style={{ fontSize: '0.72rem', fontWeight: 800 }}>BARCODE LABEL</span>
+                <h2 style={{ fontSize: '1.2rem', color: '#0f172a', margin: '4px 0 0', fontWeight: 900 }}>Product Barcode Label</h2>
+                <p style={{ margin: '2px 0 0', fontSize: '0.8rem', color: '#64748b' }}>{barcodePreview.name}</p>
               </div>
-              <button type="button" onClick={() => setBarcodePreview(null)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X size={18} /></button>
+              <button type="button" onClick={() => setBarcodePreview(null)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X size={20} /></button>
             </div>
-            <div style={{ border: '1px solid #e2e8f0', background: '#ffffff', borderRadius: '8px', padding: '20px' }}>
-              <Ean13Barcode value={barcodePreview.barcode} height={150} />
+            <div id="barcode-label-print-area" style={{ border: '2px solid #000000', background: '#ffffff', borderRadius: '12px', padding: '24px 20px', display: 'flex', flexDirection: 'column', alignItems: 'center', boxShadow: '0 4px 16px rgba(0,0,0,0.08)' }}>
+              <div style={{ textAlign: 'center', marginBottom: '12px' }}>
+                <strong style={{ fontSize: '1.15rem', color: '#0f172a', display: 'block', fontWeight: 900 }}>BOSS RAP MOTOR SHOP</strong>
+                <span style={{ fontSize: '0.85rem', color: '#475569', fontWeight: 700 }}>{barcodePreview.name}</span>
+                <div style={{ fontSize: '0.95rem', color: '#16a34a', fontWeight: 800, marginTop: '2px' }}>₱{barcodePreview.price.toLocaleString()}</div>
+              </div>
+              <div style={{ width: '100%', maxWidth: '480px', margin: '8px 0' }}>
+                <Ean13Barcode value={barcodePreview.barcode} height={185} />
+              </div>
+              <div style={{ fontSize: '1.35rem', fontFamily: 'monospace', fontWeight: 900, letterSpacing: '4px', marginTop: '6px', color: '#000000' }}>
+                {toEan13(barcodePreview.barcode)}
+              </div>
             </div>
             <div style={{ display: 'flex', gap: '10px', marginTop: '16px' }}>
-              <button type="button" className="btn" onClick={() => setBarcodePreview(null)} style={{ flex: 1 }}>Close</button>
-              <button type="button" className="btn-primary" onClick={() => window.print()} style={{ flex: 1 }}><Printer size={15} /> Print Label</button>
+              <button type="button" className="btn" onClick={() => setBarcodePreview(null)} style={{ flex: 1, padding: '10px' }}>Close</button>
+              <button type="button" className="btn-primary" onClick={() => window.print()} style={{ flex: 1, padding: '10px', fontWeight: 800 }}><Printer size={15} /> Print Label</button>
             </div>
           </div>
         </div>

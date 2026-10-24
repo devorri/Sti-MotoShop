@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useAppContext } from '../context/AppContext';
 import type { Product, SaleItem } from '../context/AppContext';
-import { toEan13 } from '../components/Ean13Barcode';
+import { Ean13Barcode, toEan13 } from '../components/Ean13Barcode';
 import { 
   Monitor, 
   CornerDownLeft, 
@@ -17,7 +17,8 @@ import {
   RefreshCw,
   QrCode,
   ExternalLink,
-  X
+  X,
+  Package
 } from 'lucide-react';
 import { createQrPhPayment, checkPaymentIntentStatus, type PayMongoQrResponse } from '../services/paymongoService';
 
@@ -152,6 +153,18 @@ export const Sales: React.FC = () => {
   const [catalogSearch, setCatalogSearch] = useState('');
   const [catalogCategory, setCatalogCategory] = useState('ALL');
 
+  // Barcode Preview Modal & Quick Catalog Display states
+  const [barcodePreview, setBarcodePreview] = useState<Product | null>(null);
+  const [lastScannedProduct, setLastScannedProduct] = useState<Product | null>(null);
+  const [showBarcodesInCatalog, setShowBarcodesInCatalog] = useState(true);
+
+  // Default active scan target to first available product for immediate scanner testing
+  useEffect(() => {
+    if (!lastScannedProduct && products.length > 0) {
+      setLastScannedProduct(products[0]);
+    }
+  }, [products, lastScannedProduct]);
+
   // Focus scanner on load
   useEffect(() => {
     barcodeInputRef.current?.focus();
@@ -243,6 +256,7 @@ export const Sales: React.FC = () => {
 
   // Add product to register cart
   const addProductToRegister = (product: Product, quantityToAdd: number = 1) => {
+    setLastScannedProduct(product);
     const existing = cart.find(item => item.productId === product.id);
     const cartQty = existing ? existing.quantity : 0;
 
@@ -308,6 +322,7 @@ export const Sales: React.FC = () => {
     );
 
     if (matchedProduct) {
+      setLastScannedProduct(matchedProduct);
       addProductToRegister(matchedProduct, qty);
       setBarcodeInput('');
     } else {
@@ -571,10 +586,10 @@ export const Sales: React.FC = () => {
           
           {/* Scanner Input Card */}
           <div className="card" style={{ padding: '18px', backgroundColor: '#ffffff' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <ScanBarcode size={18} color="#2563eb" />
-                <h3 style={{ fontSize: '0.95rem', margin: 0, color: '#0f172a', fontWeight: 800 }}>
+                <ScanBarcode size={20} color="#2563eb" />
+                <h3 style={{ fontSize: '1rem', margin: 0, color: '#0f172a', fontWeight: 900 }}>
                   BARCODE SCANNER EMULATION
                 </h3>
               </div>
@@ -600,6 +615,111 @@ export const Sales: React.FC = () => {
                 <span>Enter</span>
               </button>
             </form>
+
+            {/* Scanned / Active Product Image and Infos */}
+            {lastScannedProduct && (
+              <div style={{
+                marginTop: '14px',
+                padding: '14px',
+                borderRadius: '8px',
+                backgroundColor: '#f8fafc',
+                border: '1px solid #e2e8f0',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: '14px',
+                flexWrap: 'wrap'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '14px', minWidth: 0, flex: 1 }}>
+                  {lastScannedProduct.imageUrl ? (
+                    <img
+                      src={lastScannedProduct.imageUrl}
+                      alt={lastScannedProduct.name}
+                      style={{
+                        width: '60px',
+                        height: '60px',
+                        borderRadius: '6px',
+                        objectFit: 'cover',
+                        border: '1px solid #cbd5e1',
+                        flexShrink: 0,
+                        backgroundColor: '#ffffff'
+                      }}
+                      onError={e => { (e.target as HTMLElement).style.display = 'none'; }}
+                    />
+                  ) : (
+                    <div style={{
+                      width: '60px',
+                      height: '60px',
+                      borderRadius: '6px',
+                      backgroundColor: '#f1f5f9',
+                      border: '1px solid #cbd5e1',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexShrink: 0,
+                      color: '#94a3b8'
+                    }}>
+                      <Package size={26} />
+                    </div>
+                  )}
+
+                  <div style={{ minWidth: 0, flex: 1 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '3px' }}>
+                      <span className="badge badge-blue" style={{ fontSize: '0.68rem', textTransform: 'uppercase', fontWeight: 700 }}>
+                        {lastScannedProduct.category}
+                      </span>
+                      <span style={{ fontSize: '0.74rem', fontFamily: 'monospace', color: '#64748b', fontWeight: 600 }}>
+                        Barcode: {toEan13(lastScannedProduct.barcode) || lastScannedProduct.barcode}
+                      </span>
+                    </div>
+
+                    <strong style={{ fontSize: '0.94rem', color: '#0f172a', display: 'block', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+                      {lastScannedProduct.name}
+                    </strong>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '3px' }}>
+                      <span style={{ fontSize: '1rem', color: '#16a34a', fontWeight: 800 }}>
+                        ₱{lastScannedProduct.price.toLocaleString()}
+                      </span>
+                      <span className={`badge ${lastScannedProduct.stock <= 0 ? 'badge-red' : lastScannedProduct.stock <= lastScannedProduct.lowStockLevel ? 'badge-yellow' : 'badge-green'}`} style={{ fontSize: '0.68rem' }}>
+                        {lastScannedProduct.stock <= 0 ? 'Out of stock' : `${lastScannedProduct.stock} in stock`}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+                  <button
+                    type="button"
+                    onClick={() => setBarcodePreview(lastScannedProduct)}
+                    className="btn"
+                    style={{
+                      padding: '8px 12px',
+                      fontSize: '0.76rem',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '5px',
+                      color: '#2563eb',
+                      borderColor: '#bfdbfe',
+                      background: '#eff6ff',
+                      fontWeight: 600
+                    }}
+                    title="View barcode label"
+                  >
+                    <Barcode size={14} />
+                    <span>View Label</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => addProductToRegister(lastScannedProduct, 1)}
+                    className="btn-primary"
+                    style={{ padding: '8px 14px', fontSize: '0.76rem', fontWeight: 700 }}
+                  >
+                    +1 Add
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Member Search / Club Link Card */}
@@ -658,7 +778,28 @@ export const Sales: React.FC = () => {
           {/* Quick Product Grid */}
           <div className="card" style={{ padding: '18px', backgroundColor: '#ffffff', flex: 1 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
-              <strong style={{ fontSize: '0.9rem', color: '#0f172a' }}>QUICK INVENTORY CATALOG</strong>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <strong style={{ fontSize: '0.9rem', color: '#0f172a' }}>QUICK INVENTORY CATALOG</strong>
+                <button
+                  type="button"
+                  onClick={() => setShowBarcodesInCatalog(!showBarcodesInCatalog)}
+                  className="btn"
+                  style={{
+                    padding: '3px 8px',
+                    fontSize: '0.7rem',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    borderColor: showBarcodesInCatalog ? '#2563eb' : '#cbd5e1',
+                    backgroundColor: showBarcodesInCatalog ? '#eff6ff' : '#ffffff',
+                    color: showBarcodesInCatalog ? '#1d4ed8' : '#64748b'
+                  }}
+                  title="Toggle barcode labels on products"
+                >
+                  <Barcode size={12} />
+                  <span>{showBarcodesInCatalog ? 'Barcodes: Visible' : 'Barcodes: Hidden'}</span>
+                </button>
+              </div>
               
               <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
                 <input
@@ -678,7 +819,7 @@ export const Sales: React.FC = () => {
               </div>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '10px', maxHeight: '340px', overflowY: 'auto' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '12px', maxHeight: '460px', overflowY: 'auto' }}>
               {filteredCatalog.map(product => {
                 const isOutOfStock = product.stock <= 0;
                 return (
@@ -686,9 +827,9 @@ export const Sales: React.FC = () => {
                     key={product.id}
                     onClick={() => !isOutOfStock && addProductToRegister(product, 1)}
                     style={{
-                      padding: '12px',
-                      borderRadius: '8px',
-                      border: '1px solid #e2e8f0',
+                      padding: '14px',
+                      borderRadius: '10px',
+                      border: '1px solid #cbd5e1',
                       backgroundColor: isOutOfStock ? '#f8fafc' : '#ffffff',
                       cursor: isOutOfStock ? 'not-allowed' : 'pointer',
                       opacity: isOutOfStock ? 0.6 : 1,
@@ -698,11 +839,11 @@ export const Sales: React.FC = () => {
                       justifyContent: 'space-between'
                     }}
                     onMouseEnter={e => !isOutOfStock && (e.currentTarget.style.borderColor = '#2563eb')}
-                    onMouseLeave={e => !isOutOfStock && (e.currentTarget.style.borderColor = '#e2e8f0')}
+                    onMouseLeave={e => !isOutOfStock && (e.currentTarget.style.borderColor = '#cbd5e1')}
                   >
-                    <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
+                    <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
                       {product.imageUrl && (
-                        <div style={{ width: '38px', height: '38px', borderRadius: '4px', overflow: 'hidden', flexShrink: 0, border: '1px solid #e2e8f0', backgroundColor: '#f8fafc' }}>
+                        <div style={{ width: '42px', height: '42px', borderRadius: '6px', overflow: 'hidden', flexShrink: 0, border: '1px solid #e2e8f0', backgroundColor: '#f8fafc' }}>
                           <img
                             src={product.imageUrl}
                             alt=""
@@ -712,20 +853,79 @@ export const Sales: React.FC = () => {
                         </div>
                       )}
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <span style={{ fontSize: '0.65rem', color: '#64748b', textTransform: 'uppercase' }}>
+                        <span style={{ fontSize: '0.68rem', color: '#64748b', textTransform: 'uppercase', fontWeight: 700 }}>
                           {product.category}
                         </span>
-                        <strong style={{ fontSize: '0.82rem', color: '#0f172a', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', lineHeight: '1.25' }}>
+                        <strong style={{ fontSize: '0.88rem', color: '#0f172a', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', lineHeight: '1.25' }}>
                           {product.name}
                         </strong>
                       </div>
                     </div>
 
+                    {/* BIG Generated EAN-13 Barcode */}
+                    {showBarcodesInCatalog && toEan13(product.barcode) && (
+                      <div style={{
+                        marginTop: '10px',
+                        marginBottom: '8px',
+                        backgroundColor: '#ffffff',
+                        border: '2px solid #0f172a',
+                        borderRadius: '8px',
+                        padding: '10px 12px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        boxShadow: '0 2px 6px rgba(0,0,0,0.06)'
+                      }}>
+                        <div style={{ width: '100%', maxWidth: '280px', background: '#ffffff' }}>
+                          <Ean13Barcode value={product.barcode} height={105} />
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', marginTop: '6px', padding: '0 2px' }}>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setLastScannedProduct(product);
+                              setBarcodeInput(toEan13(product.barcode) || product.barcode);
+                              barcodeInputRef.current?.focus();
+                            }}
+                            className="btn"
+                            style={{
+                              fontSize: '0.7rem',
+                              padding: '2px 8px',
+                              cursor: 'pointer'
+                            }}
+                            title="Load barcode into scanner input"
+                          >
+                            To Scanner
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setBarcodePreview(product);
+                            }}
+                            className="btn-primary"
+                            style={{
+                              fontSize: '0.7rem',
+                              padding: '2px 8px',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              fontWeight: 700
+                            }}
+                            title="View barcode label"
+                          >
+                            <Barcode size={12} /> View Label
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '10px' }}>
-                      <strong style={{ fontSize: '0.9rem', color: '#16a34a' }}>
+                      <strong style={{ fontSize: '0.95rem', color: '#16a34a' }}>
                         ₱{product.price.toLocaleString()}
                       </strong>
-                      <span className={`badge ${isOutOfStock ? 'badge-red' : product.stock <= product.lowStockLevel ? 'badge-yellow' : 'badge-green'}`} style={{ fontSize: '0.65rem' }}>
+                      <span className={`badge ${isOutOfStock ? 'badge-red' : product.stock <= product.lowStockLevel ? 'badge-yellow' : 'badge-green'}`} style={{ fontSize: '0.68rem' }}>
                         {isOutOfStock ? 'OUT' : `${product.stock} in stock`}
                       </span>
                     </div>
@@ -770,32 +970,60 @@ export const Sales: React.FC = () => {
                   <span style={{ fontSize: '0.75rem' }}>Scan barcode or select an item from catalog.</span>
                 </div>
               ) : (
-                cart.map(item => (
-                  <div key={item.productId} style={{
-                    padding: '8px 12px',
-                    borderRadius: '6px',
-                    border: '1px solid #f1f5f9',
-                    backgroundColor: '#f8fafc',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center'
-                  }}>
-                    <div style={{ flex: 1, marginRight: '10px' }}>
-                      <strong style={{ fontSize: '0.82rem', color: '#0f172a', display: 'block' }}>{item.name}</strong>
-                      <span style={{ fontSize: '0.72rem', color: '#64748b' }}>₱{item.price.toLocaleString()} each</span>
+                cart.map(item => {
+                  const prod = products.find(p => p.id === item.productId);
+                  const ean = prod?.barcode ? (toEan13(prod.barcode) || prod.barcode) : null;
+                  return (
+                    <div key={item.productId} style={{
+                      padding: '8px 12px',
+                      borderRadius: '6px',
+                      border: '1px solid #f1f5f9',
+                      backgroundColor: '#f8fafc',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center'
+                    }}>
+                      <div style={{ flex: 1, marginRight: '10px' }}>
+                        <strong style={{ fontSize: '0.82rem', color: '#0f172a', display: 'block' }}>{item.name}</strong>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '2px', flexWrap: 'wrap' }}>
+                          <span style={{ fontSize: '0.72rem', color: '#64748b' }}>₱{item.price.toLocaleString()} each</span>
+                          {ean && (
+                            <span
+                              onClick={() => prod && setBarcodePreview(prod)}
+                              style={{
+                                fontSize: '0.65rem',
+                                fontFamily: 'monospace',
+                                color: '#2563eb',
+                                backgroundColor: '#eff6ff',
+                                border: '1px solid #bfdbfe',
+                                borderRadius: '4px',
+                                padding: '1px 5px',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '3px',
+                                cursor: 'pointer'
+                              }}
+                              title="Click to view/print barcode label"
+                            >
+                              <Barcode size={10} />
+                              {ean}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      <EditablePosQty
+                        quantity={item.quantity}
+                        maxStock={prod?.stock || 9999}
+                        onUpdate={(qty) => updateCartQty(item.productId, qty)}
+                      />
+
+                      <strong style={{ fontSize: '0.88rem', color: '#0f172a', marginLeft: '12px', minWidth: '60px', textAlign: 'right' }}>
+                        ₱{(item.price * item.quantity).toLocaleString()}
+                      </strong>
                     </div>
-
-                    <EditablePosQty
-                      quantity={item.quantity}
-                      maxStock={products.find(p => p.id === item.productId)?.stock || 9999}
-                      onUpdate={(qty) => updateCartQty(item.productId, qty)}
-                    />
-
-                    <strong style={{ fontSize: '0.88rem', color: '#0f172a', marginLeft: '12px', minWidth: '60px', textAlign: 'right' }}>
-                      ₱{(item.price * item.quantity).toLocaleString()}
-                    </strong>
-                  </div>
-                ))
+                  );
+                })
               )}
             </div>
 
@@ -1207,7 +1435,7 @@ export const Sales: React.FC = () => {
                       fontWeight: 600
                     }}
                   >
-                    ⚡ Simulate Customer Scan Success
+                    Simulate Customer Scan Success
                   </button>
                 </div>
               </>
@@ -1240,12 +1468,23 @@ export const Sales: React.FC = () => {
               <div style={{ borderBottom: '1px dashed #cbd5e1', marginBottom: '8px' }} />
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '8px' }}>
-                {showReceipt.items.map((it: any, idx: number) => (
-                  <div key={idx} style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span>{it.name} × {it.quantity}</span>
-                    <strong>₱{(it.price * it.quantity).toLocaleString()}</strong>
-                  </div>
-                ))}
+                {showReceipt.items.map((it: any, idx: number) => {
+                  const prod = products.find(p => p.id === it.productId);
+                  const itemBarcode = prod?.barcode ? (toEan13(prod.barcode) || prod.barcode) : null;
+                  return (
+                    <div key={idx} style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span>{it.name} × {it.quantity}</span>
+                        <strong>₱{(it.price * it.quantity).toLocaleString()}</strong>
+                      </div>
+                      {itemBarcode && (
+                        <div style={{ fontSize: '0.68rem', color: '#64748b', fontFamily: 'monospace' }}>
+                          SKU/Barcode: {itemBarcode}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
 
               <div style={{ borderBottom: '1px dashed #cbd5e1', margin: '8px 0' }} />
@@ -1280,6 +1519,23 @@ export const Sales: React.FC = () => {
 
               <div style={{ borderBottom: '1px dashed #cbd5e1', margin: '8px 0' }} />
 
+              {/* Receipt / Invoice Scannable Barcode */}
+              {(() => {
+                const rawDigits = (showReceipt.id || '').replace(/\D/g, '');
+                const padded12 = (rawDigits.length >= 12 ? rawDigits.slice(0, 12) : `50${rawDigits}`.padEnd(12, '0')).slice(0, 12);
+                const receiptEan = toEan13(padded12);
+                return receiptEan ? (
+                  <div style={{ marginTop: '10px', marginBottom: '8px', padding: '6px', backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '4px', textAlign: 'center' }}>
+                    <div style={{ width: '100%', maxWidth: '170px', margin: '0 auto' }}>
+                      <Ean13Barcode value={receiptEan} height={44} />
+                    </div>
+                    <div style={{ fontSize: '0.65rem', color: '#64748b', marginTop: '2px', fontFamily: 'monospace' }}>
+                      Invoice Barcode: {receiptEan}
+                    </div>
+                  </div>
+                ) : null;
+              })()}
+
               <div style={{ fontSize: '0.72rem', color: '#64748b', textAlign: 'center', marginTop: '10px' }}>
                 <div>Payment Method: {showReceipt.paymentMethod}</div>
                 {showReceipt.paymentRef && <div>Ref: {showReceipt.paymentRef}</div>}
@@ -1296,6 +1552,115 @@ export const Sales: React.FC = () => {
               </button>
               <button type="button" onClick={() => setShowReceipt(null)} className="btn" style={{ flex: 1 }}>
                 New Sale
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Product Barcode Label Preview Modal */}
+      {barcodePreview && (
+        <div className="modal-overlay" onClick={() => setBarcodePreview(null)}>
+          <div className="modal" style={{ maxWidth: '600px', width: '95%' }} onClick={e => e.stopPropagation()}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+              <div>
+                <span className="badge badge-blue" style={{ fontSize: '0.72rem', fontWeight: 800 }}>
+                  BARCODE LABEL
+                </span>
+                <h2 style={{ fontSize: '1.25rem', color: '#0f172a', margin: '4px 0 0', fontWeight: 900 }}>
+                  {barcodePreview.name}
+                </h2>
+                <p style={{ margin: '2px 0 0', fontSize: '0.82rem', color: '#64748b' }}>
+                  {barcodePreview.category} • ₱{barcodePreview.price.toLocaleString()}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setBarcodePreview(null)}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b' }}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div id="barcode-label-print-area" style={{
+              border: '2px solid #000000',
+              background: '#ffffff',
+              borderRadius: '12px',
+              padding: '24px 20px',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              boxShadow: '0 4px 16px rgba(0,0,0,0.08)'
+            }}>
+              <div style={{ textAlign: 'center', marginBottom: '10px' }}>
+                <strong style={{ fontSize: '1.15rem', color: '#000000', letterSpacing: '1px', display: 'block', fontWeight: 900 }}>
+                  BOSS RAP MOTOR SHOP
+                </strong>
+                <span style={{ fontSize: '0.88rem', color: '#1e293b', fontWeight: 700 }}>
+                  {barcodePreview.name}
+                </span>
+                <div style={{ fontSize: '0.98rem', color: '#16a34a', fontWeight: 900, marginTop: '2px' }}>
+                  ₱{barcodePreview.price.toLocaleString()}
+                </div>
+              </div>
+
+              <div style={{ width: '100%', maxWidth: '480px', margin: '8px 0', background: '#ffffff', padding: '10px' }}>
+                <Ean13Barcode value={barcodePreview.barcode} height={180} />
+              </div>
+
+              <div style={{
+                fontSize: '1.35rem',
+                color: '#000000',
+                fontFamily: "'Courier New', Courier, monospace",
+                fontWeight: 900,
+                letterSpacing: '4px',
+                marginTop: '8px',
+                backgroundColor: '#f8fafc',
+                padding: '6px 20px',
+                borderRadius: '8px',
+                border: '1px solid #cbd5e1'
+              }}>
+                {toEan13(barcodePreview.barcode)}
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: '8px', marginTop: '18px', flexWrap: 'wrap' }}>
+              <button
+                type="button"
+                className="btn"
+                onClick={() => {
+                  setLastScannedProduct(barcodePreview);
+                  setBarcodeInput(toEan13(barcodePreview.barcode) || barcodePreview.barcode);
+                  setBarcodePreview(null);
+                  barcodeInputRef.current?.focus();
+                }}
+                style={{ flex: 1, fontSize: '0.82rem', padding: '10px', minWidth: '130px', fontWeight: 700 }}
+                title="Populate barcode in POS scanner input"
+              >
+                <ScanBarcode size={15} />
+                <span>Input to Terminal</span>
+              </button>
+              <button
+                type="button"
+                className="btn"
+                onClick={() => {
+                  addProductToRegister(barcodePreview, 1);
+                  setBarcodePreview(null);
+                }}
+                style={{ flex: 1, fontSize: '0.82rem', padding: '10px', minWidth: '120px', fontWeight: 700 }}
+              >
+                <ShoppingCart size={15} />
+                <span>+ Add to Cart</span>
+              </button>
+              <button
+                type="button"
+                className="btn-primary"
+                onClick={() => window.print()}
+                style={{ flex: 1, fontSize: '0.82rem', padding: '10px', minWidth: '120px', fontWeight: 800 }}
+              >
+                <Printer size={15} />
+                <span>Print Label</span>
               </button>
             </div>
           </div>
