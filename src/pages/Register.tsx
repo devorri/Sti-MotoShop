@@ -4,6 +4,7 @@ import { useAppContext } from '../context/AppContext';
 import { supabase } from '../supabase';
 import { CheckCircle2, ArrowRight, ShoppingBag, AlertCircle, UserPlus } from 'lucide-react';
 import { formatPhoneNumber, isValidPhilippineNumber, sendRegistrationOtpSms } from '../services/smsService';
+import { useCountdown, formatCountdown, OTP_RESEND_COOLDOWN_SECONDS } from '../hooks/useCountdown';
 
 const passwordRequirements = [
   { label: 'At least 8 characters', test: (value: string) => value.length >= 8 },
@@ -31,6 +32,9 @@ export const Register: React.FC = () => {
   const [otpExpiresAt, setOtpExpiresAt] = useState(0);
   const [phoneVerified, setPhoneVerified] = useState(false);
   const [otpSending, setOtpSending] = useState(false);
+  const [otpResendAt, setOtpResendAt] = useState(0);
+  const otpSecondsLeft = useCountdown(otpExpiresAt);
+  const resendSecondsLeft = useCountdown(otpResendAt);
   const [successInfo, setSuccessInfo] = useState<{
     memberId: string;
     name: string;
@@ -53,6 +57,7 @@ export const Register: React.FC = () => {
     setError('');
     const validationError = validateRegistration();
     if (validationError) { setError(validationError); return; }
+    if (resendSecondsLeft > 0) { setError(`Please wait ${resendSecondsLeft}s before requesting another code.`); return; }
     setOtpSending(true);
     try {
       const code = Math.floor(100000 + Math.random() * 900000).toString();
@@ -60,6 +65,8 @@ export const Register: React.FC = () => {
       if (!result.success) throw new Error(result.error || 'Unable to send verification code.');
       setOtpSent(code);
       setOtpExpiresAt(Date.now() + 10 * 60 * 1000);
+      setOtpResendAt(Date.now() + OTP_RESEND_COOLDOWN_SECONDS * 1000);
+      setOtpInput('');
       setPhoneVerified(false);
     } catch (err: any) {
       setError(err.message || 'Unable to send verification code.');
@@ -210,7 +217,7 @@ export const Register: React.FC = () => {
               Registration Successful!
             </h2>
             <p style={{ fontSize: '0.88rem', color: '#64748b', margin: '0 0 20px 0' }}>
-              Welcome to Boss Rap Motor Shop Rider Club.
+              Welcome to Boss Rap Motor Shop.
             </p>
 
             <div style={{ 
@@ -270,7 +277,7 @@ export const Register: React.FC = () => {
                 style={{ maxHeight: '55px', marginBottom: '10px' }} 
               />
               <h2 style={{ fontSize: '1.35rem', color: '#0f172a', margin: 0, fontWeight: 800 }}>
-                Join the Rider Club
+                Join Boss Rap Motor Shop
               </h2>
               <p style={{ fontSize: '0.82rem', color: '#64748b', marginTop: '4px' }}>
                 Earn loyalty points on every motorcycle part & service purchase
@@ -334,6 +341,7 @@ export const Register: React.FC = () => {
                     setOtpSent('');
                     setOtpInput('');
                     setOtpExpiresAt(0);
+                    setOtpResendAt(0);
                   }}
                   required
                   />
@@ -378,10 +386,22 @@ export const Register: React.FC = () => {
                 ) : phoneVerified ? (
                   <div style={{ color: '#15803d', fontSize: '0.82rem', fontWeight: 700 }}>✓ Mobile number verified</div>
                 ) : (
-                  <div style={{ display: 'flex', gap: '8px' }}>
-                    <input aria-label="6-digit OTP" inputMode="numeric" maxLength={6} placeholder="6-digit OTP" value={otpInput} onChange={e => setOtpInput(e.target.value.replace(/\D/g, ''))} />
-                    <button type="button" className="btn-primary" onClick={verifyOtp} disabled={otpInput.length !== 6}>Verify</button>
-                    <button type="button" className="btn" onClick={sendOtp} disabled={otpSending}>Resend</button>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <input aria-label="6-digit OTP" inputMode="numeric" maxLength={6} placeholder="6-digit OTP" value={otpInput} onChange={e => setOtpInput(e.target.value.replace(/\D/g, ''))} />
+                      <button type="button" className="btn-primary" onClick={verifyOtp} disabled={otpInput.length !== 6 || otpSecondsLeft === 0}>Verify</button>
+                      <button type="button" className="btn" onClick={sendOtp} disabled={otpSending || resendSecondsLeft > 0} style={{ whiteSpace: 'nowrap' }}>
+                        {otpSending ? 'Sending...' : resendSecondsLeft > 0 ? `Resend (${resendSecondsLeft}s)` : 'Resend'}
+                      </button>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.74rem', fontWeight: 700 }}>
+                      <span style={{ color: otpSecondsLeft === 0 ? '#dc2626' : otpSecondsLeft <= 60 ? '#d97706' : '#1e40af' }}>
+                        {otpSecondsLeft === 0 ? 'Code expired — tap Resend for a new one' : `⏱ Code expires in ${formatCountdown(otpSecondsLeft)}`}
+                      </span>
+                      <span style={{ color: '#64748b', fontWeight: 500 }}>
+                        {resendSecondsLeft > 0 ? `No SMS yet? You can resend in ${resendSecondsLeft}s` : 'Weak signal? You can resend now'}
+                      </span>
+                    </div>
                   </div>
                 )}
               </div>

@@ -64,7 +64,9 @@ export const Dashboard: React.FC = () => {
     updateBackOrderStatus,
     addBackOrder,
     pointsSettings,
-    verifySalePayment
+    verifySalePayment,
+    completePickupClaim,
+    getProductDeleteBlockers
   } = useAppContext();
 
   // Active Tab synchronized with URL search params (controlled by the left sidebar navigation)
@@ -129,6 +131,7 @@ export const Dashboard: React.FC = () => {
   const [viewingReceiptSale, setViewingReceiptSale] = useState<Sale | null>(null);
   const [advanceModalOrder, setAdvanceModalOrder] = useState<Sale | null>(null);
   const [advancingStatus, setAdvancingStatus] = useState(false);
+  const [advanceTendered, setAdvanceTendered] = useState('');
 
   // Audit Log tab states & Pagination
   const [auditSearch, setAuditSearch] = useState('');
@@ -560,6 +563,11 @@ export const Dashboard: React.FC = () => {
   };
 
   const handleDeleteProduct = async (productId: string, productName: string) => {
+    const blockers = getProductDeleteBlockers(productId);
+    if (blockers.length > 0) {
+      alert(`CANNOT DELETE "${productName}".\n\nThis product is part of an ongoing transaction:\n• ${blockers.join('\n• ')}\n\nYou can delete it once these transactions are completed.`);
+      return;
+    }
     if (window.confirm(`Are you sure you want to remove "${productName}" from the catalog?`)) {
       await deleteProduct(productId);
     }
@@ -1629,7 +1637,7 @@ export const Dashboard: React.FC = () => {
                           <div style={{ marginTop: '3px' }}>
                             {sale.paymentVerified || sale.orderStatus === 'COMPLETED' ? (
                               <span style={{ fontSize: '0.65rem', backgroundColor: '#ecfdf5', color: '#047857', border: '1px solid #a7f3d0', borderRadius: '4px', padding: '1px 6px', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
-                                <CheckCircle2 size={11} color="#047857" /> VERIFIED
+                                <CheckCircle2 size={11} color="#047857" /> {sale.paymentMethod === 'E-WALLET' ? 'PAID' : 'VERIFIED'}
                               </span>
                             ) : (
                               <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
@@ -1697,6 +1705,18 @@ export const Dashboard: React.FC = () => {
                               >
                                 <ImageIcon size={13} />
                               </button>
+                            )}
+                            {sale.deliveryProofUrl && (
+                              <a
+                                href={sale.deliveryProofUrl}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="btn"
+                                style={{ padding: '4px 8px', fontSize: '0.72rem', color: '#15803d', borderColor: '#bbf7d0', backgroundColor: '#f0fdf4', textDecoration: 'none' }}
+                                title="View rider's delivery proof photo"
+                              >
+                                Proof
+                              </a>
                             )}
                             {sale.orderStatus !== 'COMPLETED' && (
                               <button
@@ -2805,6 +2825,12 @@ export const Dashboard: React.FC = () => {
                     <span>+₱{(activeReceipt.deliveryFee ?? 100).toLocaleString()}</span>
                   </div>
                 )}
+                {(activeReceipt.pointsDiscount || 0) > 0 && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px', color: '#a16207' }}>
+                    <span>Points Redeemed ({activeReceipt.pointsRedeemed} pts):</span>
+                    <span>-₱{(activeReceipt.pointsDiscount || 0).toLocaleString()}</span>
+                  </div>
+                )}
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1rem', fontWeight: 900, margin: '6px 0' }}>
                   <span>TOTAL:</span>
                   <span>₱{activeReceipt.total.toLocaleString()}</span>
@@ -2830,6 +2856,12 @@ export const Dashboard: React.FC = () => {
                     )}
                   </div>
                   <div>Payment Method: <strong>{activeReceipt.paymentMethod}</strong> {activeReceipt.paymentRef ? `(Ref: ${activeReceipt.paymentRef})` : ''}</div>
+                  {activeReceipt.paymentMethod === 'CASH' && activeReceipt.cashTendered != null && (
+                    <div>Cash Tendered: <strong>₱{activeReceipt.cashTendered.toLocaleString()}</strong> • Change: <strong>₱{(activeReceipt.changeDue ?? 0).toLocaleString()}</strong></div>
+                  )}
+                  {activeReceipt.receivedBy && (
+                    <div>Received by: <strong>{activeReceipt.receivedBy}</strong>{activeReceipt.paidAt ? ` • ${new Date(activeReceipt.paidAt).toLocaleString()}` : ''}</div>
+                  )}
                   <div>Order Status: <strong>{activeReceipt.orderStatus}</strong></div>
                   {!isPaid && (
                     <div style={{ marginTop: '4px', color: '#b45309', fontStyle: 'italic', fontSize: '0.68rem' }}>
@@ -3049,8 +3081,16 @@ export const Dashboard: React.FC = () => {
       {/* ======================================================== */}
       {advanceModalOrder && (() => {
         const nextStatus = getNextStatus(advanceModalOrder);
+        // Store-pickup order being released to the customer -> record amount tendered
+        const isPickupClaim = nextStatus === 'COMPLETED' && advanceModalOrder.fulfillmentType === 'STORE PICKUP';
+        const isCashClaim = isPickupClaim && advanceModalOrder.paymentMethod === 'CASH';
+        // Deliveries can only be completed by the rider with a proof photo (Rider Portal)
+        const needsRiderProof = nextStatus === 'COMPLETED' && advanceModalOrder.fulfillmentType === 'DELIVERY';
+        const tenderedNum = parseFloat(advanceTendered) || 0;
+        const tenderEnough = tenderedNum >= advanceModalOrder.total;
+        const closeAdvance = () => { setAdvanceModalOrder(null); setAdvanceTendered(''); };
         return (
-          <div className="modal-overlay" onClick={() => !advancingStatus && setAdvanceModalOrder(null)}>
+          <div className="modal-overlay" onClick={() => !advancingStatus && closeAdvance()}>
             <div className="modal" style={{ maxWidth: '440px', width: '92%' }} onClick={e => e.stopPropagation()}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
                 <div style={{ 
@@ -3109,10 +3149,58 @@ export const Dashboard: React.FC = () => {
                 )}
               </p>
 
+              {needsRiderProof && (
+                <div style={{ fontSize: '0.8rem', backgroundColor: '#fef2f2', border: '1px solid #fecaca', color: '#991b1b', borderRadius: '8px', padding: '10px 12px', marginBottom: '16px' }}>
+                  Delivery orders are completed by the rider in the <strong>Rider Portal</strong> together with a <strong>delivery proof photo</strong>.
+                </div>
+              )}
+
+              {isPickupClaim && (
+                <div style={{ border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px', marginBottom: '16px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 900, marginBottom: '8px' }}>
+                    <span>AMOUNT DUE:</span>
+                    <span style={{ color: '#2563eb' }}>₱{advanceModalOrder.total.toLocaleString()}</span>
+                  </div>
+                  {isCashClaim ? (
+                    <>
+                      <label style={{ fontWeight: 800, fontSize: '0.8rem' }}>Amount Tendered (₱) *</label>
+                      <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
+                        <input
+                          type="number"
+                          min={0}
+                          placeholder="Cash received from customer..."
+                          value={advanceTendered}
+                          onChange={e => setAdvanceTendered(e.target.value)}
+                          autoFocus
+                          style={{ flex: 1, fontWeight: 800 }}
+                        />
+                        <button type="button" className="btn" style={{ fontSize: '0.75rem' }}
+                          onClick={() => setAdvanceTendered(advanceModalOrder.total.toString())}>Exact</button>
+                      </div>
+                      {tenderedNum > 0 && (
+                        <div style={{
+                          display: 'flex', justifyContent: 'space-between', marginTop: '8px', padding: '8px 10px', borderRadius: '6px', fontWeight: 900, fontSize: '0.85rem',
+                          backgroundColor: tenderEnough ? '#f0fdf4' : '#fef2f2',
+                          border: `1px solid ${tenderEnough ? '#bbf7d0' : '#fecaca'}`,
+                          color: tenderEnough ? '#15803d' : '#b91c1c'
+                        }}>
+                          <span>{tenderEnough ? 'CHANGE DUE:' : 'AMOUNT SHORT:'}</span>
+                          <span>₱{Math.abs(tenderedNum - advanceModalOrder.total).toLocaleString()}</span>
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <div style={{ fontSize: '0.78rem', color: '#1e3a8a' }}>
+                      Prepaid via <strong>{advanceModalOrder.paymentMethod}</strong>{advanceModalOrder.paymentRef ? ` (Ref: ${advanceModalOrder.paymentRef})` : ''}. No cash to collect.
+                    </div>
+                  )}
+                </div>
+              )}
+
               <div style={{ display: 'flex', gap: '10px' }}>
                 <button 
                   type="button" 
-                  onClick={() => setAdvanceModalOrder(null)} 
+                  onClick={closeAdvance} 
                   className="btn" 
                   disabled={advancingStatus}
                   style={{ flex: 1 }}
@@ -3122,13 +3210,24 @@ export const Dashboard: React.FC = () => {
                 <button 
                   type="button" 
                   onClick={async () => {
+                    if (isCashClaim && !tenderEnough) {
+                      alert(`INSUFFICIENT CASH TENDERED! Amount due is ₱${advanceModalOrder.total.toLocaleString()}.`);
+                      return;
+                    }
                     setAdvancingStatus(true);
-                    await advanceOrderStatus(advanceModalOrder.id);
+                    if (isPickupClaim) {
+                      await completePickupClaim(advanceModalOrder.id, {
+                        cashTendered: isCashClaim ? tenderedNum : undefined,
+                        receivedBy: currentUser?.name || 'Admin'
+                      });
+                    } else {
+                      await advanceOrderStatus(advanceModalOrder.id);
+                    }
                     setAdvancingStatus(false);
-                    setAdvanceModalOrder(null);
+                    closeAdvance();
                   }} 
                   className="btn-primary" 
-                  disabled={advancingStatus}
+                  disabled={advancingStatus || (isCashClaim && !tenderEnough) || needsRiderProof}
                   style={{ flex: 1.4 }}
                 >
                   {advancingStatus ? 'Updating...' : `Yes, Advance to ${nextStatus === 'READY FOR PICKUP' && advanceModalOrder.fulfillmentType === 'DELIVERY' ? 'Ready for Delivery' : nextStatus}`}

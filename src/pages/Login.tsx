@@ -16,6 +16,7 @@ import {
   Phone
 } from 'lucide-react';
 import { sendPasswordResetOtpSms, formatPhoneNumber, isValidPhilippineNumber } from '../services/smsService';
+import { useCountdown, formatCountdown, OTP_RESEND_COOLDOWN_SECONDS } from '../hooks/useCountdown';
 
 export const Login: React.FC = () => {
   const [username, setUsername] = useState('');
@@ -34,6 +35,9 @@ export const Login: React.FC = () => {
   const [fpOtpSent, setFpOtpSent] = useState('');
   const [fpOtpInput, setFpOtpInput] = useState('');
   const [fpOtpExpiresAt, setFpOtpExpiresAt] = useState<number>(0);
+  const [fpResendAt, setFpResendAt] = useState<number>(0);
+  const fpOtpSecondsLeft = useCountdown(fpOtpExpiresAt);
+  const fpResendSecondsLeft = useCountdown(fpResendAt);
   const [fpNewPassword, setFpNewPassword] = useState('');
   const [fpConfirmPassword, setFpConfirmPassword] = useState('');
   const [fpShowNewPass, setFpShowNewPass] = useState(false);
@@ -191,6 +195,7 @@ export const Login: React.FC = () => {
       setFpTargetPhone(phoneToSend);
       setFpOtpSent(generatedOtp);
       setFpOtpExpiresAt(expirationTimestamp);
+      setFpResendAt(Date.now() + OTP_RESEND_COOLDOWN_SECONDS * 1000);
 
       // 4. Dispatch SMS via Semaphore
       const smsResult = await sendPasswordResetOtpSms({
@@ -275,6 +280,7 @@ export const Login: React.FC = () => {
   // Resend OTP via SMS
   const handleResendOtp = async () => {
     if (!fpTargetPhone) return;
+    if (fpResendSecondsLeft > 0) return;
     setFpLoading(true);
     setFpError('');
     try {
@@ -283,6 +289,8 @@ export const Login: React.FC = () => {
 
       setFpOtpSent(generatedOtp);
       setFpOtpExpiresAt(expirationTimestamp);
+      setFpResendAt(Date.now() + OTP_RESEND_COOLDOWN_SECONDS * 1000);
+      setFpOtpInput('');
 
       const smsResult = await sendPasswordResetOtpSms({
         phone: fpTargetPhone,
@@ -453,7 +461,7 @@ export const Login: React.FC = () => {
           <p style={{ fontSize: '0.85rem', color: '#64748b', margin: 0 }}>
             Don't have an account?{' '}
             <Link to="/register" style={{ color: '#2563eb', fontWeight: 600, textDecoration: 'none' }}>
-              Register for Rider Club (+50 Pts)
+              Register at Boss Rap Motor Shop (+50 Pts)
             </Link>
           </p>
         </div>
@@ -609,7 +617,10 @@ export const Login: React.FC = () => {
                     SMS Sent to {maskPhone(fpTargetPhone)}
                   </span>
                   <span style={{ fontSize: '0.72rem', color: '#3b82f6' }}>
-                    Please enter the 6-digit OTP code sent to your phone. Valid for 15 minutes.
+                    Please enter the 6-digit OTP code sent to your phone.
+                  </span>
+                  <span style={{ display: 'block', marginTop: '4px', fontSize: '0.8rem', fontWeight: 800, color: fpOtpSecondsLeft === 0 ? '#dc2626' : fpOtpSecondsLeft <= 60 ? '#d97706' : '#1e40af' }}>
+                    {fpOtpSecondsLeft === 0 ? 'Code expired — please resend a new one' : `⏱ Code expires in ${formatCountdown(fpOtpSecondsLeft)}`}
                   </span>
                 </div>
 
@@ -632,18 +643,18 @@ export const Login: React.FC = () => {
                     <button
                       type="button"
                       onClick={handleResendOtp}
-                      disabled={fpLoading}
+                      disabled={fpLoading || fpResendSecondsLeft > 0}
                       style={{
                         background: 'none',
                         border: 'none',
                         padding: 0,
-                        color: fpLoading ? '#94a3b8' : '#2563eb',
+                        color: (fpLoading || fpResendSecondsLeft > 0) ? '#94a3b8' : '#2563eb',
                         fontSize: '0.75rem',
                         fontWeight: 700,
-                        cursor: fpLoading ? 'not-allowed' : 'pointer'
+                        cursor: (fpLoading || fpResendSecondsLeft > 0) ? 'not-allowed' : 'pointer'
                       }}
                     >
-                      {fpLoading ? 'Sending...' : 'Resend SMS'}
+                      {fpLoading ? 'Sending...' : fpResendSecondsLeft > 0 ? `Resend SMS in ${fpResendSecondsLeft}s` : 'Resend SMS'}
                     </button>
                   </div>
                 </div>

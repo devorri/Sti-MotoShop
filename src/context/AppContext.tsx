@@ -63,6 +63,17 @@ export interface Sale {
   receiptUrl?: string;
   latitude?: number;
   longitude?: number;
+  // Loyalty points redeemed as payment on this sale
+  pointsRedeemed?: number;
+  pointsDiscount?: number;
+  // Rider delivery proof photo
+  deliveryProofUrl?: string;
+  deliveredAt?: string;
+  // Cash settlement details (POS walk-in sale or store-pickup claim)
+  cashTendered?: number;
+  changeDue?: number;
+  paidAt?: string;
+  receivedBy?: string;
 }
 
 export interface Member {
@@ -86,6 +97,8 @@ export interface Promo {
   discountType?: 'PERCENT' | 'FREE_SHIPPING';
   firstOrderOnly?: boolean;
   singleUsePerCustomer?: boolean;
+  maxRedemptions?: number;                 // total number of times this promo can be used (undefined = unlimited)
+  appliesTo?: 'ALL' | 'WALK-IN' | 'ONLINE'; // which channel can redeem it
 }
 
 export interface ReturnRequest {
@@ -116,18 +129,70 @@ export interface PointsSettings {
 export interface PurchaseOrderItem {
   productId?: string;
   name: string;
-  quantity: number;
-  costPrice: number;
+  quantity: number;      // quantity ordered from supplier
+  costPrice: number;     // supplier price per unit (what Boss Rap pays)
+  receivedQty?: number;  // good units received & added to stock (never more than ordered)
+  damagedQty?: number;   // units that arrived damaged (sent to Bad Orders)
+  excessQty?: number;    // units delivered beyond the ordered qty (sent to Bad Orders)
 }
+
+export type PurchaseOrderStatus = 'PENDING' | 'PARTIAL' | 'RECEIVED' | 'CANCELLED';
 
 export interface PurchaseOrder {
   id: string;
+  supplierId?: string;
   supplierName: string;
   items: PurchaseOrderItem[];
-  totalCost: number;
-  status: 'PENDING' | 'RECEIVED';
+  totalCost: number;       // ordered qty x supplier price
+  amountPayable?: number;  // what Boss Rap actually pays (received good qty x price + accepted excess)
+  status: PurchaseOrderStatus;
+  poType?: 'STANDARD' | 'DIRECT';
+  notes?: string;
   dateOrdered: string;
   dateReceived?: string;
+}
+
+export interface Supplier {
+  id: string;
+  name: string;
+  contactPerson?: string;
+  phone?: string;
+  email?: string;
+  address?: string;
+  active: boolean;
+  createdAt?: string;
+}
+
+// Which supplier carries which product, and at what supplier price
+export interface ProductSupplier {
+  supplierId: string;
+  productId: string;
+  supplierPrice: number;
+  updatedAt?: string;
+}
+
+export type BadOrderType = 'DAMAGED' | 'EXCESS';
+export type BadOrderStatus =
+  | 'PENDING'                // waiting for action
+  | 'RETURNED_TO_SUPPLIER'   // physically sent back to supplier
+  | 'REPLACED'               // damaged: replacement units received & stocked
+  | 'CREDITED'               // damaged: supplier refunded / deducted from payable
+  | 'ACCEPTED';              // excess: Boss Rap kept the extra units (stocked & paid)
+
+export interface BadOrder {
+  id: string;
+  type: BadOrderType;
+  purchaseOrderId?: string;
+  supplierId?: string;
+  supplierName?: string;
+  productId?: string;
+  productName: string;
+  quantity: number;
+  unitCost: number;
+  status: BadOrderStatus;
+  remarks?: string;
+  createdAt: string;
+  resolvedAt?: string;
 }
 
 export interface AuditLog {
@@ -205,16 +270,28 @@ interface AppContextType {
   recordSale: (saleData: Omit<Sale, 'id' | 'date'> & { id?: string; date?: string }) => Promise<Sale | null>;
   saveProduct: (product: Product) => Promise<boolean>;
   deleteProduct: (productId: string) => Promise<boolean>;
+  getProductDeleteBlockers: (productId: string) => string[];
   saveUser: (user: User) => Promise<boolean>;
   toggleUserEnabled: (userId: string) => Promise<boolean>;
   saveMember: (member: Member) => Promise<boolean>;
   savePromo: (promo: Promo) => Promise<boolean>;
   deletePromo: (promoId: string) => Promise<boolean>;
   savePurchaseOrder: (po: PurchaseOrder) => Promise<boolean>;
+  deletePurchaseOrder: (poId: string) => Promise<boolean>;
+  suppliers: Supplier[];
+  saveSupplier: (supplier: Supplier) => Promise<boolean>;
+  deleteSupplier: (supplierId: string) => Promise<boolean>;
+  productSuppliers: ProductSupplier[];
+  saveProductSupplier: (link: ProductSupplier) => Promise<boolean>;
+  removeProductSupplier: (supplierId: string, productId: string) => Promise<boolean>;
+  badOrders: BadOrder[];
+  saveBadOrder: (bo: BadOrder) => Promise<boolean>;
   saveReturnRequest: (rr: ReturnRequest) => Promise<boolean>;
   saveInquiry: (inq: Omit<Inquiry, 'id' | 'date'>) => Promise<boolean>;
   updateSaleOrderStatus: (saleId: string, status: Sale['orderStatus']) => Promise<boolean>;
   verifySalePayment: (saleId: string) => Promise<boolean>;
+  completePickupClaim: (saleId: string, payment: { cashTendered?: number; receivedBy: string }) => Promise<Sale | null>;
+  completeDeliveryWithProof: (saleId: string, proofUrl: string, riderName: string) => Promise<boolean>;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -271,6 +348,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [returnRequests, setReturnRequests] = useState<ReturnRequest[]>([]);
   const [inquiries, setInquiries] = useState<Inquiry[]>([]);
   const [purchaseOrders, setPurchaseOrders] = useState<PurchaseOrder[]>([]);
+  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+  const [productSuppliers, setProductSuppliers] = useState<ProductSupplier[]>([]);
+  const [badOrders, setBadOrders] = useState<BadOrder[]>([]);
   const [pointsSettings, setPointsSettingsState] = useState<PointsSettings>(DEFAULT_POINTS_SETTINGS);
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
   const [backOrders, setBackOrders] = useState<BackOrder[]>([]);
@@ -560,7 +640,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           active: p.active ?? true,
           discountType: p.discount_type === 'FREE_SHIPPING' ? 'FREE_SHIPPING' : 'PERCENT',
           firstOrderOnly: Boolean(p.first_order_only),
-          singleUsePerCustomer: Boolean(p.single_use_per_customer)
+          singleUsePerCustomer: Boolean(p.single_use_per_customer),
+          maxRedemptions: p.max_redemptions !== undefined && p.max_redemptions !== null ? Number(p.max_redemptions) : undefined,
+          appliesTo: p.applies_to === 'WALK-IN' || p.applies_to === 'ONLINE' ? p.applies_to : 'ALL'
         }));
         setPromos(mappedPromos);
       }
@@ -579,6 +661,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           let delFee: number | undefined = s.delivery_fee !== undefined && s.delivery_fee !== null ? Number(s.delivery_fee) : undefined;
           let payVerified: boolean = s.channel === 'WALK-IN' && s.payment_method === 'CASH';
           let displayNotes: string | undefined = s.notes || undefined;
+          let pointsRedeemed: number | undefined;
+          let pointsDiscount: number | undefined;
+          let deliveryProofUrl: string | undefined = s.delivery_proof_url || undefined;
+          let deliveredAt: string | undefined;
+          let cashTendered: number | undefined;
+          let changeDue: number | undefined;
+          let paidAt: string | undefined;
+          let receivedBy: string | undefined;
           let lat: number | undefined = s.latitude !== undefined && s.latitude !== null ? Number(s.latitude) : undefined;
           let lng: number | undefined = s.longitude !== undefined && s.longitude !== null ? Number(s.longitude) : undefined;
 
@@ -606,6 +696,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                   s.receipt_url = parsed.receiptUrl;
                 }
                 displayNotes = parsed.rawNotes || undefined;
+                if (parsed.pointsRedeemed) pointsRedeemed = Number(parsed.pointsRedeemed) || undefined;
+                if (parsed.pointsDiscount) pointsDiscount = Number(parsed.pointsDiscount) || undefined;
+                if (!deliveryProofUrl && parsed.deliveryProofUrl) deliveryProofUrl = String(parsed.deliveryProofUrl);
+                if (parsed.deliveredAt) deliveredAt = String(parsed.deliveredAt);
+                if (parsed.cashTendered !== undefined && parsed.cashTendered !== null) cashTendered = Number(parsed.cashTendered);
+                if (parsed.changeDue !== undefined && parsed.changeDue !== null) changeDue = Number(parsed.changeDue);
+                if (parsed.paidAt) paidAt = String(parsed.paidAt);
+                if (parsed.receivedBy) receivedBy = String(parsed.receivedBy);
               }
             } catch (e) {
               if (lat === undefined || lng === undefined) {
@@ -617,6 +715,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
               }
             }
           }
+
+          // E-wallet payments are confirmed by the e-wallet itself (no manual admin verification step)
+          if (s.payment_method === 'E-WALLET') payVerified = true;
 
           return {
             id: s.id,
@@ -642,6 +743,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             paymentMethod: s.payment_method || 'CASH',
             paymentRef: s.payment_ref || undefined,
             receiptUrl: s.receipt_url || undefined,
+            pointsRedeemed,
+            pointsDiscount,
+            deliveryProofUrl,
+            deliveredAt,
+            cashTendered,
+            changeDue,
+            paidAt,
+            receivedBy,
             items: (s.sale_items || []).map((it: any) => ({
               productId: it.product_id || '',
               name: it.name || '',
@@ -663,21 +772,82 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         .order('date_ordered', { ascending: false });
 
       if (poData && poData.length > 0) {
-        const mappedPOs: PurchaseOrder[] = poData.map(po => ({
-          id: po.id,
-          supplierName: po.supplier_name,
-          totalCost: Number(po.total_cost) || 0,
-          status: po.status || 'PENDING',
-          dateOrdered: po.date_ordered,
-          dateReceived: po.date_received || undefined,
-          items: (po.purchase_order_items || []).map((poi: any) => ({
-            productId: poi.product_id || undefined,
-            name: poi.name || '',
-            quantity: Number(poi.quantity) || 0,
-            costPrice: Number(poi.cost_price) || 0
-          }))
-        }));
+        const mappedPOs: PurchaseOrder[] = poData.map(po => {
+          const status = (po.status || 'PENDING') as PurchaseOrderStatus;
+          const items: PurchaseOrderItem[] = (po.purchase_order_items || []).map((poi: any) => {
+            const qty = Number(poi.quantity) || 0;
+            const hasReceivedCol = poi.received_qty !== undefined && poi.received_qty !== null;
+            return {
+              productId: poi.product_id || undefined,
+              name: poi.name || '',
+              quantity: qty,
+              costPrice: Number(poi.cost_price) || 0,
+              // Legacy rows (pre-migration) that were RECEIVED were received in full
+              receivedQty: hasReceivedCol ? Number(poi.received_qty) || 0 : (status === 'RECEIVED' ? qty : 0),
+              damagedQty: Number(poi.damaged_qty) || 0,
+              excessQty: Number(poi.excess_qty) || 0
+            };
+          });
+          const totalCost = Number(po.total_cost) || 0;
+          return {
+            id: po.id,
+            supplierId: po.supplier_id || undefined,
+            supplierName: po.supplier_name,
+            totalCost,
+            amountPayable: po.amount_payable !== undefined && po.amount_payable !== null
+              ? Number(po.amount_payable) || 0
+              : (status === 'RECEIVED' ? totalCost : 0),
+            status,
+            poType: po.po_type === 'DIRECT' ? 'DIRECT' : 'STANDARD',
+            notes: po.notes || undefined,
+            dateOrdered: po.date_ordered,
+            dateReceived: po.date_received || undefined,
+            items
+          };
+        });
         setPurchaseOrders(mappedPOs);
+      }
+
+      // 6b. Suppliers, supplier price list & bad orders (tables from revision_redemo_migration.sql)
+      const { data: supData } = await supabase.from('suppliers').select('*').order('name', { ascending: true });
+      if (supData) {
+        setSuppliers(supData.map((sp: any) => ({
+          id: sp.id,
+          name: sp.name,
+          contactPerson: sp.contact_person || undefined,
+          phone: sp.phone || undefined,
+          email: sp.email || undefined,
+          address: sp.address || undefined,
+          active: sp.active !== false,
+          createdAt: sp.created_at
+        })));
+      }
+      const { data: psData } = await supabase.from('product_suppliers').select('*');
+      if (psData) {
+        setProductSuppliers(psData.map((ps: any) => ({
+          supplierId: ps.supplier_id,
+          productId: ps.product_id,
+          supplierPrice: Number(ps.supplier_price) || 0,
+          updatedAt: ps.updated_at
+        })));
+      }
+      const { data: boData } = await supabase.from('bad_orders').select('*').order('created_at', { ascending: false });
+      if (boData) {
+        setBadOrders(boData.map((b: any) => ({
+          id: b.id,
+          type: b.type === 'EXCESS' ? 'EXCESS' : 'DAMAGED',
+          purchaseOrderId: b.purchase_order_id || undefined,
+          supplierId: b.supplier_id || undefined,
+          supplierName: b.supplier_name || undefined,
+          productId: b.product_id || undefined,
+          productName: b.product_name,
+          quantity: Number(b.quantity) || 0,
+          unitCost: Number(b.unit_cost) || 0,
+          status: (b.status || 'PENDING') as BadOrderStatus,
+          remarks: b.remarks || undefined,
+          createdAt: b.created_at,
+          resolvedAt: b.resolved_at || undefined
+        })));
       }
 
       // 7. Inquiries
@@ -870,7 +1040,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const newSale: Sale = {
         ...saleData,
         id: saleId,
-        date: saleDate
+        date: saleDate,
+        paymentVerified: saleData.paymentMethod === 'E-WALLET'
+          ? true
+          : (saleData.paymentVerified ?? (saleData.channel === 'WALK-IN' && saleData.paymentMethod === 'CASH'))
       };
 
       // 0. Strict Concurrency & Overselling Prevention:
@@ -948,12 +1121,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         customerPhone: newSale.customerPhone,
         shippingAddress: newSale.shippingAddress,
         deliveryFee: newSale.deliveryFee || 0,
-        paymentVerified: newSale.paymentVerified ?? (newSale.channel === 'WALK-IN' && newSale.paymentMethod === 'CASH'),
+        paymentVerified: newSale.paymentMethod === 'E-WALLET' ? true : (newSale.paymentVerified ?? (newSale.channel === 'WALK-IN' && newSale.paymentMethod === 'CASH')),
         latitude: newSale.latitude,
         longitude: newSale.longitude,
         receiptUrl: newSale.receiptUrl || null,
         promoId: newSale.promoId || null,
         promoCode: newSale.promoCode || null,
+        pointsRedeemed: newSale.pointsRedeemed || 0,
+        pointsDiscount: newSale.pointsDiscount || 0,
+        cashTendered: newSale.cashTendered ?? null,
+        changeDue: newSale.changeDue ?? null,
+        paidAt: newSale.paidAt || null,
+        receivedBy: newSale.receivedBy || null,
         rawNotes: newSale.notes || ''
       });
 
@@ -1077,14 +1256,22 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         return cartItem ? { ...p, stock: Math.max(0, p.stock - cartItem.quantity) } : p;
       }));
 
-      // 4. Update member loyalty points if linked
+      // 4. Update member loyalty points if linked:
+      //    - points used as payment are deducted (redeeming all usable points brings the balance to 0)
+      //    - points are earned only on the amount actually paid (after promo & points discounts)
       if (newSale.memberId) {
         const pointsEarned = Math.floor(newSale.total / pointsSettings.currencyPerPoint);
         const member = members.find(m => m.id === newSale.memberId);
         if (member) {
-          const newPoints = (member.points || 0) + pointsEarned;
+          const { data: freshMember } = await supabase.from('members').select('points').eq('id', newSale.memberId).single();
+          const currentPoints = freshMember ? Number(freshMember.points) || 0 : (member.points || 0);
+          const redeemed = Math.min(currentPoints, Math.max(0, newSale.pointsRedeemed || 0));
+          const newPoints = Math.max(0, currentPoints - redeemed + pointsEarned);
           await supabase.from('members').update({ points: newPoints }).eq('id', newSale.memberId);
           setMembers(prev => prev.map(m => m.id === newSale.memberId ? { ...m, points: newPoints } : m));
+          if (redeemed > 0) {
+            await addAuditLog('POINTS_REDEEMED', `Member ${member.name} (${member.id}) redeemed ${redeemed} pts (₱${(newSale.pointsDiscount || 0).toLocaleString()}) on sale ${newSale.id}. New balance: ${newPoints} pts.`);
+          }
         }
       }
 
@@ -1161,9 +1348,52 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
+  // Lists the ongoing transactions that prevent a product from being deleted (empty = safe to delete).
+  const getProductDeleteBlockers = (productId: string): string[] => {
+    const blockers: string[] = [];
+    const openOrders = sales.filter(sl =>
+      sl.orderStatus !== 'COMPLETED' && sl.items.some(it => it.productId === productId)
+    );
+    if (openOrders.length > 0) {
+      blockers.push(`${openOrders.length} ongoing customer order(s): ${openOrders.slice(0, 5).map(o => '#' + o.id).join(', ')}${openOrders.length > 5 ? '…' : ''}`);
+    }
+    const openPOs = purchaseOrders.filter(po =>
+      po.status !== 'RECEIVED' && po.status !== 'CANCELLED' && po.items.some(it => it.productId === productId)
+    );
+    if (openPOs.length > 0) {
+      blockers.push(`${openPOs.length} purchase order(s) not yet fully received: ${openPOs.map(po => po.id).join(', ')}`);
+    }
+    const openReturns = returnRequests.filter(rr =>
+      rr.status === 'PENDING' && rr.items.some(it => it.productId === productId)
+    );
+    if (openReturns.length > 0) {
+      blockers.push(`${openReturns.length} pending return/replacement request(s)`);
+    }
+    const openBackOrders = backOrders.filter(bo =>
+      bo.productId === productId && (bo.status === 'PENDING' || bo.status === 'NOTIFIED')
+    );
+    if (openBackOrders.length > 0) {
+      blockers.push(`${openBackOrders.length} active back-order reservation(s)`);
+    }
+    const openBadOrders = badOrders.filter(b => b.productId === productId && b.status === 'PENDING');
+    if (openBadOrders.length > 0) {
+      blockers.push(`${openBadOrders.length} unresolved bad order(s) with the supplier`);
+    }
+    return blockers;
+  };
+
   const deleteProduct = async (productId: string): Promise<boolean> => {
     try {
       const prod = products.find(p => p.id === productId);
+
+      const blockers = getProductDeleteBlockers(productId);
+      if (blockers.length > 0) {
+        alert(
+          `CANNOT DELETE "${prod?.name || productId}".\n\nThis product is part of an ongoing transaction:\n• ${blockers.join('\n• ')}\n\nComplete or cancel these transactions first, then delete the product.`
+        );
+        return false;
+      }
+
       const { error } = await supabase.from('products').delete().eq('id', productId);
       if (error) {
         alert('Error deleting product: ' + error.message);
@@ -1299,6 +1529,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         discount_type: promo.discountType || 'PERCENT',
         first_order_only: promo.firstOrderOnly || false,
         single_use_per_customer: promo.singleUsePerCustomer || false,
+        max_redemptions: promo.maxRedemptions ?? null,
+        applies_to: promo.appliesTo || 'ALL',
         min_spend: promo.minSpend,
         start_date: promo.startDate,
         end_date: promo.endDate,
@@ -1306,7 +1538,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }]);
 
       if (error) {
-        alert('Error saving promo: ' + error.message);
+        alert('Error saving promo: ' + error.message + (/column|schema cache/i.test(error.message) ? '\n\nPlease run revision_redemo_migration.sql in Supabase → SQL Editor first.' : ''));
         return false;
       }
 
@@ -1351,15 +1583,24 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     try {
       const { error: poErr } = await supabase.from('purchase_orders').upsert([{
         id: po.id,
+        supplier_id: po.supplierId || null,
         supplier_name: po.supplierName,
         total_cost: po.totalCost,
+        amount_payable: po.amountPayable ?? 0,
         status: po.status,
+        po_type: po.poType || 'STANDARD',
+        notes: po.notes || null,
         date_ordered: po.dateOrdered,
         date_received: po.dateReceived || null
       }]);
 
       if (poErr) {
-        alert('Error saving purchase order: ' + poErr.message);
+        const msg = poErr.message || '';
+        if (/column|schema cache|check constraint|violates/i.test(msg)) {
+          alert('Error saving purchase order: ' + msg + '\n\nYour database is missing the new Purchase Order columns. Please run revision_redemo_migration.sql in Supabase → SQL Editor, then try again.');
+        } else {
+          alert('Error saving purchase order: ' + msg);
+        }
         return false;
       }
 
@@ -1371,9 +1612,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           product_id: (item.productId && products.some(p => p.id === item.productId)) ? item.productId : null,
           name: item.name,
           quantity: item.quantity,
-          cost_price: item.costPrice
+          cost_price: item.costPrice,
+          received_qty: item.receivedQty || 0,
+          damaged_qty: item.damagedQty || 0,
+          excess_qty: item.excessQty || 0
         }));
-        await supabase.from('purchase_order_items').insert(itemsPayload);
+        const { error: itemsErr } = await supabase.from('purchase_order_items').insert(itemsPayload);
+        if (itemsErr) {
+          alert('Error saving purchase order items: ' + itemsErr.message);
+          return false;
+        }
       }
 
       setPurchaseOrders(prev => {
@@ -1386,7 +1634,170 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         return [po, ...prev];
       });
 
-      await addAuditLog('PO_SAVED', `Purchase Order ${po.id} from ${po.supplierName} (₱${po.totalCost.toLocaleString()}) saved.`);
+      await addAuditLog('PO_SAVED', `Purchase Order ${po.id} from ${po.supplierName} (₱${po.totalCost.toLocaleString()}) saved — status ${po.status}.`);
+      return true;
+    } catch (e: any) {
+      alert('Error: ' + e.message);
+      return false;
+    }
+  };
+
+  const deletePurchaseOrder = async (poId: string): Promise<boolean> => {
+    try {
+      const po = purchaseOrders.find(p => p.id === poId);
+      if (po && po.items.some(it => (it.receivedQty || 0) > 0 || (it.damagedQty || 0) > 0 || (it.excessQty || 0) > 0)) {
+        alert('This purchase order already has received items and cannot be deleted. Use CANCEL / CLOSE instead to keep the stock history intact.');
+        return false;
+      }
+      const { error } = await supabase.from('purchase_orders').delete().eq('id', poId);
+      if (error) {
+        alert('Error deleting purchase order: ' + error.message);
+        return false;
+      }
+      setPurchaseOrders(prev => prev.filter(p => p.id !== poId));
+      await addAuditLog('PO_DELETED', `Purchase Order ${poId} deleted.`);
+      return true;
+    } catch (e: any) {
+      alert('Error: ' + e.message);
+      return false;
+    }
+  };
+
+  // ==========================================
+  // Supplier Maintenance & Supplier Price List
+  // ==========================================
+  const missingTableHint = (msg: string) =>
+    /relation|does not exist|schema cache|column/i.test(msg)
+      ? '\n\nPlease run revision_redemo_migration.sql in Supabase → SQL Editor first.'
+      : '';
+
+  const saveSupplier = async (supplier: Supplier): Promise<boolean> => {
+    try {
+      const { error } = await supabase.from('suppliers').upsert([{
+        id: supplier.id,
+        name: supplier.name,
+        contact_person: supplier.contactPerson || null,
+        phone: supplier.phone || null,
+        email: supplier.email || null,
+        address: supplier.address || null,
+        active: supplier.active
+      }]);
+      if (error) {
+        alert('Error saving supplier: ' + error.message + missingTableHint(error.message));
+        return false;
+      }
+      setSuppliers(prev => {
+        const idx = prev.findIndex(s => s.id === supplier.id);
+        const next = idx >= 0 ? prev.map(s => s.id === supplier.id ? supplier : s) : [...prev, supplier];
+        return next.sort((a, b) => a.name.localeCompare(b.name));
+      });
+      await addAuditLog('SUPPLIER_SAVED', `Supplier ${supplier.name} saved.`);
+      return true;
+    } catch (e: any) {
+      alert('Error: ' + e.message);
+      return false;
+    }
+  };
+
+  const deleteSupplier = async (supplierId: string): Promise<boolean> => {
+    try {
+      const sup = suppliers.find(s => s.id === supplierId);
+      const openPOs = purchaseOrders.filter(po => po.supplierId === supplierId && (po.status === 'PENDING' || po.status === 'PARTIAL'));
+      if (openPOs.length > 0) {
+        alert(`Cannot delete supplier "${sup?.name}". It still has ${openPOs.length} open purchase order(s): ${openPOs.map(p => p.id).join(', ')}.\nYou can set the supplier to INACTIVE instead.`);
+        return false;
+      }
+      const openBad = badOrders.filter(b => b.supplierId === supplierId && b.status === 'PENDING');
+      if (openBad.length > 0) {
+        alert(`Cannot delete supplier "${sup?.name}". It still has ${openBad.length} unresolved bad order(s).`);
+        return false;
+      }
+      const { error } = await supabase.from('suppliers').delete().eq('id', supplierId);
+      if (error) {
+        alert('Error deleting supplier: ' + error.message);
+        return false;
+      }
+      setSuppliers(prev => prev.filter(s => s.id !== supplierId));
+      setProductSuppliers(prev => prev.filter(ps => ps.supplierId !== supplierId));
+      await addAuditLog('SUPPLIER_DELETED', `Supplier ${sup?.name || supplierId} deleted.`);
+      return true;
+    } catch (e: any) {
+      alert('Error: ' + e.message);
+      return false;
+    }
+  };
+
+  const saveProductSupplier = async (link: ProductSupplier): Promise<boolean> => {
+    try {
+      const updatedAt = new Date().toISOString();
+      const { error } = await supabase.from('product_suppliers').upsert([{
+        supplier_id: link.supplierId,
+        product_id: link.productId,
+        supplier_price: link.supplierPrice,
+        updated_at: updatedAt
+      }], { onConflict: 'supplier_id,product_id' });
+      if (error) {
+        alert('Error saving supplier price: ' + error.message + missingTableHint(error.message));
+        return false;
+      }
+      setProductSuppliers(prev => {
+        const exists = prev.some(ps => ps.supplierId === link.supplierId && ps.productId === link.productId);
+        const saved = { ...link, updatedAt };
+        return exists
+          ? prev.map(ps => ps.supplierId === link.supplierId && ps.productId === link.productId ? saved : ps)
+          : [...prev, saved];
+      });
+      return true;
+    } catch (e: any) {
+      alert('Error: ' + e.message);
+      return false;
+    }
+  };
+
+  const removeProductSupplier = async (supplierId: string, productId: string): Promise<boolean> => {
+    try {
+      const { error } = await supabase.from('product_suppliers').delete().eq('supplier_id', supplierId).eq('product_id', productId);
+      if (error) {
+        alert('Error removing product from supplier: ' + error.message);
+        return false;
+      }
+      setProductSuppliers(prev => prev.filter(ps => !(ps.supplierId === supplierId && ps.productId === productId)));
+      return true;
+    } catch (e: any) {
+      alert('Error: ' + e.message);
+      return false;
+    }
+  };
+
+  // ==========================================
+  // Bad Orders (Damaged / Over-delivered items from supplier)
+  // ==========================================
+  const saveBadOrder = async (bo: BadOrder): Promise<boolean> => {
+    try {
+      const { error } = await supabase.from('bad_orders').upsert([{
+        id: bo.id,
+        type: bo.type,
+        purchase_order_id: bo.purchaseOrderId || null,
+        supplier_id: bo.supplierId || null,
+        supplier_name: bo.supplierName || null,
+        product_id: (bo.productId && products.some(p => p.id === bo.productId)) ? bo.productId : null,
+        product_name: bo.productName,
+        quantity: bo.quantity,
+        unit_cost: bo.unitCost,
+        status: bo.status,
+        remarks: bo.remarks || null,
+        created_at: bo.createdAt,
+        resolved_at: bo.resolvedAt || null
+      }]);
+      if (error) {
+        alert('Error saving bad order: ' + error.message + missingTableHint(error.message));
+        return false;
+      }
+      setBadOrders(prev => {
+        const idx = prev.findIndex(b => b.id === bo.id);
+        return idx >= 0 ? prev.map(b => b.id === bo.id ? bo : b) : [bo, ...prev];
+      });
+      await addAuditLog('BAD_ORDER_SAVED', `${bo.type} bad order ${bo.id}: ${bo.quantity} x ${bo.productName} (${bo.status}).`);
       return true;
     } catch (e: any) {
       alert('Error: ' + e.message);
@@ -1577,14 +1988,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const sale = sales.find(s => s.id === saleId);
       if (!sale) return false;
 
-      let existingNotesObj: any = {};
-      if (sale.notes) {
-        try {
-          existingNotesObj = JSON.parse(sale.notes);
-        } catch (e) {
-          existingNotesObj = { rawNotes: sale.notes };
-        }
-      }
+      const existingNotesObj: any = await loadSaleNotesObject(sale);
       existingNotesObj.paymentVerified = true;
       existingNotesObj.customerName = sale.customerName;
       existingNotesObj.customerPhone = sale.customerPhone;
@@ -1616,6 +2020,157 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
+  // Reads the sale's stored notes JSON from the DB (state only keeps the human-readable part),
+  // so updates merge into the full metadata instead of overwriting it.
+  const loadSaleNotesObject = async (sale: Sale): Promise<any> => {
+    try {
+      const { data } = await supabase.from('sales').select('notes').eq('id', sale.id).single();
+      const raw = data?.notes;
+      if (raw) {
+        try {
+          const parsed = JSON.parse(raw);
+          if (parsed && typeof parsed === 'object') return parsed;
+        } catch (e) {
+          return { rawNotes: raw };
+        }
+      }
+    } catch (e) { /* fall through */ }
+    return {
+      rawNotes: sale.notes || '',
+      promoId: sale.promoId || null,
+      promoCode: sale.promoCode || null,
+      pointsRedeemed: sale.pointsRedeemed || 0,
+      pointsDiscount: sale.pointsDiscount || 0,
+      cashTendered: sale.cashTendered ?? null,
+      changeDue: sale.changeDue ?? null,
+      paidAt: sale.paidAt || null,
+      receivedBy: sale.receivedBy || null
+    };
+  };
+
+  // Rider marks a delivery COMPLETED together with a proof-of-delivery photo (required).
+  const completeDeliveryWithProof = async (saleId: string, proofUrl: string, riderName: string): Promise<boolean> => {
+    try {
+      const sale = sales.find(s => s.id === saleId);
+      if (!sale) { alert('Order not found. Please sync and try again.'); return false; }
+      if (!proofUrl) { alert('A delivery proof photo is required.'); return false; }
+
+      const notesObj: any = await loadSaleNotesObject(sale);
+      const deliveredAt = new Date().toISOString();
+      notesObj.customerName = sale.customerName;
+      notesObj.customerPhone = sale.customerPhone;
+      notesObj.shippingAddress = sale.shippingAddress;
+      notesObj.deliveryFee = sale.deliveryFee;
+      notesObj.latitude = sale.latitude;
+      notesObj.longitude = sale.longitude;
+      notesObj.receiptUrl = sale.receiptUrl || notesObj.receiptUrl || null;
+      notesObj.paymentVerified = sale.paymentVerified ?? notesObj.paymentVerified;
+      notesObj.deliveryProofUrl = proofUrl;
+      notesObj.deliveredAt = deliveredAt;
+      notesObj.deliveredBy = riderName;
+
+      const notes = JSON.stringify(notesObj);
+      let { error } = await supabase
+        .from('sales')
+        .update({ order_status: 'COMPLETED', notes, delivery_proof_url: proofUrl })
+        .eq('id', saleId);
+      // Pre-migration fallback: proof is still kept inside the notes JSON
+      if (error && /delivery_proof_url|column|schema cache/i.test(error.message || '')) {
+        const retry = await supabase.from('sales').update({ order_status: 'COMPLETED', notes }).eq('id', saleId);
+        error = retry.error;
+      }
+      if (error) {
+        alert('Failed to complete delivery: ' + error.message);
+        return false;
+      }
+
+      setSales(prev => prev.map(s => s.id === saleId
+        ? { ...s, orderStatus: 'COMPLETED', deliveryProofUrl: proofUrl, deliveredAt, notes: s.notes }
+        : s));
+      await addAuditLog('DELIVERY_COMPLETED', `Order ${saleId} delivered by ${riderName} with proof photo.`);
+      return true;
+    } catch (e: any) {
+      alert('Error completing delivery: ' + (e?.message || e));
+      return false;
+    }
+  };
+
+  // Store-pickup claim: customer pays (or presents a prepaid order) at the counter and the order is released.
+  // Records amount tendered + change so the cash collected on pickup is part of the system.
+  const completePickupClaim = async (
+    saleId: string,
+    payment: { cashTendered?: number; receivedBy: string }
+  ): Promise<Sale | null> => {
+    try {
+      const sale = sales.find(s => s.id === saleId);
+      if (!sale) {
+        alert('Order not found. Please sync and try again.');
+        return null;
+      }
+      if (sale.orderStatus === 'COMPLETED') {
+        alert(`Order #${saleId} is already completed.`);
+        return null;
+      }
+
+      const isCash = sale.paymentMethod === 'CASH';
+      const tendered = isCash ? Number(payment.cashTendered) || 0 : 0;
+      if (isCash && tendered < sale.total) {
+        alert(`INSUFFICIENT CASH TENDERED! Amount due is ₱${sale.total.toLocaleString()}.`);
+        return null;
+      }
+      const change = isCash ? Math.round((tendered - sale.total) * 100) / 100 : 0;
+      const paidAt = new Date().toISOString();
+
+      const notesObj: any = await loadSaleNotesObject(sale);
+      notesObj.customerName = sale.customerName;
+      notesObj.customerPhone = sale.customerPhone;
+      notesObj.shippingAddress = sale.shippingAddress;
+      notesObj.deliveryFee = sale.deliveryFee;
+      notesObj.latitude = sale.latitude;
+      notesObj.longitude = sale.longitude;
+      notesObj.receiptUrl = sale.receiptUrl || notesObj.receiptUrl || null;
+      notesObj.paymentVerified = true;
+      notesObj.cashTendered = isCash ? tendered : null;
+      notesObj.changeDue = isCash ? change : null;
+      notesObj.paidAt = paidAt;
+      notesObj.receivedBy = payment.receivedBy;
+
+      const { error } = await supabase
+        .from('sales')
+        .update({ order_status: 'COMPLETED', notes: JSON.stringify(notesObj) })
+        .eq('id', saleId);
+
+      if (error) {
+        console.error('Failed to complete pickup claim:', error);
+        alert('Failed to complete pickup: ' + error.message);
+        return null;
+      }
+
+      const updated: Sale = {
+        ...sale,
+        orderStatus: 'COMPLETED',
+        paymentVerified: true,
+        cashTendered: isCash ? tendered : undefined,
+        changeDue: isCash ? change : undefined,
+        paidAt,
+        receivedBy: payment.receivedBy
+      };
+      setSales(prev => prev.map(s => s.id === saleId ? updated : s));
+
+      await addAuditLog(
+        'PICKUP_CLAIMED',
+        isCash
+          ? `Order #${saleId} claimed at counter. Due ₱${sale.total.toLocaleString()}, tendered ₱${tendered.toLocaleString()}, change ₱${change.toLocaleString()} (received by ${payment.receivedBy})`
+          : `Order #${saleId} (prepaid via ${sale.paymentMethod}${sale.paymentRef ? `, Ref: ${sale.paymentRef}` : ''}) released at counter by ${payment.receivedBy}`
+      );
+      return updated;
+    } catch (e: any) {
+      console.error('Error completing pickup claim:', e);
+      alert('Error completing pickup: ' + (e?.message || e));
+      return null;
+    }
+  };
+
   return (
     <AppContext.Provider value={{
       initialized,
@@ -1641,6 +2196,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setInquiries,
       purchaseOrders,
       setPurchaseOrders,
+      deletePurchaseOrder,
+      suppliers,
+      saveSupplier,
+      deleteSupplier,
+      productSuppliers,
+      saveProductSupplier,
+      removeProductSupplier,
+      badOrders,
+      saveBadOrder,
       pointsSettings,
       setPointsSettings,
       auditLogs,
@@ -1663,7 +2227,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       saveReturnRequest,
       saveInquiry,
       updateSaleOrderStatus,
-      verifySalePayment
+      verifySalePayment,
+      completePickupClaim,
+      completeDeliveryWithProof,
+      getProductDeleteBlockers
     }}>
       {children}
     </AppContext.Provider>

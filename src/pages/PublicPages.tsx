@@ -99,7 +99,7 @@ export const Home: React.FC = () => {
             maxWidth: '720px', 
             margin: '0 auto 32px' 
           }}>
-            Bulacan's trusted motorcycle shop for professional CVT tuning, engine overhauls, high-grade synthetic lubricants, genuine OEM spare parts, and Rider Club rewards.
+            Bulacan's trusted motorcycle shop for professional CVT tuning, engine overhauls, high-grade synthetic lubricants, genuine OEM spare parts, and Boss Rap Motor Shop member rewards.
           </p>
 
           <div style={{ display: 'flex', gap: '14px', justifyContent: 'center', flexWrap: 'wrap' }}>
@@ -112,7 +112,7 @@ export const Home: React.FC = () => {
             <Link to="/register" style={{ textDecoration: 'none' }}>
               <button className="btn" style={{ padding: '12px 28px', fontSize: '0.9rem', color: '#16a34a', borderColor: '#86efac' }}>
                 <Sparkles size={18} color="#16a34a" />
-                <span>JOIN RIDER CLUB (+50 PTS)</span>
+                <span>JOIN BOSS RAP MOTOR SHOP (+50 PTS)</span>
               </button>
             </Link>
           </div>
@@ -421,6 +421,7 @@ export const Shop: React.FC = () => {
   const [promoCode, setPromoCode] = useState('');
   const [appliedPromo, setAppliedPromo] = useState<any | null>(null);
   const [promoError, setPromoError] = useState('');
+  const [redeemPointsOnline, setRedeemPointsOnline] = useState(false);
   const [checkingOut, setCheckingOut] = useState(false);
 
   // Post-purchase Receipt State
@@ -684,6 +685,27 @@ export const Shop: React.FC = () => {
       return;
     }
 
+    if (match.appliesTo === 'WALK-IN') {
+      setPromoError('THIS PROMO IS FOR WALK-IN (IN-STORE) PURCHASES ONLY.');
+      return;
+    }
+
+    // Total redemption cap (#16): only a limited number of customers can use this promo
+    if (match.maxRedemptions !== undefined) {
+      const { count, error } = await supabase
+        .from('sales')
+        .select('id', { count: 'exact', head: true })
+        .eq('promo_id', match.id);
+      if (error) {
+        setPromoError('COULD NOT VERIFY VOUCHER AVAILABILITY. PLEASE TRY AGAIN.');
+        return;
+      }
+      if ((count || 0) >= match.maxRedemptions) {
+        setPromoError(`SORRY, THIS PROMO HAS REACHED ITS LIMIT (${match.maxRedemptions} REDEMPTIONS).`);
+        return;
+      }
+    }
+
     if (match.firstOrderOnly) {
       const { count, error } = await supabase
         .from('sales')
@@ -773,7 +795,14 @@ export const Shop: React.FC = () => {
     : appliedPromo ? (subtotal * appliedPromo.discountPercent) / 100 : 0;
   const shippingDiscount = appliedPromo?.discountType === 'FREE_SHIPPING' && isDelivery ? deliveryFee : 0;
   const discountApplied = productDiscount + shippingDiscount;
-  const total = Math.max(0, subtotal - productDiscount + deliveryFee - shippingDiscount);
+  const preTotal = Math.max(0, subtotal - productDiscount + deliveryFee - shippingDiscount);
+
+  // Loyalty points as payment (#15): 1 pt = ₱pointValue; uses as many points as the bill allows
+  const memberPoints = members.find(m => m.id === currentUser?.memberId)?.points || 0;
+  const pointValue = pointsSettings.pointValue || 1;
+  const pointsRedeemed = redeemPointsOnline && currentUser?.memberId ? Math.min(memberPoints, Math.floor(preTotal / pointValue)) : 0;
+  const pointsDiscount = pointsRedeemed * pointValue;
+  const total = Math.max(0, preTotal - pointsDiscount);
 
   // Total points that this cart will yield
   const cartPointsYield = Math.floor(total / pointsSettings.currencyPerPoint);
@@ -908,6 +937,8 @@ export const Shop: React.FC = () => {
       discountApplied,
       promoId: appliedPromo?.id,
       promoCode: appliedPromo?.name,
+      pointsRedeemed: pointsRedeemed || undefined,
+      pointsDiscount: pointsDiscount || undefined,
       deliveryFee,
       total,
       date: new Date().toISOString(),
@@ -979,6 +1010,7 @@ export const Shop: React.FC = () => {
       clearCart();
       setAppliedPromo(null);
       setPromoCode('');
+      setRedeemPointsOnline(false);
       setIsCartOpen(false);
       setCheckoutStep('CART');
       setPaymongoQr(null);
@@ -1325,7 +1357,7 @@ export const Shop: React.FC = () => {
                       fontWeight: 700 
                     }}>
                       <Sparkles size={12} color="#16a34a" />
-                      <span>+{pointsYield} Rider Club Pts</span>
+                      <span>+{pointsYield} Boss Rap Pts</span>
                     </div>
                   </div>
 
@@ -2183,11 +2215,30 @@ export const Shop: React.FC = () => {
                       <span>-₱{discountApplied.toLocaleString()}</span>
                     </div>
                   )}
+                  {currentUser?.memberId && memberPoints > 0 && (
+                    <label style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', margin: '4px 0', padding: '8px 10px', borderRadius: '8px', backgroundColor: redeemPointsOnline ? '#fefce8' : '#ffffff', border: `1px solid ${redeemPointsOnline ? '#fde047' : '#e2e8f0'}`, cursor: 'pointer', fontSize: '0.78rem' }}>
+                      <input type="checkbox" checked={redeemPointsOnline} onChange={e => setRedeemPointsOnline(e.target.checked)} style={{ width: 'auto', margin: '2px 0 0 0' }} />
+                      <span>
+                        <strong>Use my points</strong> — {memberPoints} pts available (1 pt = ₱{pointValue})
+                        {redeemPointsOnline && (
+                          <span style={{ display: 'block', color: '#854d0e', fontWeight: 700 }}>
+                            {pointsRedeemed} pts will be used{pointsRedeemed === memberPoints ? ' (balance becomes 0)' : ` (${memberPoints - pointsRedeemed} pts left)`}
+                          </span>
+                        )}
+                      </span>
+                    </label>
+                  )}
+                  {pointsDiscount > 0 && (
+                    <div style={{ display: 'flex', justifyContent: 'space-between', color: '#a16207', fontWeight: 700 }}>
+                      <span>Points Redeemed ({pointsRedeemed} pts):</span>
+                      <span>-₱{pointsDiscount.toLocaleString()}</span>
+                    </div>
+                  )}
                   <div style={{ display: 'flex', justifyContent: 'space-between', color: '#166534', fontSize: '0.78rem', fontWeight: 700 }}>
                     <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                       <Sparkles size={13} color="#16a34a" /> Estimated Rewards:
                     </span>
-                    <span>+{cartPointsYield} Rider Points</span>
+                    <span>+{cartPointsYield} Boss Rap Points</span>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1.25rem', fontWeight: 900, color: '#0f172a', borderTop: '1px dashed #cbd5e1', paddingTop: '8px', marginTop: '4px' }}>
                     <span>Total:</span>
@@ -2552,6 +2603,12 @@ export const Shop: React.FC = () => {
                       </div>
                     )}
                   </div>
+                  {pointsDiscount > 0 && (
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', color: '#a16207', fontWeight: 700 }}>
+                      <span>Points Redeemed ({pointsRedeemed} pts):</span>
+                      <span>-₱{pointsDiscount.toLocaleString()}</span>
+                    </div>
+                  )}
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 900, fontSize: '1.25rem', color: '#0f172a', borderTop: '1px dashed #cbd5e1', paddingTop: '8px', marginTop: '4px' }}>
                     <span>Grand Total:</span>
                     <span style={{ color: '#2563eb' }}>₱{total.toLocaleString()}</span>
@@ -3328,6 +3385,12 @@ export const Shop: React.FC = () => {
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px', color: '#2563eb' }}>
                   <span>Delivery Fee:</span>
                   <span>+₱{(showReceipt.deliveryFee ?? 100).toLocaleString()}</span>
+                </div>
+              )}
+              {showReceipt.pointsDiscount > 0 && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px', color: '#a16207' }}>
+                  <span>Points Redeemed ({showReceipt.pointsRedeemed} pts):</span>
+                  <span>-₱{showReceipt.pointsDiscount.toLocaleString()}</span>
                 </div>
               )}
 

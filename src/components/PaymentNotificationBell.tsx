@@ -461,7 +461,7 @@ export const PaymentNotificationBell: React.FC<NotificationBellProps> = ({ mode 
         notifications.push({
           id: `usr_pts_${member.id}_${member.points}`,
           category: 'CLUB',
-          title: `Rider Club: ${member.points} Points Available`,
+          title: `Boss Rap Motor Shop: ${member.points} Points Available`,
           subtitle: `Earn 1 point per ₱100 spend. Redeem points for discount vouchers on your next checkout!`,
           timestamp: member.joinDate || new Date().toISOString(),
           badgeText: `${member.points} PTS`,
@@ -494,7 +494,7 @@ export const PaymentNotificationBell: React.FC<NotificationBellProps> = ({ mode 
     notifications.push({
       id: 'guest_welcome',
       category: 'CLUB',
-      title: 'Join Boss Rap Rider Club (+50 Pts Bonus)',
+      title: 'Join Boss Rap Motor Shop (+50 Pts Bonus)',
       subtitle: 'Create a free account to earn reward points on every spare parts and service purchase!',
       timestamp: new Date().toISOString(),
       badgeText: '+50 PTS',

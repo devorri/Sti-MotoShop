@@ -25,7 +25,8 @@ import {
   BarChart2,
   Download,
   UserCheck
-  ,MessageCircle
+  ,MessageCircle,
+  Receipt
 } from 'lucide-react';
 import { PaymentNotificationBell } from './PaymentNotificationBell';
 
@@ -496,6 +497,7 @@ export const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children 
     {
       title: 'ANALYTICS & SYSTEM',
       items: [
+        { label: 'Sales Report', path: '/admin/reports', icon: <Receipt size={17} /> },
         { label: 'Sales Analytics', path: '/admin/dashboard', tab: 'REPORTS', icon: <BarChart2 size={17} /> },
         { label: 'Backup & Restore', path: '/admin/dashboard', tab: 'BACKUP', icon: <Download size={17} /> },
       ]

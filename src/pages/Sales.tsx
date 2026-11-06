@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useAppContext } from '../context/AppContext';
-import type { Product, SaleItem } from '../context/AppContext';
+import type { Product, SaleItem, Sale } from '../context/AppContext';
 import { Ean13Barcode, toEan13 } from '../components/Ean13Barcode';
 import { 
   Monitor, 
@@ -18,7 +18,8 @@ import {
   QrCode,
   ExternalLink,
   X,
-  Package
+  Package,
+  Store
 } from 'lucide-react';
 import { createQrPhPayment, checkPaymentIntentStatus, type PayMongoQrResponse } from '../services/paymongoService';
 
@@ -119,7 +120,9 @@ export const Sales: React.FC = () => {
     pointsSettings, 
     currentUser, 
     recordSale,
-    syncWithSupabase 
+    syncWithSupabase,
+    sales,
+    completePickupClaim
   } = useAppContext();
 
   // Scanner state
@@ -134,6 +137,7 @@ export const Sales: React.FC = () => {
   const [memberInput, setMemberInput] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<'CASH' | 'E-WALLET' | 'ONLINE BANK'>('CASH');
   const [paymentRef, setPaymentRef] = useState('');
+  const [redeemPoints, setRedeemPoints] = useState(false);
 
   // POS PayMongo QR Ph Modal States
   const [showPosQrModal, setShowPosQrModal] = useState(false);
@@ -147,6 +151,27 @@ export const Sales: React.FC = () => {
 
   // Post-purchase receipt state
   const [showReceipt, setShowReceipt] = useState<any | null>(null);
+
+  // Auto-print receipt after each completed transaction (remembered per POS terminal)
+  const [autoPrint, setAutoPrint] = useState<boolean>(() => {
+    try { return localStorage.getItem('pos_auto_print') !== 'false'; } catch { return true; }
+  });
+  useEffect(() => {
+    try { localStorage.setItem('pos_auto_print', String(autoPrint)); } catch { /* storage unavailable */ }
+  }, [autoPrint]);
+  useEffect(() => {
+    if (!showReceipt || !autoPrint) return;
+    // Let the receipt modal render before opening the print dialog
+    const t = window.setTimeout(() => window.print(), 400);
+    return () => window.clearTimeout(t);
+  }, [showReceipt, autoPrint]);
+
+  // Store pickup claim states (customer claims an online/FB order at the counter)
+  const [showClaims, setShowClaims] = useState(false);
+  const [claimSearch, setClaimSearch] = useState('');
+  const [claimOrder, setClaimOrder] = useState<Sale | null>(null);
+  const [claimTendered, setClaimTendered] = useState('');
+  const [claiming, setClaiming] = useState(false);
   const [processing, setProcessing] = useState(false);
 
   // Product quick-search filter
@@ -395,25 +420,98 @@ export const Sales: React.FC = () => {
   const todayStr = new Date().toISOString().split('T')[0];
   const activePromos = promos.filter(p => p.active && todayStr >= p.startDate && todayStr <= p.endDate);
   
+  // Promo redemption limits (#16): channel, total usage cap, first-order / one-per-customer
+  const promoUseCount = (promoId: string) => sales.filter(s => s.promoId === promoId).length;
+  const memberHasOrders = !!selectedMemberId && sales.some(s => s.memberId === selectedMemberId);
+  const promoBlockReason = (p: (typeof promos)[number]): string | null => {
+    if (p.discountType === 'FREE_SHIPPING') return 'online delivery only';
+    if (p.appliesTo === 'ONLINE') return 'online orders only';
+    if (p.maxRedemptions !== undefined && promoUseCount(p.id) >= p.maxRedemptions) return 'redemption limit reached';
+    if ((p.firstOrderOnly || p.singleUsePerCustomer) && !selectedMemberId) return 'link a member to use';
+    if (p.firstOrderOnly && memberHasOrders) return 'first order only';
+    if (p.singleUsePerCustomer && sales.some(s => s.promoId === p.id && s.memberId === selectedMemberId)) return 'already used by this member';
+    if (subtotal < p.minSpend) return `min. spend ₱${p.minSpend.toLocaleString()}`;
+    return null;
+  };
+
   let discountApplied = 0;
   let activePromoName = '';
+  let appliedPromo: (typeof promos)[number] | undefined;
   activePromos.forEach(p => {
-    if (subtotal >= p.minSpend) {
-      const discountVal = (subtotal * p.discountPercent) / 100;
-      if (discountVal > discountApplied) {
-        discountApplied = discountVal;
-        activePromoName = p.name;
-      }
+    if (promoBlockReason(p)) return;
+    const discountVal = Math.round(((subtotal * p.discountPercent) / 100) * 100) / 100;
+    if (discountVal > discountApplied) {
+      discountApplied = discountVal;
+      activePromoName = p.name;
+      appliedPromo = p;
     }
   });
+  const appliedPromoSlotsLeft = appliedPromo && appliedPromo.maxRedemptions !== undefined
+    ? appliedPromo.maxRedemptions - promoUseCount(appliedPromo.id)
+    : undefined;
 
-  const total = Math.max(0, subtotal - discountApplied);
   const linkedMember = members.find(m => m.id === selectedMemberId);
 
+  // Loyalty points redemption (#15): 1 point = ₱pointValue, used as payment.
+  // Uses as many points as the bill allows; if all points are used the balance becomes 0.
+  const pointValue = pointsSettings.pointValue || 1;
+  const preTotal = Math.max(0, subtotal - discountApplied);
+  const availablePoints = linkedMember?.points || 0;
+  const pointsRedeemed = redeemPoints && linkedMember ? Math.min(availablePoints, Math.floor(preTotal / pointValue)) : 0;
+  const pointsDiscount = pointsRedeemed * pointValue;
+  const total = Math.max(0, preTotal - pointsDiscount);
+  const pointsEarnedPreview = Math.floor(total / pointsSettings.currencyPerPoint);
+  const pointsBalanceAfter = availablePoints - pointsRedeemed + pointsEarnedPreview;
+
   // Cash change calculation
+  const payOnPickup = paymentMethod === 'CASH' && orderType === 'ONLINE/FACEBOOK';
+  const requiresTender = paymentMethod === 'CASH' && !payOnPickup;
   const numericTendered = parseFloat(cashTendered) || 0;
-  const changeDue = paymentMethod === 'CASH' && numericTendered >= total ? numericTendered - total : 0;
-  const amountShort = paymentMethod === 'CASH' && numericTendered > 0 && numericTendered < total ? total - numericTendered : 0;
+  const changeDue = requiresTender && numericTendered >= total ? numericTendered - total : 0;
+  const amountShort = requiresTender && numericTendered > 0 && numericTendered < total ? total - numericTendered : 0;
+
+  // Pending store-pickup orders that a customer may claim at this counter
+  const pendingPickupOrders = sales
+    .filter(s => s.fulfillmentType === 'STORE PICKUP' && s.orderStatus !== 'COMPLETED')
+    .sort((a, b) => {
+      const ra = a.orderStatus === 'READY FOR PICKUP' ? 0 : 1;
+      const rb = b.orderStatus === 'READY FOR PICKUP' ? 0 : 1;
+      return ra - rb || new Date(b.date).getTime() - new Date(a.date).getTime();
+    });
+  const filteredPickupOrders = pendingPickupOrders.filter(o => {
+    const q = claimSearch.trim().toLowerCase();
+    if (!q) return true;
+    return [o.id, o.trackingCode, o.customerName, o.customerPhone, o.memberId]
+      .some(v => (v || '').toString().toLowerCase().includes(q));
+  });
+
+  const handleConfirmClaim = async () => {
+    if (!claimOrder) return;
+    const isCash = claimOrder.paymentMethod === 'CASH';
+    const tendered = parseFloat(claimTendered) || 0;
+    if (isCash && tendered < claimOrder.total) {
+      alert(`INSUFFICIENT CASH TENDERED! Short by ₱${(claimOrder.total - tendered).toLocaleString()}`);
+      return;
+    }
+    setClaiming(true);
+    const updated = await completePickupClaim(claimOrder.id, {
+      cashTendered: isCash ? tendered : undefined,
+      receivedBy: currentUser?.name || 'Staff'
+    });
+    setClaiming(false);
+    if (updated) {
+      playCashRegisterChime();
+      setClaimOrder(null);
+      setShowClaims(false);
+      setClaimSearch('');
+      setClaimTendered('');
+      setShowReceipt({
+        ...updated,
+        receiptTitle: 'STORE PICKUP – OFFICIAL RECEIPT',
+        cashierName: currentUser?.name || 'Staff'
+      });
+    }
+  };
 
   // Keypad append
   const handleKeypadPress = (val: string) => {
@@ -434,8 +532,8 @@ export const Sales: React.FC = () => {
       return;
     }
 
-    if (paymentMethod === 'CASH' && numericTendered < total) {
-      alert(`INSUFFICIENT CASH TENDERED! Short by ₱${amountShort.toLocaleString()}`);
+    if (requiresTender && numericTendered < total) {
+      alert(`INSUFFICIENT CASH TENDERED! Short by ₱${(total - numericTendered).toLocaleString()}`);
       return;
     }
 
@@ -461,6 +559,10 @@ export const Sales: React.FC = () => {
       items: [...cart],
       subtotal,
       discountApplied,
+      promoId: appliedPromo?.id,
+      promoCode: appliedPromo?.name,
+      pointsRedeemed: pointsRedeemed || undefined,
+      pointsDiscount: pointsDiscount || undefined,
       total,
       date: new Date().toISOString(),
       memberId: selectedMemberId || undefined,
@@ -472,7 +574,12 @@ export const Sales: React.FC = () => {
         ? `ONLINE ORDER RECORDED BY ${currentUser?.name || 'STAFF'}` 
         : `WALK-IN COUNTER SALE BY ${currentUser?.name || 'STAFF'}${linkedMember ? ` (MEMBER: ${linkedMember.name})` : ''}`,
       paymentMethod,
-      paymentRef: paymentMethod !== 'CASH' ? paymentRef : undefined
+      paymentRef: paymentMethod !== 'CASH' ? paymentRef : undefined,
+      // Walk-in cash: persist amount tendered & change. FB/Pickup cash: collected later upon pickup.
+      cashTendered: requiresTender ? numericTendered : undefined,
+      changeDue: requiresTender ? changeDue : undefined,
+      paidAt: payOnPickup ? undefined : new Date().toISOString(),
+      receivedBy: payOnPickup ? undefined : (currentUser?.name || 'Staff')
     };
 
     // Save to Supabase and update state
@@ -485,14 +592,17 @@ export const Sales: React.FC = () => {
       // Show receipt modal
       setShowReceipt({
         ...savedSale,
-        cashTendered: paymentMethod === 'CASH' ? numericTendered : total,
-        changeDue: paymentMethod === 'CASH' ? changeDue : 0,
+        cashTendered: requiresTender ? numericTendered : undefined,
+        changeDue: requiresTender ? changeDue : undefined,
+        payOnPickup,
+        receiptTitle: orderType === 'ONLINE/FACEBOOK' ? 'PICKUP ORDER SLIP' : 'COUNTER SALES INVOICE',
         cashierName: currentUser?.name || 'Staff'
       });
       
       // Reset POS states
       setCart([]);
       setSelectedMemberId('');
+      setRedeemPoints(false);
       setPaymentRef('');
       setCashTendered('');
       setPaymentMethod('CASH');
@@ -541,6 +651,21 @@ export const Sales: React.FC = () => {
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <button
+            type="button"
+            onClick={() => { setClaimSearch(''); setShowClaims(true); }}
+            className="btn-primary"
+            style={{ fontSize: '0.75rem', position: 'relative' }}
+            title="Customer is here to claim an online / FB store-pickup order"
+          >
+            <Store size={13} />
+            <span>Pickup Claims</span>
+            {pendingPickupOrders.length > 0 && (
+              <span style={{ backgroundColor: '#ef4444', color: '#fff', borderRadius: '999px', padding: '0 6px', fontSize: '0.68rem', fontWeight: 800, marginLeft: '2px' }}>
+                {pendingPickupOrders.length}
+              </span>
+            )}
+          </button>
           <button 
             type="button" 
             onClick={() => syncWithSupabase()} 
@@ -551,6 +676,14 @@ export const Sales: React.FC = () => {
             <RefreshCw size={13} />
             <span>Sync Cloud</span>
           </button>
+
+          <label
+            style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '0.75rem', fontWeight: 700, color: '#334155', cursor: 'pointer', margin: 0, whiteSpace: 'nowrap' }}
+            title="Automatically open the print dialog for the receipt after every sale"
+          >
+            <input type="checkbox" checked={autoPrint} onChange={e => setAutoPrint(e.target.checked)} style={{ width: 'auto', margin: 0 }} />
+            <Printer size={13} /> Auto-print receipt
+          </label>
 
           <span style={{ fontSize: '0.78rem', color: '#64748b' }}>
             Cashier: <strong style={{ color: '#0f172a' }}>{currentUser?.name || 'Staff'}</strong>
@@ -732,13 +865,28 @@ export const Sales: React.FC = () => {
               {linkedMember && (
                 <button
                   type="button"
-                  onClick={() => setSelectedMemberId('')}
+                  onClick={() => { setSelectedMemberId(''); setRedeemPoints(false); }}
                   style={{ background: 'none', border: 'none', color: '#dc2626', fontSize: '0.72rem', fontWeight: 600, cursor: 'pointer' }}
                 >
                   Unlink Member
                 </button>
               )}
             </div>
+
+            {linkedMember && availablePoints > 0 && (
+              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: '0 0 8px 0', padding: '8px 12px', borderRadius: '6px', backgroundColor: redeemPoints ? '#fefce8' : '#f8fafc', border: `1px solid ${redeemPoints ? '#fde047' : '#e2e8f0'}`, cursor: preTotal > 0 ? 'pointer' : 'not-allowed', fontSize: '0.78rem' }}>
+                <input type="checkbox" checked={redeemPoints} disabled={preTotal <= 0} onChange={e => setRedeemPoints(e.target.checked)} style={{ width: 'auto', margin: 0 }} />
+                <span>
+                  <strong>Use points as payment</strong> — {availablePoints} pts available (1 pt = ₱{pointValue})
+                  {redeemPoints && (
+                    <span style={{ display: 'block', color: '#854d0e', fontWeight: 700 }}>
+                      Using {pointsRedeemed} pts = -₱{pointsDiscount.toLocaleString()} • Balance after sale: {pointsBalanceAfter} pts
+                      {pointsRedeemed === availablePoints ? ' (all points used)' : ` (${availablePoints - pointsRedeemed} pts left — bill is smaller than points)`}
+                    </span>
+                  )}
+                </span>
+              </label>
+            )}
 
             {linkedMember ? (
               <div style={{ padding: '10px 14px', backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '6px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -755,7 +903,7 @@ export const Sales: React.FC = () => {
                     {linkedMember.points} POINTS
                   </span>
                   <div style={{ fontSize: '0.68rem', color: '#166534', marginTop: '2px' }}>
-                    +Earns {Math.floor(total / pointsSettings.currencyPerPoint)} pts on this sale
+                    +Earns {pointsEarnedPreview} pts on this sale
                   </div>
                 </div>
               </div>
@@ -1036,8 +1184,19 @@ export const Sales: React.FC = () => {
 
               {discountApplied > 0 && (
                 <div style={{ display: 'flex', justifyContent: 'space-between', color: '#16a34a' }}>
-                  <span>Promo Discount ({activePromoName}):</span>
+                  <span>
+                    Promo Discount ({activePromoName}):
+                    {appliedPromoSlotsLeft !== undefined && (
+                      <span style={{ fontSize: '0.68rem', color: '#64748b', marginLeft: '4px' }}>{appliedPromoSlotsLeft} redemption(s) left</span>
+                    )}
+                  </span>
                   <strong>-₱{discountApplied.toLocaleString()}</strong>
+                </div>
+              )}
+              {pointsDiscount > 0 && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', color: '#a16207' }}>
+                  <span>Points Redeemed ({pointsRedeemed} pts):</span>
+                  <strong>-₱{pointsDiscount.toLocaleString()}</strong>
                 </div>
               )}
 
@@ -1117,7 +1276,11 @@ export const Sales: React.FC = () => {
             </div>
 
             {/* Cash Tender Keypad */}
-            {paymentMethod === 'CASH' ? (
+            {payOnPickup ? (
+              <div style={{ marginBottom: '14px', fontSize: '0.78rem', backgroundColor: '#fffbeb', border: '1px solid #fde68a', color: '#92400e', borderRadius: '6px', padding: '10px 12px', lineHeight: 1.45 }}>
+                <strong>CASH ON PICKUP.</strong> No payment is collected now. When the customer arrives, open <strong>Pickup Claims</strong> to enter the amount tendered and release the order.
+              </div>
+            ) : paymentMethod === 'CASH' ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '14px' }}>
                 <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                   <input
@@ -1258,7 +1421,7 @@ export const Sales: React.FC = () => {
               ) : (
                 <>
                   <Banknote size={18} />
-                  <span>COMPLETE SALE (₱{total.toLocaleString()})</span>
+                  <span>{payOnPickup ? `RECORD PICKUP ORDER (₱${total.toLocaleString()})` : `COMPLETE SALE (₱${total.toLocaleString()})`}</span>
                 </>
               )}
             </button>
@@ -1454,7 +1617,7 @@ export const Sales: React.FC = () => {
                 <div style={{ fontSize: '0.72rem', color: '#475569' }}>JP Rizal St., Baliuag, Bulacan</div>
                 <div style={{ fontSize: '0.72rem', color: '#475569' }}>Hotline: (0905) 123-4567 • Cashier POS 01</div>
                 <div style={{ borderBottom: '1px dashed #cbd5e1', margin: '8px 0' }} />
-                <div style={{ fontSize: '0.82rem', fontWeight: 700 }}>COUNTER SALES INVOICE</div>
+                <div style={{ fontSize: '0.82rem', fontWeight: 700 }}>{showReceipt.receiptTitle || 'COUNTER SALES INVOICE'}</div>
                 <div style={{ fontSize: '0.72rem', color: '#64748b' }}>Invoice #: {showReceipt.id}</div>
                 <div style={{ fontSize: '0.72rem', color: '#64748b' }}>Date: {new Date(showReceipt.date).toLocaleString()}</div>
                 <div style={{ fontSize: '0.72rem', color: '#64748b' }}>Cashier: {showReceipt.cashierName}</div>
@@ -1495,8 +1658,14 @@ export const Sales: React.FC = () => {
               </div>
               {showReceipt.discountApplied > 0 && (
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px', color: '#16a34a' }}>
-                  <span>Discount:</span>
+                  <span>{showReceipt.promoCode ? `Promo (${showReceipt.promoCode}):` : 'Discount:'}</span>
                   <span>-₱{showReceipt.discountApplied.toLocaleString()}</span>
+                </div>
+              )}
+              {showReceipt.pointsDiscount > 0 && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px', color: '#a16207' }}>
+                  <span>Points Redeemed ({showReceipt.pointsRedeemed} pts):</span>
+                  <span>-₱{showReceipt.pointsDiscount.toLocaleString()}</span>
                 </div>
               )}
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1rem', fontWeight: 900, margin: '6px 0' }}>
@@ -1504,7 +1673,13 @@ export const Sales: React.FC = () => {
                 <span>₱{showReceipt.total.toLocaleString()}</span>
               </div>
 
-              {showReceipt.paymentMethod === 'CASH' && (
+              {showReceipt.payOnPickup && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', fontWeight: 700, color: '#b45309' }}>
+                  <span>Payment Status:</span>
+                  <span>UNPAID – PAY ON PICKUP</span>
+                </div>
+              )}
+              {showReceipt.paymentMethod === 'CASH' && showReceipt.cashTendered != null && (
                 <>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem' }}>
                     <span>Cash Tendered:</span>
@@ -1666,6 +1841,178 @@ export const Sales: React.FC = () => {
           </div>
         </div>
       )}
+      {/* ======================================================== */}
+      {/* Store Pickup Claims List (customer arrives to claim online/FB order) */}
+      {/* ======================================================== */}
+      {showClaims && !claimOrder && (
+        <div className="modal-overlay" onClick={() => setShowClaims(false)}>
+          <div className="modal" style={{ maxWidth: '640px', width: '95%' }} onClick={e => e.stopPropagation()}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Store size={20} color="#2563eb" />
+                <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 900, color: '#0f172a' }}>STORE PICKUP CLAIMS</h3>
+              </div>
+              <button type="button" onClick={() => setShowClaims(false)} className="btn" style={{ padding: '4px 8px' }}>
+                <X size={16} />
+              </button>
+            </div>
+            <p style={{ fontSize: '0.78rem', color: '#64748b', margin: '0 0 10px 0' }}>
+              Select the order the customer is claiming. Cash orders require the amount tendered before release.
+            </p>
+            <input
+              type="text"
+              placeholder="Search order #, tracking code, customer name or phone..."
+              value={claimSearch}
+              onChange={e => setClaimSearch(e.target.value)}
+              autoFocus
+              style={{ marginBottom: '12px' }}
+            />
+            <div style={{ maxHeight: '55vh', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {filteredPickupOrders.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '28px', color: '#94a3b8', fontSize: '0.85rem' }}>
+                  No pending store-pickup orders.
+                </div>
+              ) : filteredPickupOrders.map(o => {
+                const isCash = o.paymentMethod === 'CASH';
+                const isReady = o.orderStatus === 'READY FOR PICKUP';
+                return (
+                  <div key={o.id} style={{ border: '1px solid #e2e8f0', borderRadius: '8px', padding: '10px 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', backgroundColor: isReady ? '#f8fafc' : '#ffffff' }}>
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontWeight: 800, fontSize: '0.88rem', color: '#0f172a' }}>
+                        #{o.id} <span style={{ fontWeight: 600, color: '#64748b' }}>• {o.customerName || o.memberId || 'Customer'}</span>
+                      </div>
+                      <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '2px' }}>
+                        {o.items.reduce((n, it) => n + it.quantity, 0)} item(s) • {new Date(o.date).toLocaleDateString()}
+                        {o.customerPhone ? ` • ${o.customerPhone}` : ''}
+                      </div>
+                      <div style={{ display: 'flex', gap: '4px', marginTop: '4px', flexWrap: 'wrap' }}>
+                        <span className={`badge ${isReady ? 'badge-green' : 'badge-yellow'}`}>{o.orderStatus}</span>
+                        <span className={`badge ${isCash ? 'badge-yellow' : 'badge-blue'}`}>
+                          {isCash ? 'CASH • PAY ON PICKUP' : `PREPAID • ${o.paymentMethod}`}
+                        </span>
+                      </div>
+                    </div>
+                    <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                      <div style={{ fontWeight: 900, color: '#2563eb', fontSize: '1rem' }}>₱{o.total.toLocaleString()}</div>
+                      <button
+                        type="button"
+                        className="btn-primary"
+                        style={{ marginTop: '6px', padding: '5px 12px', fontSize: '0.75rem' }}
+                        onClick={() => {
+                          if (!isReady && !window.confirm(`Order #${o.id} is still "${o.orderStatus}" (not yet marked READY FOR PICKUP). Release it anyway?`)) return;
+                          setClaimOrder(o);
+                          setClaimTendered('');
+                        }}
+                      >
+                        {isCash ? 'Receive Payment' : 'Release Order'}
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ======================================================== */}
+      {/* Pickup Claim – Amount Tendered Modal */}
+      {/* ======================================================== */}
+      {claimOrder && (() => {
+        const isCash = claimOrder.paymentMethod === 'CASH';
+        const tendered = parseFloat(claimTendered) || 0;
+        const due = claimOrder.total;
+        const enough = tendered >= due;
+        return (
+          <div className="modal-overlay" onClick={() => !claiming && setClaimOrder(null)}>
+            <div className="modal" style={{ maxWidth: '440px', width: '94%' }} onClick={e => e.stopPropagation()}>
+              <h3 style={{ margin: '0 0 4px 0', fontSize: '1.1rem', fontWeight: 900, color: '#0f172a' }}>
+                {isCash ? 'RECEIVE PICKUP PAYMENT' : 'RELEASE PREPAID ORDER'}
+              </h3>
+              <div style={{ fontSize: '0.78rem', color: '#64748b', marginBottom: '12px' }}>
+                Order #{claimOrder.id} • {claimOrder.customerName || claimOrder.memberId || 'Customer'}
+              </div>
+
+              <div style={{ backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '10px 12px', marginBottom: '12px', maxHeight: '160px', overflowY: 'auto' }}>
+                {claimOrder.items.map((it, idx) => (
+                  <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', marginBottom: '3px' }}>
+                    <span>{it.name} × {it.quantity}</span>
+                    <strong>₱{(it.price * it.quantity).toLocaleString()}</strong>
+                  </div>
+                ))}
+                {claimOrder.discountApplied > 0 && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: '#16a34a' }}>
+                    <span>Discount</span>
+                    <span>-₱{claimOrder.discountApplied.toLocaleString()}</span>
+                  </div>
+                )}
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 900, fontSize: '1.05rem', marginTop: '6px', paddingTop: '6px', borderTop: '1px solid #e2e8f0' }}>
+                  <span>AMOUNT DUE:</span>
+                  <span style={{ color: '#2563eb' }}>₱{due.toLocaleString()}</span>
+                </div>
+              </div>
+
+              {isCash ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '14px' }}>
+                  <label style={{ margin: 0, fontWeight: 800, fontSize: '0.82rem' }}>Amount Tendered (₱) *</label>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <input
+                      type="number"
+                      min={0}
+                      placeholder="Enter cash received..."
+                      value={claimTendered}
+                      onChange={e => setClaimTendered(e.target.value)}
+                      autoFocus
+                      style={{ flex: 1, fontSize: '1rem', fontWeight: 800 }}
+                    />
+                    <button type="button" className="btn" onClick={() => setClaimTendered(due.toString())} style={{ fontSize: '0.75rem' }}>
+                      Exact
+                    </button>
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '6px' }}>
+                    {['100', '200', '500', '1000'].map(d => (
+                      <button key={d} type="button" className="btn" style={{ fontSize: '0.75rem', padding: '6px' }}
+                        onClick={() => setClaimTendered(d)}>₱{d}</button>
+                    ))}
+                  </div>
+                  {tendered > 0 && (
+                    <div style={{
+                      display: 'flex', justifyContent: 'space-between', padding: '10px 12px', borderRadius: '6px', fontWeight: 900,
+                      backgroundColor: enough ? '#f0fdf4' : '#fef2f2',
+                      border: `1px solid ${enough ? '#bbf7d0' : '#fecaca'}`,
+                      color: enough ? '#15803d' : '#b91c1c'
+                    }}>
+                      <span>{enough ? 'CHANGE DUE:' : 'AMOUNT SHORT:'}</span>
+                      <span>₱{(enough ? tendered - due : due - tendered).toLocaleString()}</span>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div style={{ fontSize: '0.8rem', backgroundColor: '#eff6ff', border: '1px solid #bfdbfe', color: '#1e3a8a', borderRadius: '6px', padding: '10px 12px', marginBottom: '14px' }}>
+                  Already paid online via <strong>{claimOrder.paymentMethod}</strong>
+                  {claimOrder.paymentRef ? <> (Ref: <strong>{claimOrder.paymentRef}</strong>)</> : null}. No cash to collect — confirm the customer's identity and release the items.
+                </div>
+              )}
+
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <button type="button" className="btn" style={{ flex: 1 }} disabled={claiming} onClick={() => setClaimOrder(null)}>
+                  Back
+                </button>
+                <button
+                  type="button"
+                  className="btn-primary"
+                  style={{ flex: 1.5 }}
+                  disabled={claiming || (isCash && !enough)}
+                  onClick={handleConfirmClaim}
+                >
+                  {claiming ? 'Saving...' : isCash ? 'Confirm Payment & Release' : 'Confirm Release'}
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
     </div>
   );
 };

@@ -152,7 +152,7 @@ export const CustomerDashboard: React.FC = () => {
             Welcome back, {currentUser?.name}!
           </h1>
           <p style={{ margin: 0, fontSize: '0.85rem', color: '#64748b' }}>
-            Boss Rap Motor Shop Rider Club Portal • Track Orders & Loyalty Rewards
+            Boss Rap Motor Shop Member Portal • Track Orders & Loyalty Rewards
           </p>
         </div>
 
@@ -316,6 +316,16 @@ export const CustomerDashboard: React.FC = () => {
             <p style={{ fontSize: '0.85rem', color: '#64748b', lineHeight: '1.6', margin: '0 0 20px 0' }}>
               Every time you purchase parts or services with your Club ID (<strong>{currentUser?.memberId || 'N/A'}</strong>), you earn <strong>1 Point</strong> per <strong>₱{pointsSettings.currencyPerPoint}</strong> spent. Points can be redeemed for discounts on upcoming orders.
             </p>
+            <div style={{ fontSize: '0.82rem', color: '#334155', backgroundColor: '#fefce8', border: '1px solid #fde68a', borderRadius: '8px', padding: '12px 14px', margin: '-8px 0 20px 0', lineHeight: 1.6 }}>
+              <strong>How to use your points:</strong>
+              <ul style={{ margin: '4px 0 0 18px', padding: 0 }}>
+                <li><strong>1 point = ₱{pointsSettings.pointValue || 1}</strong> off your bill.</li>
+                <li><strong>Online:</strong> tick <em>“Use my points”</em> in your cart before checkout.</li>
+                <li><strong>In store:</strong> give your Member ID to the cashier and ask to use your points.</li>
+                <li>Points are used up to the amount of your bill. If the bill is bigger than your points, <strong>all points are used and your balance becomes 0</strong>. If the bill is smaller, the unused points stay in your account.</li>
+                <li>You still earn new points on the amount you actually pay.</li>
+              </ul>
+            </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '14px' }}>
               <div style={{ padding: '16px', backgroundColor: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
@@ -896,6 +906,14 @@ export const CustomerDashboard: React.FC = () => {
                       <strong>{activeReceipt.trackingCode}</strong>
                     </div>
                   )}
+                  {activeReceipt.deliveryProofUrl && (
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span style={{ color: '#64748b' }}>Delivery Proof:</span>
+                      <a href={activeReceipt.deliveryProofUrl} target="_blank" rel="noreferrer" style={{ color: '#16a34a', fontWeight: 700 }}>
+                        View photo{activeReceipt.deliveredAt ? ` (${new Date(activeReceipt.deliveredAt).toLocaleString()})` : ''}
+                      </a>
+                    </div>
+                  )}
                   <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                     <span style={{ color: '#64748b' }}>Date & Time:</span>
                     <span>{new Date(activeReceipt.date).toLocaleString()}</span>
@@ -975,6 +993,12 @@ export const CustomerDashboard: React.FC = () => {
                     <span>+₱{(activeReceipt.deliveryFee ?? 100).toLocaleString()}</span>
                   </div>
                 )}
+                {(activeReceipt.pointsDiscount || 0) > 0 && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px', color: '#a16207' }}>
+                    <span>Points Redeemed ({activeReceipt.pointsRedeemed} pts):</span>
+                    <span>-₱{(activeReceipt.pointsDiscount || 0).toLocaleString()}</span>
+                  </div>
+                )}
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1rem', fontWeight: 900, margin: '6px 0' }}>
                   <span>TOTAL:</span>
                   <span>₱{activeReceipt.total.toLocaleString()}</span>
@@ -1000,6 +1024,12 @@ export const CustomerDashboard: React.FC = () => {
                     )}
                   </div>
                   <div>Payment Method: <strong>{activeReceipt.paymentMethod}</strong> {activeReceipt.paymentRef ? `(Ref: ${activeReceipt.paymentRef})` : ''}</div>
+                  {activeReceipt.paymentMethod === 'CASH' && activeReceipt.cashTendered != null && (
+                    <div>Cash Tendered: <strong>₱{activeReceipt.cashTendered.toLocaleString()}</strong> • Change: <strong>₱{(activeReceipt.changeDue ?? 0).toLocaleString()}</strong></div>
+                  )}
+                  {activeReceipt.receivedBy && (
+                    <div>Received by: <strong>{activeReceipt.receivedBy}</strong>{activeReceipt.paidAt ? ` • ${new Date(activeReceipt.paidAt).toLocaleString()}` : ''}</div>
+                  )}
                   <div>Order Status: <strong>{activeReceipt.orderStatus}</strong></div>
                   {!isPaid && (
                     <div style={{ marginTop: '4px', color: '#b45309', fontStyle: 'italic', fontSize: '0.68rem' }}>

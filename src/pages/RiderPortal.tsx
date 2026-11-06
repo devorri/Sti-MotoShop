@@ -16,8 +16,11 @@ import {
   Check,
   Calendar,
   AlertCircle,
-  UserCheck
+  UserCheck,
+  Camera,
+  Image as ImageIcon
 } from 'lucide-react';
+import { uploadFileToBucket } from '../supabase';
 import { PaymentNotificationBell } from '../components/PaymentNotificationBell';
 import { sendOutForDeliverySms, sendDeliveryCompletedSms } from '../services/smsService';
 
@@ -27,7 +30,8 @@ export const RiderPortal: React.FC = () => {
     logout, 
     sales, 
     syncWithSupabase, 
-    updateSaleOrderStatus 
+    updateSaleOrderStatus,
+    completeDeliveryWithProof
   } = useAppContext();
 
   const navigate = useNavigate();
@@ -37,6 +41,34 @@ export const RiderPortal: React.FC = () => {
   const [confirmCompleteModal, setConfirmCompleteModal] = useState<string | null>(null);
   const [confirmStartModal, setConfirmStartModal] = useState<Sale | null>(null);
   const [successToast, setSuccessToast] = useState<string | null>(null);
+
+  // Proof of delivery photo (required before completing a delivery)
+  const [proofFile, setProofFile] = useState<File | null>(null);
+  const [proofPreview, setProofPreview] = useState<string | null>(null);
+  const [proofError, setProofError] = useState<string | null>(null);
+  const [viewProofUrl, setViewProofUrl] = useState<string | null>(null);
+
+  const resetProof = () => {
+    if (proofPreview) URL.revokeObjectURL(proofPreview);
+    setProofFile(null);
+    setProofPreview(null);
+    setProofError(null);
+  };
+
+  const closeCompleteModal = () => {
+    resetProof();
+    setConfirmCompleteModal(null);
+  };
+
+  const handleProofSelected = (file: File | undefined) => {
+    setProofError(null);
+    if (!file) return;
+    if (!file.type.startsWith('image/')) { setProofError('Please take or choose a photo (image file).'); return; }
+    if (file.size > 8 * 1024 * 1024) { setProofError('Photo is too large (max 8 MB).'); return; }
+    if (proofPreview) URL.revokeObjectURL(proofPreview);
+    setProofFile(file);
+    setProofPreview(URL.createObjectURL(file));
+  };
 
   // Sync on mount
   useEffect(() => {
@@ -108,9 +140,23 @@ export const RiderPortal: React.FC = () => {
   };
 
   const handleUpdateStatus = async (saleId: string, newStatus: 'OUT FOR DELIVERY' | 'COMPLETED') => {
+    if (newStatus === 'COMPLETED' && !proofFile) {
+      setProofError('Take a delivery proof photo first (parcel with customer / at the door).');
+      return;
+    }
     setProcessingId(saleId);
     try {
-      const ok = await updateSaleOrderStatus(saleId, newStatus);
+      let ok = false;
+      if (newStatus === 'COMPLETED') {
+        const proofUrl = await uploadFileToBucket(proofFile as File, 'delivery-proofs');
+        if (!proofUrl) {
+          setProofError('Upload failed. Check your internet signal and try again.');
+          return;
+        }
+        ok = await completeDeliveryWithProof(saleId, proofUrl, currentUser?.name || 'Rider');
+      } else {
+        ok = await updateSaleOrderStatus(saleId, newStatus);
+      }
       if (ok) {
         // Send real-time SMS to customer via TranslertPH
         const targetSale = sales.find(s => s.id === saleId);
@@ -140,10 +186,13 @@ export const RiderPortal: React.FC = () => {
             : `Order #${saleId} is now OUT FOR DELIVERY & customer SMS notified!`
         );
         setTimeout(() => setSuccessToast(null), 4000);
+        if (newStatus === 'COMPLETED') {
+          resetProof();
+          setConfirmCompleteModal(null);
+        }
       }
     } finally {
       setProcessingId(null);
-      setConfirmCompleteModal(null);
     }
   };
 
@@ -811,6 +860,16 @@ export const RiderPortal: React.FC = () => {
                         <span>Parcel Successfully Delivered</span>
                       </div>
                     )}
+                    {isCompleted && sale.deliveryProofUrl && (
+                      <button
+                        type="button"
+                        className="btn"
+                        onClick={() => setViewProofUrl(sale.deliveryProofUrl || null)}
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', marginLeft: '8px' }}
+                      >
+                        <ImageIcon size={15} /> View Proof Photo
+                      </button>
+                    )}
                   </div>
                 </div>
               );
@@ -818,6 +877,17 @@ export const RiderPortal: React.FC = () => {
           </div>
         )}
       </main>
+
+      {/* Delivery proof photo viewer */}
+      {viewProofUrl && (
+        <div className="modal-overlay" onClick={() => setViewProofUrl(null)}>
+          <div className="modal" style={{ maxWidth: '560px', width: '94%', textAlign: 'center' }} onClick={e => e.stopPropagation()}>
+            <h3 style={{ marginTop: 0 }}>Delivery Proof Photo</h3>
+            <img src={viewProofUrl} alt="Delivery proof" style={{ maxWidth: '100%', maxHeight: '70vh', borderRadius: '8px' }} />
+            <button type="button" className="btn" style={{ marginTop: '12px', width: '100%' }} onClick={() => setViewProofUrl(null)}>Close</button>
+          </div>
+        </div>
+      )}
 
       {/* Confirmation Modal to Start Delivery (Out for Delivery) */}
       {confirmStartModal && (() => {
@@ -923,7 +993,7 @@ export const RiderPortal: React.FC = () => {
 
       {/* Confirmation Modal to Mark as Delivered */}
       {confirmCompleteModal && (
-        <div className="modal-overlay" onClick={() => setConfirmCompleteModal(null)}>
+        <div className="modal-overlay" onClick={() => processingId !== confirmCompleteModal && closeCompleteModal()}>
           <div className="modal" style={{ maxWidth: '440px', width: '100%', textAlign: 'center' }} onClick={e => e.stopPropagation()}>
             <div style={{
               width: '56px',
@@ -960,13 +1030,58 @@ export const RiderPortal: React.FC = () => {
               gap: '8px'
             }}>
               <AlertCircle size={16} color="#2563eb" style={{ flexShrink: 0 }} />
-              <span>This will immediately update order status to <strong>COMPLETED</strong> in the cloud database.</span>
+              <span>A <strong>delivery proof photo is required</strong>. Take a picture of the parcel received by the customer (or left at the door).</span>
+            </div>
+
+            {/* Proof of delivery photo */}
+            <div style={{ marginBottom: '16px', textAlign: 'left' }}>
+              <label
+                htmlFor="delivery-proof-input"
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '6px',
+                  border: `2px dashed ${proofPreview ? '#16a34a' : proofError ? '#dc2626' : '#94a3b8'}`,
+                  borderRadius: '10px',
+                  padding: proofPreview ? '8px' : '22px 12px',
+                  cursor: 'pointer',
+                  backgroundColor: proofPreview ? '#f0fdf4' : '#f8fafc',
+                  margin: 0
+                }}
+              >
+                {proofPreview ? (
+                  <>
+                    <img src={proofPreview} alt="Delivery proof" style={{ maxWidth: '100%', maxHeight: '220px', borderRadius: '8px', objectFit: 'contain' }} />
+                    <span style={{ fontSize: '0.75rem', color: '#15803d', fontWeight: 700 }}>✓ Photo ready — tap to retake</span>
+                  </>
+                ) : (
+                  <>
+                    <Camera size={28} color="#475569" />
+                    <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#0f172a' }}>Take Delivery Proof Photo *</span>
+                    <span style={{ fontSize: '0.72rem', color: '#64748b' }}>Opens the camera on mobile</span>
+                  </>
+                )}
+              </label>
+              <input
+                id="delivery-proof-input"
+                type="file"
+                accept="image/*"
+                capture="environment"
+                style={{ display: 'none' }}
+                onChange={e => { handleProofSelected(e.target.files?.[0]); e.target.value = ''; }}
+              />
+              {proofError && (
+                <div style={{ fontSize: '0.75rem', color: '#dc2626', fontWeight: 700, marginTop: '6px' }}>{proofError}</div>
+              )}
             </div>
 
             <div style={{ display: 'flex', gap: '10px' }}>
               <button
                 type="button"
-                onClick={() => setConfirmCompleteModal(null)}
+                onClick={closeCompleteModal}
+                disabled={processingId === confirmCompleteModal}
                 className="btn"
                 style={{ flex: 1, padding: '10px' }}
               >
@@ -975,7 +1090,7 @@ export const RiderPortal: React.FC = () => {
               <button
                 type="button"
                 onClick={() => handleUpdateStatus(confirmCompleteModal, 'COMPLETED')}
-                disabled={processingId === confirmCompleteModal}
+                disabled={processingId === confirmCompleteModal || !proofFile}
                 className="btn-primary"
                 style={{
                   flex: 1,
@@ -985,7 +1100,7 @@ export const RiderPortal: React.FC = () => {
                   fontWeight: 800
                 }}
               >
-                {processingId === confirmCompleteModal ? 'Updating...' : 'Yes, Complete Delivery'}
+                {processingId === confirmCompleteModal ? 'Uploading photo...' : !proofFile ? 'Photo Required' : 'Yes, Complete Delivery'}
               </button>
             </div>
           </div>

@@ -2,7 +2,9 @@ import React, { useState } from 'react';
 import { useAppContext } from '../context/AppContext';
 
 export const Promos: React.FC = () => {
-  const { promos, savePromo, deletePromo } = useAppContext();
+  const { promos, savePromo, deletePromo, sales } = useAppContext();
+  const usageCount = (promoId: string) => sales.filter(s => s.promoId === promoId).length;
+  const [editLimit, setEditLimit] = useState<{ id: string; value: string } | null>(null);
   const [showAdd, setShowAdd] = useState(false);
   const [newPromo, setNewPromo] = useState({
     name: '',
@@ -14,6 +16,8 @@ export const Promos: React.FC = () => {
     discountType: 'PERCENT' as 'PERCENT' | 'FREE_SHIPPING',
     firstOrderOnly: false,
     singleUsePerCustomer: false,
+    maxRedemptions: '' as string,
+    appliesTo: 'ALL' as 'ALL' | 'WALK-IN' | 'ONLINE',
   });
 
   const handleAddPromo = async (e: React.FormEvent) => {
@@ -35,6 +39,8 @@ export const Promos: React.FC = () => {
       discountType: newPromo.discountType,
       firstOrderOnly: newPromo.firstOrderOnly,
       singleUsePerCustomer: newPromo.singleUsePerCustomer,
+      maxRedemptions: newPromo.maxRedemptions.trim() === '' ? undefined : Math.max(1, parseInt(newPromo.maxRedemptions, 10) || 1),
+      appliesTo: newPromo.discountType === 'FREE_SHIPPING' ? 'ONLINE' as const : newPromo.appliesTo,
       active: true
     };
 
@@ -50,10 +56,12 @@ export const Promos: React.FC = () => {
       discountType: 'PERCENT',
       firstOrderOnly: false,
       singleUsePerCustomer: false,
+      maxRedemptions: '',
+      appliesTo: 'ALL',
     });
   };
 
-  const togglePromoStatus = async (promo: any) => {
+  const togglePromoStatus = async (promo: (typeof promos)[number]) => {
     await savePromo({ ...promo, active: !promo.active });
   };
 
@@ -83,6 +91,8 @@ export const Promos: React.FC = () => {
                 <th>CODE / NAME</th>
                 <th>DESCRIPTION</th>
                 <th>BENEFIT</th>
+                <th>WHO CAN USE</th>
+                <th>REDEEMED / LIMIT</th>
                 <th>MIN. SPEND</th>
                 <th>START DATE</th>
                 <th>END DATE</th>
@@ -92,7 +102,7 @@ export const Promos: React.FC = () => {
             </thead>
             <tbody>
               {promos.length === 0 ? (
-                <tr><td colSpan={8} style={{ textAlign: 'center' }}>NO CAMPAIGNS CREATED YET</td></tr>
+                <tr><td colSpan={10} style={{ textAlign: 'center' }}>NO CAMPAIGNS CREATED YET</td></tr>
               ) : (
                 promos.map(p => (
                   <tr key={p.id} style={{ opacity: p.active ? 1 : 0.6 }}>
@@ -107,6 +117,38 @@ export const Promos: React.FC = () => {
                           {p.firstOrderOnly ? 'FIRST ORDER' : 'ONE USE / CUSTOMER'}
                         </div>
                       )}
+                    </td>
+                    <td>
+                      <span className="badge badge-blue">
+                        {p.appliesTo === 'WALK-IN' ? 'WALK-IN ONLY' : p.appliesTo === 'ONLINE' ? 'ONLINE ONLY' : 'WALK-IN & ONLINE'}
+                      </span>
+                    </td>
+                    <td style={{ minWidth: '130px' }}>
+                      {(() => {
+                        const used = usageCount(p.id);
+                        const limit = p.maxRedemptions;
+                        const full = limit !== undefined && used >= limit;
+                        if (editLimit?.id === p.id) {
+                          return (
+                            <div style={{ display: 'flex', gap: '4px' }}>
+                              <input type="number" min={1} placeholder="∞" value={editLimit.value} onChange={e => setEditLimit({ id: p.id, value: e.target.value })} style={{ width: '70px', padding: '4px', fontSize: '0.75rem' }} />
+                              <button type="button" className="btn-primary" style={{ fontSize: '0.6rem', padding: '3px 6px' }} onClick={async () => {
+                                const v = editLimit.value.trim();
+                                await savePromo({ ...p, maxRedemptions: v === '' ? undefined : Math.max(1, parseInt(v, 10) || 1) });
+                                setEditLimit(null);
+                              }}>SAVE</button>
+                            </div>
+                          );
+                        }
+                        return (
+                          <div>
+                            <strong style={{ color: full ? '#dc2626' : '#0f172a' }}>{used} / {limit !== undefined ? limit : '∞'}</strong>
+                            {full && <div style={{ fontSize: '0.62rem', color: '#dc2626', fontWeight: 700 }}>LIMIT REACHED</div>}
+                            {limit !== undefined && !full && <div style={{ fontSize: '0.62rem', color: '#64748b' }}>{limit - used} left</div>}
+                            <button type="button" onClick={() => setEditLimit({ id: p.id, value: limit !== undefined ? String(limit) : '' })} style={{ background: 'none', border: 'none', padding: 0, color: '#2563eb', fontSize: '0.65rem', cursor: 'pointer', textDecoration: 'underline' }}>edit limit</button>
+                          </div>
+                        );
+                      })()}
                     </td>
                     <td style={{ fontWeight: 'bold' }}>₱{p.minSpend.toLocaleString()}</td>
                     <td>{p.startDate}</td>
@@ -200,6 +242,31 @@ export const Promos: React.FC = () => {
                     onChange={e => setNewPromo({...newPromo, minSpend: Number(e.target.value)})}
                   />
                 </div>
+                <div>
+                  <label style={{ fontSize: '0.65rem', fontWeight: 'bold', display: 'block', marginBottom: '5px' }}>MAX. NO. OF REDEMPTIONS</label>
+                  <input
+                    type="number"
+                    min={1}
+                    placeholder="Blank = unlimited"
+                    value={newPromo.maxRedemptions}
+                    onChange={e => setNewPromo({...newPromo, maxRedemptions: e.target.value})}
+                  />
+                </div>
+              </div>
+              <div>
+                <label style={{ fontSize: '0.65rem', fontWeight: 'bold', display: 'block', marginBottom: '5px' }}>WHO CAN REDEEM</label>
+                <select
+                  value={newPromo.discountType === 'FREE_SHIPPING' ? 'ONLINE' : newPromo.appliesTo}
+                  disabled={newPromo.discountType === 'FREE_SHIPPING'}
+                  onChange={e => setNewPromo({...newPromo, appliesTo: e.target.value as 'ALL' | 'WALK-IN' | 'ONLINE'})}
+                >
+                  <option value="ALL">Walk-in & Online customers</option>
+                  <option value="WALK-IN">Walk-in (POS counter) only</option>
+                  <option value="ONLINE">Online orders only</option>
+                </select>
+                <p style={{ fontSize: '0.65rem', color: '#64748b', margin: '4px 0 0' }}>
+                  Example: a 10% walk-in promo limited to 50 redemptions stops applying at the POS after the 50th sale.
+                </p>
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '0.8rem' }}>

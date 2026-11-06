@@ -365,7 +365,7 @@ export const Profile: React.FC = () => {
                       BOSS RAP MOTOR SHOP
                     </span>
                     <span style={{ fontSize: '0.65rem', color: '#93c5fd', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
-                      Rider Club Official Member
+                      Boss Rap Motor Shop Official Member
                     </span>
                   </div>
                 </div>
@@ -1305,6 +1305,12 @@ export const Profile: React.FC = () => {
                     <span>+₱{activeReceipt.deliveryFee.toLocaleString()}</span>
                   </div>
                 ) : null}
+                {(activeReceipt.pointsDiscount || 0) > 0 && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px', color: '#a16207' }}>
+                    <span>Points Redeemed ({activeReceipt.pointsRedeemed} pts):</span>
+                    <span>-₱{(activeReceipt.pointsDiscount || 0).toLocaleString()}</span>
+                  </div>
+                )}
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1.05rem', fontWeight: 900, borderTop: '1px solid #000', paddingTop: '6px', marginTop: '6px' }}>
                   <span>TOTAL:</span>
                   <span>₱{activeReceipt.total.toLocaleString()}</span>
