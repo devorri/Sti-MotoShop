@@ -1541,166 +1541,142 @@ export const Dashboard: React.FC = () => {
                     const memberProfile = members.find(m => m.id === sale.memberId);
                     return (
                       <tr key={sale.id}>
+                        {/* Order ID & Date */}
                         <td>
-                          <strong style={{ color: '#0f172a', fontSize: '0.88rem', display: 'block' }}>{sale.id}</strong>
-                          <span style={{ fontSize: '0.72rem', color: '#64748b' }}>
-                            {new Date(sale.date).toLocaleDateString()} {new Date(sale.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                          </span>
-                          {sale.trackingCode && (
-                            <div style={{ fontSize: '0.68rem', color: '#2563eb' }}>{sale.trackingCode}</div>
-                          )}
+                          <div className="order-feed-cell" style={{ gap: '2px' }}>
+                            <strong style={{ color: '#0f172a', fontSize: '0.88rem' }}>{sale.id}</strong>
+                            <span style={{ fontSize: '0.72rem', color: '#64748b' }}>
+                              {new Date(sale.date).toLocaleDateString()} · {new Date(sale.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            </span>
+                          </div>
                         </td>
+
+                        {/* Customer */}
                         <td>
-                          <div className="order-feed-customer" style={{ fontWeight: 700, color: '#0f172a' }}>
+                          <div className="order-feed-customer" style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.85rem' }}>
                             {memberProfile?.name || (sale.notes?.includes('MEMBER:') ? sale.notes.split('MEMBER:')[1]?.replace(')', '').trim() : sale.memberId || 'Walk-In Customer')}
                           </div>
-                          <div className="order-feed-secondary" style={{ fontSize: '0.72rem', color: '#64748b' }}>
+                          <div className="order-feed-secondary" style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '2px' }}>
                             {memberProfile?.contact || (sale.notes?.includes('PHONE:') ? sale.notes.split('PHONE:')[1]?.trim() : 'Counter Sale')}
                           </div>
                         </td>
+
+                        {/* Items */}
                         <td>
                           <div className="order-feed-items" style={{ fontSize: '0.8rem' }}>
                             {sale.items.map((it, idx) => (
                               <div key={idx} style={{ color: '#334155' }}>
-                                • {it.name} × <strong>{it.quantity}</strong>
+                                {it.name} <span style={{ color: '#64748b' }}>×</span> <strong>{it.quantity}</strong>
                               </div>
                             ))}
                           </div>
                         </td>
+
+                        {/* Fulfillment */}
                         <td>
-                          <span className={`badge ${sale.fulfillmentType === 'DELIVERY' ? 'badge-blue' : 'badge-yellow'}`}>
-                            {sale.fulfillmentType || 'COUNTER'}
-                          </span>
-                          {sale.fulfillmentType === 'DELIVERY' && (
-                            <div style={{ fontSize: '0.7rem', color: '#2563eb', fontWeight: 700, marginTop: '2px' }}>
-                              Fee: ₱{(sale.deliveryFee ?? 100).toLocaleString()}
-                            </div>
-                          )}
-                          {sale.fulfillmentType === 'DELIVERY' && sale.latitude && sale.longitude && (
-                            <a
-                              href={`https://www.google.com/maps/search/?api=1&query=${sale.latitude},${sale.longitude}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              style={{ 
-                                fontSize: '0.67rem', 
-                                color: '#16a34a', 
-                                fontWeight: 700, 
-                                marginTop: '3px', 
-                                display: 'inline-flex', 
-                                alignItems: 'center', 
-                                gap: '3px', 
-                                textDecoration: 'none',
-                                backgroundColor: '#ecfdf5',
-                                padding: '2px 6px',
-                                borderRadius: '4px',
-                                border: '1px solid #bbf7d0'
-                              }}
-                              title="View pinned delivery location in Google Maps"
-                            >
-                              <MapPin size={10} /> Pinned on Map
-                            </a>
-                          )}
-                        </td>
-                        <td>
-                          <div style={{ fontSize: '0.75rem', fontWeight: 600 }}>{sale.paymentMethod}</div>
-                          {sale.paymentRef && (
-                            <div className="order-feed-secondary" style={{ fontSize: '0.68rem', color: '#64748b' }}>
-                              Ref: <strong style={{ color: '#0f172a', fontFamily: 'monospace' }}>{sale.paymentRef}</strong>
-                            </div>
-                          )}
-                          {sale.receiptUrl && (
-                            <div>
-                              <button
-                                type="button"
-                                onClick={() => setViewingReceiptSale(sale)}
-                                style={{
-                                  marginTop: '3px',
-                                  padding: '2px 7px',
-                                  fontSize: '0.66rem',
-                                  backgroundColor: '#eff6ff',
-                                  color: '#1d4ed8',
-                                  border: '1px solid #bfdbfe',
-                                  borderRadius: '4px',
-                                  fontWeight: 700,
-                                  cursor: 'pointer',
-                                  display: 'inline-flex',
-                                  alignItems: 'center',
-                                  gap: '4px'
-                                }}
-                                title="Click to view and inspect uploaded payment receipt screenshot"
+                          <div className="order-feed-cell">
+                            <span className={`badge ${sale.fulfillmentType === 'DELIVERY' ? 'badge-blue' : 'badge-yellow'}`}>
+                              {sale.fulfillmentType || 'COUNTER'}
+                            </span>
+                            {sale.fulfillmentType === 'DELIVERY' && sale.latitude && sale.longitude && (
+                              <a
+                                href={`https://www.google.com/maps/search/?api=1&query=${sale.latitude},${sale.longitude}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                style={{ fontSize: '0.7rem', color: '#16a34a', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '3px', textDecoration: 'none', whiteSpace: 'nowrap' }}
+                                title="View pinned delivery location in Google Maps"
                               >
-                                <ImageIcon size={11} color="#2563eb" />
-                                <span>Receipt Proof</span>
-                              </button>
-                            </div>
-                          )}
-                          <div style={{ marginTop: '3px' }}>
-                            {sale.paymentVerified || sale.orderStatus === 'COMPLETED' ? (
-                              <span style={{ fontSize: '0.65rem', backgroundColor: '#ecfdf5', color: '#047857', border: '1px solid #a7f3d0', borderRadius: '4px', padding: '1px 6px', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
-                                <CheckCircle2 size={11} color="#047857" /> {sale.paymentMethod === 'E-WALLET' ? 'PAID' : 'VERIFIED'}
-                              </span>
-                            ) : (
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                <span style={{ fontSize: '0.65rem', backgroundColor: '#fffbeb', color: '#b45309', border: '1px solid #fde68a', borderRadius: '4px', padding: '1px 6px', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
-                                  <AlertTriangle size={11} color="#b45309" /> UNVERIFIED
-                                </span>
-                                <button
-                                  type="button"
-                                  onClick={async () => {
-                                    if (window.confirm(`Confirm payment of ₱${sale.total.toLocaleString()} for Order #${sale.id} (Ref: ${sale.paymentRef || 'N/A'})? This will unlock the customer's Official Sales Receipt.`)) {
-                                      await verifySalePayment(sale.id);
-                                    }
-                                  }}
-                                  style={{
-                                    padding: '2px 6px',
-                                    fontSize: '0.65rem',
-                                    backgroundColor: '#10b981',
-                                    color: '#fff',
-                                    border: 'none',
-                                    borderRadius: '4px',
-                                    cursor: 'pointer',
-                                    fontWeight: 700
-                                  }}
-                                  title="Verify Payment Received & Unlock Official Receipt"
-                                >
-                                  Verify Pay
-                                </button>
-                              </div>
+                                <MapPin size={11} /> View map
+                              </a>
                             )}
                           </div>
                         </td>
+
+                        {/* Payment */}
                         <td>
-                          <strong style={{ color: '#0f172a', fontSize: '0.92rem' }}>₱{sale.total.toLocaleString()}</strong>
+                          <div className="order-feed-cell" style={{ width: '100%' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#0f172a' }}>{sale.paymentMethod}</span>
+                              {sale.paymentVerified || sale.orderStatus === 'COMPLETED' ? (
+                                <span style={{ fontSize: '0.65rem', backgroundColor: '#ecfdf5', color: '#047857', border: '1px solid #a7f3d0', borderRadius: '4px', padding: '1px 6px', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '3px', whiteSpace: 'nowrap' }}>
+                                  <CheckCircle2 size={11} color="#047857" /> {sale.paymentMethod === 'E-WALLET' ? 'PAID' : 'VERIFIED'}
+                                </span>
+                              ) : (
+                                <span style={{ fontSize: '0.65rem', backgroundColor: '#fffbeb', color: '#b45309', border: '1px solid #fde68a', borderRadius: '4px', padding: '1px 6px', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '3px', whiteSpace: 'nowrap' }}>
+                                  <AlertTriangle size={11} color="#b45309" /> UNVERIFIED
+                                </span>
+                              )}
+                            </div>
+                            {sale.paymentRef && (
+                              <div className="order-feed-ref" title={sale.paymentRef}>
+                                Ref: {sale.paymentRef}
+                              </div>
+                            )}
+                            {!(sale.paymentVerified || sale.orderStatus === 'COMPLETED') && (
+                              <button
+                                type="button"
+                                onClick={async () => {
+                                  if (window.confirm(`Confirm payment of ₱${sale.total.toLocaleString()} for Order #${sale.id} (Ref: ${sale.paymentRef || 'N/A'})? This will unlock the customer's Official Sales Receipt.`)) {
+                                    await verifySalePayment(sale.id);
+                                  }
+                                }}
+                                style={{ padding: '3px 10px', fontSize: '0.68rem', backgroundColor: '#10b981', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 700 }}
+                                title="Verify Payment Received & Unlock Official Receipt"
+                              >
+                                Verify Payment
+                              </button>
+                            )}
+                          </div>
+                        </td>
+
+                        {/* Total */}
+                        <td>
+                          <strong style={{ color: '#0f172a', fontSize: '0.92rem', whiteSpace: 'nowrap' }}>₱{sale.total.toLocaleString()}</strong>
                           {sale.fulfillmentType === 'DELIVERY' && (
-                            <div style={{ fontSize: '0.68rem', color: '#2563eb', fontWeight: 600 }}>
-                              +₱{(sale.deliveryFee ?? 100).toLocaleString()} delivery
+                            <div style={{ fontSize: '0.68rem', color: '#64748b', whiteSpace: 'nowrap' }}>
+                              +₱{(sale.deliveryFee ?? 100).toLocaleString()} fee
                             </div>
                           )}
                         </td>
+
+                        {/* Status */}
                         <td>
-                          <span className={`badge ${
-                            sale.orderStatus === 'COMPLETED' ? 'badge-green' :
-                            sale.orderStatus === 'READY FOR PICKUP' ? (sale.fulfillmentType === 'DELIVERY' ? 'badge-blue' : 'badge-blue') :
-                            sale.orderStatus === 'OUT FOR DELIVERY' ? 'badge-blue' : 'badge-yellow'
-                          }`}>
-                            {sale.orderStatus === 'READY FOR PICKUP' && sale.fulfillmentType === 'DELIVERY'
-                              ? 'READY FOR DELIVERY'
-                              : sale.orderStatus}
-                          </span>
-                          {sale.orderStatus === 'READY FOR PICKUP' && sale.fulfillmentType === 'DELIVERY' && (
-                            <div style={{ fontSize: '0.65rem', color: '#2563eb', fontWeight: 700, marginTop: '2px' }}>
-                              Waiting for Rider Pickup
-                            </div>
-                          )}
+                          <div className="order-feed-cell" style={{ gap: '3px' }}>
+                            <span className={`badge ${
+                              sale.orderStatus === 'COMPLETED' ? 'badge-green' :
+                              sale.orderStatus === 'READY FOR PICKUP' || sale.orderStatus === 'OUT FOR DELIVERY' ? 'badge-blue' : 'badge-yellow'
+                            }`} style={{ fontSize: '0.66rem', padding: '3px 8px' }}>
+                              {sale.orderStatus === 'READY FOR PICKUP' && sale.fulfillmentType === 'DELIVERY'
+                                ? 'READY FOR DELIVERY'
+                                : sale.orderStatus}
+                            </span>
+                            {sale.orderStatus === 'READY FOR PICKUP' && sale.fulfillmentType === 'DELIVERY' && (
+                              <span style={{ fontSize: '0.65rem', color: '#2563eb', fontWeight: 600 }}>
+                                Waiting for rider
+                              </span>
+                            )}
+                          </div>
                         </td>
+
+                        {/* Actions */}
                         <td>
-                          <div style={{ display: 'flex', gap: '6px' }}>
+                          <div className="order-feed-actions">
+                            {sale.orderStatus !== 'COMPLETED' && (
+                              <button
+                                type="button"
+                                onClick={() => setAdvanceModalOrder(sale)}
+                                className="btn-primary"
+                                title="Advance to Next Status"
+                              >
+                                Advance
+                              </button>
+                            )}
                             {sale.receiptUrl && (
                               <button
                                 type="button"
                                 onClick={() => setViewingReceiptSale(sale)}
                                 className="btn"
-                                style={{ padding: '4px 8px', fontSize: '0.72rem', color: '#2563eb', borderColor: '#bfdbfe', backgroundColor: '#eff6ff' }}
+                                style={{ color: '#2563eb', borderColor: '#bfdbfe', backgroundColor: '#eff6ff' }}
                                 title="Inspect Uploaded Payment Receipt"
                               >
                                 <ImageIcon size={13} />
@@ -1712,28 +1688,16 @@ export const Dashboard: React.FC = () => {
                                 target="_blank"
                                 rel="noreferrer"
                                 className="btn"
-                                style={{ padding: '4px 8px', fontSize: '0.72rem', color: '#15803d', borderColor: '#bbf7d0', backgroundColor: '#f0fdf4', textDecoration: 'none' }}
+                                style={{ color: '#15803d', borderColor: '#bbf7d0', backgroundColor: '#f0fdf4', textDecoration: 'none' }}
                                 title="View rider's delivery proof photo"
                               >
-                                Proof
+                                <ImageIcon size={13} /> Proof
                               </a>
-                            )}
-                            {sale.orderStatus !== 'COMPLETED' && (
-                              <button
-                                type="button"
-                                onClick={() => setAdvanceModalOrder(sale)}
-                                className="btn-primary"
-                                style={{ padding: '4px 8px', fontSize: '0.72rem' }}
-                                title="Advance to Next Status"
-                              >
-                                Advance
-                              </button>
                             )}
                             <button
                               type="button"
                               onClick={() => setActiveReceipt(sale)}
                               className="btn"
-                              style={{ padding: '4px 8px', fontSize: '0.72rem' }}
                               title="Print Receipt"
                             >
                               <Printer size={13} />

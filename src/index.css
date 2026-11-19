@@ -210,24 +210,44 @@ tr:hover td {
   background-color: #f8fafc;
 }
 
-/* Keep long customer, product, and payment details inside the live orders feed. */
+/* Live orders feed — balanced columns, no squished badges/buttons */
 .orders-feed-table {
-  min-width: 940px;
+  min-width: 1120px;
   table-layout: fixed;
 }
 
-.orders-feed-table th:nth-child(1) { width: 13%; }
-.orders-feed-table th:nth-child(2) { width: 16%; }
-.orders-feed-table th:nth-child(3) { width: 21%; }
-.orders-feed-table th:nth-child(4) { width: 12%; }
-.orders-feed-table th:nth-child(5) { width: 13%; }
+.orders-feed-table th:nth-child(1) { width: 12%; }
+.orders-feed-table th:nth-child(2) { width: 14%; }
+.orders-feed-table th:nth-child(3) { width: 20%; }
+.orders-feed-table th:nth-child(4) { width: 10%; }
+.orders-feed-table th:nth-child(5) { width: 14%; }
 .orders-feed-table th:nth-child(6) { width: 8%; }
-.orders-feed-table th:nth-child(7) { width: 10%; }
-.orders-feed-table th:nth-child(8) { width: 7%; }
+.orders-feed-table th:nth-child(7) { width: 11%; }
+.orders-feed-table th:nth-child(8) { width: 11%; }
+
+.orders-feed-table th {
+  white-space: nowrap;
+}
 
 .orders-feed-table td {
   vertical-align: top;
-  overflow-wrap: anywhere;
+  padding: 14px 12px;
+  overflow-wrap: break-word;
+}
+
+/* Badges, pills and buttons must never break mid-word */
+.orders-feed-table .badge,
+.orders-feed-table .pill,
+.orders-feed-table button,
+.orders-feed-table a.btn {
+  white-space: nowrap;
+}
+
+.order-feed-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 5px;
 }
 
 .order-feed-customer,
@@ -240,6 +260,34 @@ tr:hover td {
   overflow-y: auto;
   overflow-x: hidden;
   padding-right: 4px;
+  line-height: 1.45;
+}
+
+.order-feed-ref {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: monospace;
+  font-size: 0.68rem;
+  color: #64748b;
+}
+
+.order-feed-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.order-feed-actions .btn,
+.order-feed-actions .btn-primary {
+  height: 30px;
+  padding: 0 10px;
+  font-size: 0.72rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
 }
 
 /* Badges */
