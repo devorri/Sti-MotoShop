@@ -103,7 +103,10 @@ export const PurchaseOrders: React.FC = () => {
   // Create PO modal
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [isDirectPO, setIsDirectPO] = useState(false);
-  const [poSupplierId, setPoSupplierId] = useState('');
+  const [poSupplierId, setPoSupplierId] = useState(''); // linked saved supplier (optional, auto-filled)
+  // Supplier info typed directly on the PO — no supplier account needed
+  const emptySupInfo = { name: '', contactPerson: '', phone: '', address: '', deliveryDays: '' };
+  const [supInfo, setSupInfo] = useState(emptySupInfo);
   const [poNotes, setPoNotes] = useState('');
   const [orderItems, setOrderItems] = useState<PurchaseOrderItem[]>([]);
   const [selectedProductId, setSelectedProductId] = useState('');
@@ -145,8 +148,35 @@ export const PurchaseOrders: React.FC = () => {
   const selectedProduct = products.find(p => p.id === selectedProductId);
   const priceOnFile = getSupplierPrice(poSupplierId, selectedProductId);
 
+  const fillFromSavedSupplier = (id: string) => {
+    const sp = suppliers.find(s => s.id === id);
+    setPoSupplierId(id);
+    setSelectedProductId('');
+    setCostPrice('');
+    if (!sp) { setSupInfo(emptySupInfo); return; }
+    setSupInfo({
+      name: sp.name,
+      contactPerson: sp.contactPerson || '',
+      phone: sp.phone || '',
+      address: sp.address || '',
+      deliveryDays: sp.deliveryDays !== undefined && sp.deliveryDays !== null ? String(sp.deliveryDays) : ''
+    });
+  };
+
+  const handleSupplierNameChange = (name: string) => {
+    setSupInfo(prev => ({ ...prev, name }));
+    const match = suppliers.find(s => s.name.trim().toLowerCase() === name.trim().toLowerCase());
+    setPoSupplierId(match ? match.id : '');
+  };
+
+  const deliveryDaysNum = parseInt(supInfo.deliveryDays, 10);
+  const expectedDeliveryDate = !isNaN(deliveryDaysNum) && deliveryDaysNum >= 0
+    ? new Date(Date.now() + deliveryDaysNum * 86400000)
+    : null;
+
   const resetCreateForm = () => {
     setPoSupplierId('');
+    setSupInfo(emptySupInfo);
     setPoNotes('');
     setOrderItems([]);
     setSelectedProductId('');
@@ -159,6 +189,7 @@ export const PurchaseOrders: React.FC = () => {
   const openCreate = (direct: boolean) => {
     resetCreateForm();
     setIsDirectPO(direct);
+    if (direct) setSupInfo({ ...emptySupInfo, deliveryDays: '0' }); // direct PO = delivered on the spot
     setShowCreateModal(true);
   };
 
@@ -210,30 +241,59 @@ export const PurchaseOrders: React.FC = () => {
   };
 
   const handleCreatePO = async () => {
-    if (!selectedSupplier) { alert('PLEASE SELECT A SUPPLIER. Add one in the SUPPLIERS tab if it is not listed.'); return; }
+    const supName = supInfo.name.trim();
+    const supPhone = supInfo.phone.trim();
+    const days = parseInt(supInfo.deliveryDays, 10);
+    if (!supName) { alert('ENTER THE SUPPLIER / COMPANY NAME.'); return; }
+    if (!supPhone) { alert('ENTER THE SUPPLIER CONTACT NUMBER.'); return; }
+    if (supInfo.deliveryDays.trim() === '' || isNaN(days) || days < 0) { alert('ENTER HOW MANY DAYS THE SUPPLIER WILL DELIVER TO BOSS RAP (0 = SAME DAY).'); return; }
     if (orderItems.length === 0) { alert('ADD AT LEAST ONE PRODUCT ITEM TO THE ORDER.'); return; }
     if (orderItems.some(it => !it.quantity || it.quantity <= 0 || !it.costPrice || it.costPrice <= 0)) {
       alert('EVERY ITEM NEEDS A QUANTITY AND A SUPPLIER PRICE GREATER THAN ZERO.');
       return;
     }
     setCreating(true);
+
+    // Keep the supplier's info for next time (created automatically — no separate supplier account/registration)
+    const existingSup = suppliers.find(s => s.id === poSupplierId)
+      || suppliers.find(s => s.name.trim().toLowerCase() === supName.toLowerCase());
+    const supRecord: Supplier = {
+      id: existingSup?.id || `SUP${Date.now().toString().slice(-6)}`,
+      name: existingSup?.name || supName,
+      contactPerson: supInfo.contactPerson.trim(),
+      phone: supPhone,
+      email: existingSup?.email || '',
+      address: supInfo.address.trim(),
+      deliveryDays: days,
+      active: true,
+      createdAt: existingSup?.createdAt
+    };
+    const supSaved = await saveSupplier(supRecord);
+    const linkedSupplierId = supSaved ? supRecord.id : existingSup?.id;
+
+    const orderedAt = new Date();
     const newPO: PurchaseOrder = {
       id: genId(isDirectPO ? 'DPO' : 'PO'),
-      supplierId: selectedSupplier.id,
-      supplierName: selectedSupplier.name.toUpperCase(),
+      supplierId: linkedSupplierId,
+      supplierName: supName.toUpperCase(),
+      supplierContact: supInfo.contactPerson.trim() || undefined,
+      supplierPhone: supPhone,
+      supplierAddress: supInfo.address.trim() || undefined,
+      deliveryDays: days,
+      expectedDelivery: new Date(orderedAt.getTime() + days * 86400000).toISOString(),
       items: orderItems.map(it => ({ ...it, receivedQty: 0, damagedQty: 0, excessQty: 0 })),
       totalCost: orderTotals.cost,
       amountPayable: 0,
       status: 'PENDING',
       poType: isDirectPO ? 'DIRECT' : 'STANDARD',
       notes: poNotes.trim() || undefined,
-      dateOrdered: new Date().toISOString()
+      dateOrdered: orderedAt.toISOString()
     };
     const ok = await savePurchaseOrder(newPO);
-    if (ok && savePricesToList) {
+    if (ok && savePricesToList && linkedSupplierId) {
       for (const it of orderItems) {
         if (it.productId) {
-          await saveProductSupplier({ supplierId: selectedSupplier.id, productId: it.productId, supplierPrice: it.costPrice });
+          await saveProductSupplier({ supplierId: linkedSupplierId, productId: it.productId, supplierPrice: it.costPrice });
         }
       }
     }
@@ -571,9 +631,25 @@ export const PurchaseOrders: React.FC = () => {
                         <code>{po.id}</code>
                         {po.poType === 'DIRECT' && <div><span className="badge badge-blue" style={{ marginTop: '4px' }}>DIRECT PO</span></div>}
                       </td>
-                      <td style={{ fontWeight: 700 }}>{po.supplierName}</td>
+                      <td style={{ fontWeight: 700 }}>
+                        {po.supplierName}
+                        {(po.supplierPhone || po.supplierContact) && (
+                          <div style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 500 }}>
+                            {po.supplierContact ? `${po.supplierContact} • ` : ''}{po.supplierPhone || ''}
+                          </div>
+                        )}
+                      </td>
                       <td style={{ fontSize: '0.72rem' }}>
                         <div>Ordered: {new Date(po.dateOrdered).toLocaleDateString()}</div>
+                        {po.expectedDelivery && (() => {
+                          const open = po.status === 'PENDING' || po.status === 'PARTIAL';
+                          const late = open && new Date(po.expectedDelivery).getTime() < new Date().setHours(0, 0, 0, 0);
+                          return (
+                            <div style={{ marginTop: '2px', color: late ? '#dc2626' : '#2563eb', fontWeight: late ? 800 : 600 }}>
+                              Expected: {new Date(po.expectedDelivery).toLocaleDateString()}{po.deliveryDays !== undefined ? ` (${po.deliveryDays}d)` : ''}{late ? ' • LATE' : ''}
+                            </div>
+                          );
+                        })()}
                         {po.dateReceived && <div style={{ color: '#16a34a', marginTop: '2px' }}>Last received: {new Date(po.dateReceived).toLocaleDateString()}</div>}
                       </td>
                       <td style={{ fontSize: '0.72rem', minWidth: '240px' }}>
@@ -646,7 +722,7 @@ export const PurchaseOrders: React.FC = () => {
               <tr>
                 <th>SUPPLIER</th>
                 <th>CONTACT</th>
-                <th>ADDRESS</th>
+                <th>ADDRESS / DELIVERY</th>
                 <th>PRODUCTS SUPPLIED</th>
                 <th>OPEN POs</th>
                 <th>STATUS</th>
@@ -666,7 +742,10 @@ export const PurchaseOrders: React.FC = () => {
                       <div>{sp.contactPerson || '—'}</div>
                       <div style={{ color: '#64748b' }}>{sp.phone || ''}{sp.email ? ` • ${sp.email}` : ''}</div>
                     </td>
-                    <td style={{ fontSize: '0.75rem' }}>{sp.address || '—'}</td>
+                    <td style={{ fontSize: '0.75rem' }}>
+                      {sp.address || '—'}
+                      {sp.deliveryDays !== undefined && <div style={{ color: '#2563eb', fontWeight: 700, marginTop: '2px' }}>Delivers in {sp.deliveryDays} day(s)</div>}
+                    </td>
                     <td>
                       <button type="button" className="btn" style={{ fontSize: '0.68rem', padding: '4px 8px', display: 'inline-flex', alignItems: 'center', gap: '4px' }} onClick={() => { setPriceListSupplier(sp); setPlEdits({}); }}>
                         <Tags size={12} /> {carried} product(s) & prices
@@ -812,24 +891,54 @@ export const PurchaseOrders: React.FC = () => {
               </div>
             )}
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginTop: '14px' }} className="builder-row">
-              <div>
-                <label style={labelStyle}>SUPPLIER *</label>
-                <select value={poSupplierId} onChange={e => { setPoSupplierId(e.target.value); setSelectedProductId(''); setCostPrice(''); }}>
-                  <option value="">-- SELECT SUPPLIER --</option>
-                  {activeSuppliers.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-                </select>
-                {activeSuppliers.length === 0 && (
-                  <div style={{ fontSize: '0.7rem', color: '#dc2626', marginTop: '4px' }}>
-                    No suppliers yet.{' '}
-                    <button type="button" style={linkBtn} onClick={() => { setShowCreateModal(false); setTab('SUPPLIERS'); setSupplierForm({ ...emptySupplier }); }}>Add a supplier</button>
-                  </div>
+            {/* Supplier information — typed directly, no supplier account needed */}
+            <div style={{ border: '1px solid #cbd5e1', borderRadius: '8px', padding: '12px', marginTop: '14px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px', flexWrap: 'wrap', gap: '8px' }}>
+                <strong style={{ fontSize: '0.78rem', display: 'inline-flex', alignItems: 'center', gap: '6px' }}><Building2 size={14} /> SUPPLIER INFORMATION</strong>
+                {activeSuppliers.length > 0 && (
+                  <select value={poSupplierId} onChange={e => fillFromSavedSupplier(e.target.value)} style={{ fontSize: '0.72rem', width: 'auto', maxWidth: '280px' }}>
+                    <option value="">Fill from previous supplier (optional)</option>
+                    {activeSuppliers.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                  </select>
                 )}
               </div>
-              <div>
-                <label style={labelStyle}>NOTES / REFERENCE (OPTIONAL)</label>
-                <input type="text" placeholder="e.g. Supplier quotation #, terms" value={poNotes} onChange={e => setPoNotes(e.target.value)} />
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }} className="builder-row">
+                <div>
+                  <label style={labelStyle}>SUPPLIER / COMPANY NAME *</label>
+                  <input type="text" placeholder="e.g. MOTO DISTRIBUTORS INC." value={supInfo.name} onChange={e => handleSupplierNameChange(e.target.value)} />
+                </div>
+                <div>
+                  <label style={labelStyle}>CONTACT PERSON</label>
+                  <input type="text" placeholder="e.g. Juan Dela Cruz" value={supInfo.contactPerson} onChange={e => setSupInfo({ ...supInfo, contactPerson: e.target.value })} />
+                </div>
+                <div>
+                  <label style={labelStyle}>CONTACT NUMBER *</label>
+                  <input type="tel" placeholder="e.g. 0912 345 6789" value={supInfo.phone} onChange={e => setSupInfo({ ...supInfo, phone: e.target.value })} />
+                </div>
+                <div>
+                  <label style={labelStyle}>ADDRESS</label>
+                  <input type="text" placeholder="e.g. Malolos, Bulacan" value={supInfo.address} onChange={e => setSupInfo({ ...supInfo, address: e.target.value })} />
+                </div>
+                <div>
+                  <label style={labelStyle}>DELIVERY TIME (DAYS) *</label>
+                  <input type="number" min="0" step="1" placeholder="e.g. 3" value={supInfo.deliveryDays} onChange={e => setSupInfo({ ...supInfo, deliveryDays: e.target.value })} />
+                </div>
+                <div>
+                  <label style={labelStyle}>EXPECTED DELIVERY TO BOSS RAP</label>
+                  <div style={{ padding: '9px 10px', borderRadius: '6px', backgroundColor: '#f1f5f9', fontSize: '0.8rem', fontWeight: 800, color: expectedDeliveryDate ? '#0f172a' : '#94a3b8' }}>
+                    {expectedDeliveryDate
+                      ? `${expectedDeliveryDate.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}${deliveryDaysNum === 0 ? ' (same day)' : ` (in ${deliveryDaysNum} day${deliveryDaysNum === 1 ? '' : 's'})`}`
+                      : 'Enter delivery days'}
+                  </div>
+                </div>
               </div>
+              <div style={{ fontSize: '0.68rem', color: '#64748b', marginTop: '8px' }}>
+                No supplier account needed — just type the supplier's details. They are saved automatically so you can reuse them on the next order.
+              </div>
+            </div>
+            <div style={{ marginTop: '10px' }}>
+              <label style={labelStyle}>NOTES / REFERENCE (OPTIONAL)</label>
+              <input type="text" placeholder="e.g. Supplier quotation #, terms" value={poNotes} onChange={e => setPoNotes(e.target.value)} />
             </div>
 
             {/* Item builder */}
@@ -848,9 +957,9 @@ export const PurchaseOrders: React.FC = () => {
                     value={selectedProductId}
                     onChange={e => { setSelectedProductId(e.target.value); setCostPrice(''); }}
                     style={{ fontSize: '0.78rem' }}
-                    disabled={!poSupplierId}
+                    disabled={!supInfo.name.trim()}
                   >
-                    <option value="">{poSupplierId ? `-- SELECT PRODUCT (${productOptions.length}) --` : '-- SELECT A SUPPLIER FIRST --'}</option>
+                    <option value="">{supInfo.name.trim() ? `-- SELECT PRODUCT (${productOptions.length}) --` : '-- ENTER SUPPLIER NAME FIRST --'}</option>
                     {productOptions.map(p => {
                       const sp = getSupplierPrice(poSupplierId, p.id);
                       const tag = p.stock <= 0 ? 'OUT OF STOCK' : `LOW: ${p.stock} left`;
@@ -861,7 +970,7 @@ export const PurchaseOrders: React.FC = () => {
                       );
                     })}
                   </select>
-                  {poSupplierId && productOptions.length === 0 && (
+                  {supInfo.name.trim() && productOptions.length === 0 && (
                     <div style={{ fontSize: '0.7rem', color: '#16a34a', marginTop: '4px' }}>All products are stocked. Tick “Also show products that still have stock” to order anyway.</div>
                   )}
                 </div>
@@ -881,7 +990,7 @@ export const PurchaseOrders: React.FC = () => {
                   <span>Boss Rap retail price: <strong>{peso(selectedProduct.price)}</strong></span>
                   {priceOnFile !== undefined && (
                     <span>
-                      Last price from {selectedSupplier?.name}: <strong>{peso(priceOnFile)}</strong>{' '}
+                      Last price from {selectedSupplier?.name || supInfo.name}: <strong>{peso(priceOnFile)}</strong>{' '}
                       <button type="button" style={linkBtn} onClick={() => setCostPrice(String(priceOnFile))}>use</button>
                     </span>
                   )}
@@ -1047,6 +1156,15 @@ export const PurchaseOrders: React.FC = () => {
               </div>
               <div style={{ fontSize: '0.78rem', color: '#475569', margin: '6px 0 12px' }}>
                 Supplier: <strong>{po.supplierName}</strong> • Ordered {new Date(po.dateOrdered).toLocaleString()} • Status: <strong>{po.status}</strong>
+                {(po.supplierContact || po.supplierPhone || po.supplierAddress || po.deliveryDays !== undefined) && (
+                  <div style={{ marginTop: '4px' }}>
+                    {po.supplierContact && <>Contact: <strong>{po.supplierContact}</strong> • </>}
+                    {po.supplierPhone && <>Phone: <strong>{po.supplierPhone}</strong> • </>}
+                    {po.supplierAddress && <>Address: <strong>{po.supplierAddress}</strong> • </>}
+                    {po.deliveryDays !== undefined && <>Delivery: <strong>{po.deliveryDays} day(s)</strong></>}
+                    {po.expectedDelivery && <> • Expected: <strong>{new Date(po.expectedDelivery).toLocaleDateString()}</strong></>}
+                  </div>
+                )}
                 {po.notes && <div style={{ marginTop: '4px' }}>Notes: {po.notes}</div>}
               </div>
               <div className="table-container">
@@ -1132,6 +1250,10 @@ export const PurchaseOrders: React.FC = () => {
               <div>
                 <label style={labelStyle}>ADDRESS</label>
                 <input type="text" value={supplierForm.address || ''} onChange={e => setSupplierForm({ ...supplierForm, address: e.target.value })} />
+              </div>
+              <div>
+                <label style={labelStyle}>DELIVERY TIME TO BOSS RAP (DAYS)</label>
+                <input type="number" min="0" step="1" placeholder="e.g. 3" value={supplierForm.deliveryDays ?? ''} onChange={e => setSupplierForm({ ...supplierForm, deliveryDays: e.target.value === '' ? undefined : Math.max(0, parseInt(e.target.value, 10) || 0) })} />
               </div>
               <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', marginTop: '6px' }}>
                 <button type="button" className="btn" onClick={() => setSupplierForm(null)}>CANCEL</button>

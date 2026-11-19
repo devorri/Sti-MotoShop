@@ -141,7 +141,7 @@ export const RiderPortal: React.FC = () => {
 
   const handleUpdateStatus = async (saleId: string, newStatus: 'OUT FOR DELIVERY' | 'COMPLETED') => {
     if (newStatus === 'COMPLETED' && !proofFile) {
-      setProofError('Take a delivery proof photo first (parcel with customer / at the door).');
+      setProofError('Take or upload a delivery proof picture first (parcel with customer / at the door).');
       return;
     }
     setProcessingId(saleId);
@@ -1030,13 +1030,12 @@ export const RiderPortal: React.FC = () => {
               gap: '8px'
             }}>
               <AlertCircle size={16} color="#2563eb" style={{ flexShrink: 0 }} />
-              <span>A <strong>delivery proof photo is required</strong>. Take a picture of the parcel received by the customer (or left at the door).</span>
+              <span>A <strong>delivery proof photo is required</strong>. Take or upload a picture of the parcel received by the customer (or left at the door).</span>
             </div>
 
-            {/* Proof of delivery photo */}
+            {/* Proof of delivery photo — rider can take a photo OR upload an existing picture */}
             <div style={{ marginBottom: '16px', textAlign: 'left' }}>
-              <label
-                htmlFor="delivery-proof-input"
+              <div
                 style={{
                   display: 'flex',
                   flexDirection: 'column',
@@ -1045,30 +1044,44 @@ export const RiderPortal: React.FC = () => {
                   gap: '6px',
                   border: `2px dashed ${proofPreview ? '#16a34a' : proofError ? '#dc2626' : '#94a3b8'}`,
                   borderRadius: '10px',
-                  padding: proofPreview ? '8px' : '22px 12px',
-                  cursor: 'pointer',
+                  padding: proofPreview ? '8px' : '18px 12px',
                   backgroundColor: proofPreview ? '#f0fdf4' : '#f8fafc',
-                  margin: 0
+                  marginBottom: '8px'
                 }}
               >
                 {proofPreview ? (
                   <>
                     <img src={proofPreview} alt="Delivery proof" style={{ maxWidth: '100%', maxHeight: '220px', borderRadius: '8px', objectFit: 'contain' }} />
-                    <span style={{ fontSize: '0.75rem', color: '#15803d', fontWeight: 700 }}>✓ Photo ready — tap to retake</span>
+                    <span style={{ fontSize: '0.75rem', color: '#15803d', fontWeight: 700 }}>✓ Proof picture ready{proofFile ? ` — ${proofFile.name}` : ''}</span>
                   </>
                 ) : (
                   <>
-                    <Camera size={28} color="#475569" />
-                    <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#0f172a' }}>Take Delivery Proof Photo *</span>
-                    <span style={{ fontSize: '0.72rem', color: '#64748b' }}>Opens the camera on mobile</span>
+                    <ImageIcon size={28} color="#475569" />
+                    <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#0f172a' }}>Proof of Delivery Picture *</span>
+                    <span style={{ fontSize: '0.72rem', color: '#64748b' }}>Take a photo now or upload a picture from your gallery</span>
                   </>
                 )}
-              </label>
+              </div>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <label htmlFor="delivery-proof-camera" className="btn" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', cursor: 'pointer', margin: 0, fontSize: '0.8rem', fontWeight: 800 }}>
+                  <Camera size={16} /> {proofPreview ? 'Retake Photo' : 'Take Photo'}
+                </label>
+                <label htmlFor="delivery-proof-upload" className="btn" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', cursor: 'pointer', margin: 0, fontSize: '0.8rem', fontWeight: 800 }}>
+                  <ImageIcon size={16} /> {proofPreview ? 'Change Picture' : 'Upload Picture'}
+                </label>
+              </div>
               <input
-                id="delivery-proof-input"
+                id="delivery-proof-camera"
                 type="file"
                 accept="image/*"
                 capture="environment"
+                style={{ display: 'none' }}
+                onChange={e => { handleProofSelected(e.target.files?.[0]); e.target.value = ''; }}
+              />
+              <input
+                id="delivery-proof-upload"
+                type="file"
+                accept="image/*"
                 style={{ display: 'none' }}
                 onChange={e => { handleProofSelected(e.target.files?.[0]); e.target.value = ''; }}
               />

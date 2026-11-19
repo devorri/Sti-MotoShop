@@ -1211,7 +1211,7 @@ export const Sales: React.FC = () => {
           <div className="card" style={{ padding: '18px', backgroundColor: '#ffffff' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
               <h4 style={{ fontSize: '0.85rem', color: '#0f172a', fontWeight: 800, margin: 0 }}>
-                PAYMENT METHOD & TENDER
+                PAYMENT METHOD & AMOUNT TENDERED
               </h4>
               <div style={{ display: 'flex', gap: '4px' }}>
                 <button
@@ -1282,10 +1282,20 @@ export const Sales: React.FC = () => {
               </div>
             ) : paymentMethod === 'CASH' ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '14px' }}>
+                {/* Amount Tendered = cash the customer hands to the cashier */}
+                <div style={{ backgroundColor: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '6px', padding: '8px 10px' }}>
+                  <label htmlFor="pos-amount-tendered" style={{ display: 'block', margin: 0, fontSize: '0.8rem', fontWeight: 900, color: '#1e3a8a' }}>
+                    AMOUNT TENDERED (CASH RECEIVED) *
+                  </label>
+                  <div style={{ fontSize: '0.7rem', color: '#1e40af', marginTop: '2px', lineHeight: 1.4 }}>
+                    Type how much cash the customer handed you (e.g. bill is ₱850, customer gives ₱1,000 → enter 1000). The system computes the change and prints it on the receipt.
+                  </div>
+                </div>
                 <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                   <input
+                    id="pos-amount-tendered"
                     type="number"
-                    placeholder="Cash Tendered (₱)..."
+                    placeholder="Enter amount tendered (₱)"
                     value={cashTendered}
                     onChange={e => setCashTendered(e.target.value)}
                     style={{ fontSize: '1rem', fontWeight: 700, height: '42px', flex: 1 }}
@@ -1335,6 +1345,18 @@ export const Sales: React.FC = () => {
                       {key}
                     </button>
                   ))}
+                </div>
+
+                {/* Amount due / tendered summary */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px', fontSize: '0.75rem' }}>
+                  <div style={{ border: '1px solid #e2e8f0', borderRadius: '6px', padding: '6px 8px' }}>
+                    <div style={{ color: '#64748b', fontWeight: 700 }}>AMOUNT DUE</div>
+                    <div style={{ fontWeight: 900, fontSize: '0.9rem' }}>₱{total.toLocaleString()}</div>
+                  </div>
+                  <div style={{ border: '1px solid #e2e8f0', borderRadius: '6px', padding: '6px 8px' }}>
+                    <div style={{ color: '#64748b', fontWeight: 700 }}>AMOUNT TENDERED</div>
+                    <div style={{ fontWeight: 900, fontSize: '0.9rem', color: numericTendered > 0 ? '#0f172a' : '#94a3b8' }}>₱{numericTendered.toLocaleString()}</div>
+                  </div>
                 </div>
 
                 {/* Change display */}

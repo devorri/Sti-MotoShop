@@ -1328,7 +1328,7 @@ export const Profile: React.FC = () => {
                 }}>
                   <div style={{ fontWeight: 800, color: isPaid ? '#15803d' : '#b45309', marginBottom: '2px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
                     {isPaid ? (
-                      <><CheckCircle2 size={13} color="#16a34a" /> PAYMENT STATUS: PAID & VERIFIED</>
+                      <><CheckCircle2 size={13} color="#16a34a" /> PAYMENT STATUS: PAID</>
                     ) : (
                       <><AlertCircle size={13} color="#d97706" /> PAYMENT STATUS: PENDING / UNPAID</>
                     )}

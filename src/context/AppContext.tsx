@@ -142,6 +142,11 @@ export interface PurchaseOrder {
   id: string;
   supplierId?: string;
   supplierName: string;
+  supplierContact?: string;  // supplier info entered directly on the PO (no supplier account needed)
+  supplierPhone?: string;
+  supplierAddress?: string;
+  deliveryDays?: number;     // how many days the supplier needs to deliver to Boss Rap
+  expectedDelivery?: string; // dateOrdered + deliveryDays
   items: PurchaseOrderItem[];
   totalCost: number;       // ordered qty x supplier price
   amountPayable?: number;  // what Boss Rap actually pays (received good qty x price + accepted excess)
@@ -159,6 +164,7 @@ export interface Supplier {
   phone?: string;
   email?: string;
   address?: string;
+  deliveryDays?: number;   // usual number of days to deliver to Boss Rap
   active: boolean;
   createdAt?: string;
 }
@@ -793,6 +799,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             id: po.id,
             supplierId: po.supplier_id || undefined,
             supplierName: po.supplier_name,
+            supplierContact: po.supplier_contact || undefined,
+            supplierPhone: po.supplier_phone || undefined,
+            supplierAddress: po.supplier_address || undefined,
+            deliveryDays: po.delivery_days !== undefined && po.delivery_days !== null ? Number(po.delivery_days) : undefined,
+            expectedDelivery: po.expected_delivery || undefined,
             totalCost,
             amountPayable: po.amount_payable !== undefined && po.amount_payable !== null
               ? Number(po.amount_payable) || 0
@@ -818,6 +829,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           phone: sp.phone || undefined,
           email: sp.email || undefined,
           address: sp.address || undefined,
+          deliveryDays: sp.delivery_days !== undefined && sp.delivery_days !== null ? Number(sp.delivery_days) : undefined,
           active: sp.active !== false,
           createdAt: sp.created_at
         })));
@@ -1585,6 +1597,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         id: po.id,
         supplier_id: po.supplierId || null,
         supplier_name: po.supplierName,
+        supplier_contact: po.supplierContact || null,
+        supplier_phone: po.supplierPhone || null,
+        supplier_address: po.supplierAddress || null,
+        delivery_days: po.deliveryDays ?? null,
+        expected_delivery: po.expectedDelivery || null,
         total_cost: po.totalCost,
         amount_payable: po.amountPayable ?? 0,
         status: po.status,
@@ -1597,7 +1614,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       if (poErr) {
         const msg = poErr.message || '';
         if (/column|schema cache|check constraint|violates/i.test(msg)) {
-          alert('Error saving purchase order: ' + msg + '\n\nYour database is missing the new Purchase Order columns. Please run revision_redemo_migration.sql in Supabase → SQL Editor, then try again.');
+          alert('Error saving purchase order: ' + msg + '\n\nYour database is missing the new Purchase Order columns. Please run revision_redemo_migration.sql and revision_final2_migration.sql in Supabase → SQL Editor, then try again.');
         } else {
           alert('Error saving purchase order: ' + msg);
         }
@@ -1668,7 +1685,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // ==========================================
   const missingTableHint = (msg: string) =>
     /relation|does not exist|schema cache|column/i.test(msg)
-      ? '\n\nPlease run revision_redemo_migration.sql in Supabase → SQL Editor first.'
+      ? '\n\nPlease run revision_redemo_migration.sql and revision_final2_migration.sql in Supabase → SQL Editor first.'
       : '';
 
   const saveSupplier = async (supplier: Supplier): Promise<boolean> => {
@@ -1680,6 +1697,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         phone: supplier.phone || null,
         email: supplier.email || null,
         address: supplier.address || null,
+        delivery_days: supplier.deliveryDays ?? null,
         active: supplier.active
       }]);
       if (error) {

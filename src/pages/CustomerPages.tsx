@@ -697,11 +697,11 @@ export const CustomerDashboard: React.FC = () => {
                 Payment Notifications & Confirmations
               </h2>
               <p style={{ margin: '2px 0 0', fontSize: '0.82rem', color: '#64748b' }}>
-                All online payments (GCash, Maya, Bank Transfer) verified by Boss Rap Motor Shop.
+                Your online payments (GCash, Maya, Bank Transfer) received by Boss Rap Motor Shop.
               </p>
             </div>
             <span className="badge badge-green" style={{ fontSize: '0.75rem', padding: '4px 10px' }}>
-              ONLINE PAYMENTS VERIFIED
+              ONLINE PAYMENTS RECEIVED
             </span>
           </div>
 
@@ -751,10 +751,10 @@ export const CustomerDashboard: React.FC = () => {
                         <div>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                             <strong style={{ fontSize: '0.95rem', color: '#0f172a' }}>
-                              Payment Verified • ₱{order.total.toLocaleString()}
+                              Payment Received • ₱{order.total.toLocaleString()}
                             </strong>
                             <span className="badge badge-green" style={{ fontSize: '0.68rem' }}>
-                              VERIFIED
+                              PAID
                             </span>
                           </div>
                           <div style={{ fontSize: '0.78rem', color: '#15803d', fontWeight: 600, marginTop: '2px' }}>
@@ -1018,7 +1018,7 @@ export const CustomerDashboard: React.FC = () => {
                 }}>
                   <div style={{ fontWeight: 800, color: isPaid ? '#15803d' : '#b45309', marginBottom: '2px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
                     {isPaid ? (
-                      <><CheckCircle2 size={13} color="#16a34a" /> PAYMENT STATUS: PAID & VERIFIED</>
+                      <><CheckCircle2 size={13} color="#16a34a" /> PAYMENT STATUS: PAID</>
                     ) : (
                       <><AlertCircle size={13} color="#d97706" /> PAYMENT STATUS: PENDING / UNPAID</>
                     )}

@@ -2850,7 +2850,7 @@ export const Dashboard: React.FC = () => {
                 }}>
                   <div style={{ fontWeight: 800, color: isPaid ? '#15803d' : '#b45309', marginBottom: '2px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
                     {isPaid ? (
-                      <><CheckCircle2 size={13} color="#16a34a" /> PAYMENT STATUS: PAID & VERIFIED</>
+                      <><CheckCircle2 size={13} color="#16a34a" /> PAYMENT STATUS: PAID</>
                     ) : (
                       <><AlertTriangle size={13} color="#d97706" /> PAYMENT STATUS: PENDING / UNPAID</>
                     )}
@@ -3067,7 +3067,7 @@ export const Dashboard: React.FC = () => {
                 ) : (
                   <div style={{ flex: 1.6, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', backgroundColor: '#ecfdf5', color: '#047857', border: '1px solid #a7f3d0', borderRadius: '8px', fontWeight: 800, fontSize: '0.85rem' }}>
                     <CheckCircle2 size={16} color="#047857" />
-                    <span>Payment Verified</span>
+                    <span>{viewingReceiptSale.paymentMethod === 'E-WALLET' ? 'PAID' : 'Payment Verified'}</span>
                   </div>
                 )}
               </div>

@@ -1343,7 +1343,7 @@ export const Shop: React.FC = () => {
                       {product.description}
                     </p>
 
-                    {/* Rider Club Points micro-tag */}
+                    {/* Boss Rap Points micro-tag */}
                     <div style={{ 
                       display: 'inline-flex', 
                       alignItems: 'center', 
